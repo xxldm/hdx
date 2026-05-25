@@ -55,7 +55,7 @@
 - 复杂改动应包含最小可复现用例。
 - 修复缺陷时，先复现再修复；无法复现必须记录原因。
 - 生成代码、生成文档和配置也属于项目产物，必须进入质量门禁。
-- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config` 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 构建。
+- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config`、`--exact-reachability-metadata` 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 编译和健康检查。
 
 ## 6. 可观测性约束
 

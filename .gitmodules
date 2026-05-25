@@ -1,0 +1,9 @@
+[submodule "services/backend"]
+	path = services/backend
+	url = https://github.com/xxldm/hdx-backend.git
+[submodule "apps/web"]
+	path = apps/web
+	url = https://github.com/xxldm/hdx-web.git
+[submodule "apps/desktop"]
+	path = apps/desktop
+	url = https://github.com/xxldm/hdx-desktop.git

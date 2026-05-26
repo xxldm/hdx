@@ -1,7 +1,7 @@
 ﻿# 后端总体架构方案 v1 实施计划
 
 - 创建日期：2026-05-25
-- 当前状态：已完成后端 v1 骨架与正式 Java 25 / AOT 复验，Native Image 方案仍在收敛
+- 当前状态：已完成后端 v1 骨架与正式 Java 25 / AOT 复验，Native Image 回到方案一继续收敛
 - 计划来源：用户确认的“后端总体架构方案 v1”
 - 文档语言：中文
 
@@ -40,7 +40,7 @@
 - GraalVM JDK 25 解析部分依赖内嵌旧式 `resource-config.json` 时会触发 `LegacyResourceConfigurationParser` 内部 NPE。
 - 方案一：通过 `--exclude-config` 排除 Nacos client、Angus Activation、WebJars locator、Tomcat、Log4j API、H2 的部分内嵌 `resource-config.json` 后，三个可执行模块均可编译为 native 可执行文件；但运行 `backend-core-service.exe` 时暴露 Tomcat/Jakarta/Hibernate/JBoss Logging metadata 缺口，健康检查未通过。当前方案一代码已在后端子仓库提交 `8c01948` 留档。
 - 方案二：移除 `--exclude-config` 与 `<excludeConfig>`，改用 `--exact-reachability-metadata=false` 降低严格可达性检查；`backend-core-service` native 编译仍在 `LegacyResourceConfigurationParser` 解析阶段触发 GraalVM 内部 NPE。额外补测 `-R:MissingRegistrationReportingMode=Warn` 也不能绕过该 NPE，因为错误发生在资源配置解析阶段，而不是缺失注册报告阶段。
-- 当前父 POM 保留方案二尝试参数 `--exact-reachability-metadata=false` 与 `--initialize-at-build-time=com.alibaba.fastjson,com.alibaba.fastjson2`；Native Image 最终方案待继续收敛。
+- 当前已按用户要求回到方案一：父 POM 重新使用 `--exclude-config` 排除依赖内嵌旧式 `resource-config.json`，并保留 `--initialize-at-build-time=com.alibaba.fastjson,com.alibaba.fastjson2`；下一步需要在方案一基础上补齐运行期 reachability metadata 并复验健康检查。
 - MySQL、SQLite、Seata、更多微服务拆分、具体 API 字段、权限模型细节和数据库迁移工具留到下一轮细节设计。
 
 ## 状态记录
@@ -64,3 +64,4 @@
 - 2026-05-26：已按用户要求先提交方案一状态：后端子仓库提交 `8c01948`，根仓库文档提交 `2480d51`。
 - 2026-05-26：切换方案二，移除 POM 中 `--exclude-config` 与 `<excludeConfig>`，加入 `--exact-reachability-metadata=false`；`mvn validate` 通过。
 - 2026-05-26：方案二下 `backend-core-service` native 编译失败，仍为 GraalVM `LegacyResourceConfigurationParser` 处理旧式 `resource-config.json` 时的内部 NPE；补测 `-R:MissingRegistrationReportingMode=Warn` 同样无效。
+- 2026-05-26：按用户要求回到方案一，后端子仓库通过 revert 提交恢复 `--exclude-config` 排除配置，后续在方案一基础上补运行期 metadata 缺口。

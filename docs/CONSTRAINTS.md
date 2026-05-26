@@ -11,12 +11,14 @@
 - `AGENTS.md` 只做地图和硬规则，不写成长篇手册。
 - 长期有效的知识必须放入 `docs/`，并通过索引或链接可发现。
 - 临时计划、架构取舍、技术债务和验证缺口必须版本化记录。
+- 需要计划的工作必须把计划落实到 `docs/plans/` 下的本地文件，不能只保留在聊天记录中。
 - 文档如果不再反映真实代码行为，视为缺陷。
 
 ## 2. 框架与选型约束
 
 - 后端第一阶段已绑定 Java 25（GraalVM）、Maven 3.8.8、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x，详见 `docs/adr/0002-backend-java-spring-cloud-alibaba-architecture.md`。
-- Web 与 App 当前阶段仍不绑定框架。
+- Web 第一阶段已绑定 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm，详见 `docs/adr/0003-web-nuxt-architecture.md`。
+- App 当前阶段仍不绑定框架。
 - 引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - ADR 至少说明：背景、决策、备选方案、影响范围、验证方式、回滚条件。
 - 默认选择可读、稳定、生态成熟、容易被工具和智能体检查的技术。
@@ -55,7 +57,9 @@
 - 复杂改动应包含最小可复现用例。
 - 修复缺陷时，先复现再修复；无法复现必须记录原因。
 - 生成代码、生成文档和配置也属于项目产物，必须进入质量门禁。
-- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config`、`--exact-reachability-metadata` 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 编译和健康检查。
+- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 编译和健康检查。
+- 后端 native metadata 优先顺序为：Spring Boot/Spring Framework AOT 内置支持、GraalVM 官方 Reachability Metadata Repository、项目内 Spring `RuntimeHints`。除非用于短期诊断，项目源码不直接维护手写 `reflect-config.json`、`resource-config.json` 等旧式 native metadata。
+- Hibernate enhance 只能视为构建期实体字节码增强能力，用于减少 Hibernate 在 native closed world 环境中的运行期动态增强风险；它不是 RuntimeHints 或官方 reachability metadata 的替代品。
 
 ## 6. 可观测性约束
 

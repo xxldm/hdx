@@ -7,7 +7,7 @@
 HDX 暂定由以下部分组成：
 
 - `services/backend/`：后台服务端 Maven 多模块工程，采用 Java 25（GraalVM）、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x。
-- `apps/web/`：Web 端占位。
+- `apps/web/`：Web 端 Nuxt 应用，采用 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm。
 - `apps/mobile/`：App 端占位。
 - `packages/shared/`：跨端共享契约、类型、工具和协议占位。
 - `docs/`：项目事实源、计划、约束和决策记录。
@@ -48,11 +48,26 @@ HDX 暂定由以下部分组成：
 - 跨端共享的错误码、协议字段、权限枚举和基础类型应归入共享层。
 - 端侧私有展示模型不得污染后台领域模型。
 
+## Web 第一阶段架构
+
+Web 工程位于 `apps/web/`，当前不把仓库根目录升级为 pnpm workspace。
+
+Web 第一阶段采用：
+
+- Nuxt 4.x 默认 SSR 形态。
+- Nuxt UI 4.x 作为 UI 组件和主题基础。
+- `@nuxtjs/i18n` 作为国际化方案，默认 `zh-CN`，备用 `en-US`。
+- i18n 使用应用内部状态切换，URL 不随语言变化，不使用域名或路径前缀切换语言。
+- Pinia 作为端侧状态管理，按领域拆分 store。
+- Zod 作为 Web 边界数据解析与显式校验工具。
+- pnpm 作为 `apps/web/` 内包管理器。
+
+Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴露的 BFF/proxy 路径，例如 `/api/hdx/v1/**`；Nuxt server 再调用后端公开 REST API，例如 `/api/v1/**`。后端地址、本机 all-in-one 令牌和其他敏感配置只能放在 Nuxt server 私有 `runtimeConfig` 中。
+
 ## 待决策事项
 
 以下事项尚未决策，不能在没有 ADR 的情况下擅自固定：
 
-- Web 框架、构建工具和 UI 方案。
 - App 技术栈。
 - 缓存、对象存储和队列。
 - 部署、CI、发布和环境管理方式。
@@ -79,3 +94,9 @@ HDX 暂定由以下部分组成：
 - Spring Cloud Alibaba 2025.1.x 不使用 bootstrap 配置，Nacos 配置通过 `spring.config.import` 接入。
 - 服务端 profile 使用外部数据库和 Nacos。
 - all-in-one 使用本地配置文件和本地嵌入式数据库。
+
+后端 native 规则：
+
+- 正式 native 构建入口使用 `mvn -Pnative package`，由 Maven 生命周期先执行 Spring AOT，再执行 GraalVM Native Build Tools。
+- JPA 实体在 `backend-core` 中通过 Hibernate Maven 插件做构建期字节码增强；新增实体时必须纳入增强范围。
+- Native Image metadata 优先依赖 Spring AOT 与官方 reachability metadata；项目内缺口只通过 Spring `RuntimeHints` 补齐。

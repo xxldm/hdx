@@ -7,6 +7,7 @@
 - `CONSTRAINTS.md`：项目约束。
 - `ARCHITECTURE.md`：暂定架构。
 - `QUALITY.md`：质量门禁。
+- `GIT.md`：Git 提交、推送和智能体提交纪律。
 - `HARNESS_ENGINEERING.md`：Harness Engineering 实践到本项目约束的映射。
 - `adr/`：架构决策记录。
 - `plans/`：执行计划与技术债记录。

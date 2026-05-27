@@ -102,7 +102,7 @@ No description provided.
 2. 只能因为缺少必需认证、权限、密钥、工具或需求而提前停止。被阻塞时，必须写入 workpad，并按状态流处理。
 3. 最终消息只报告已完成动作和阻塞项，不写泛泛的用户下一步建议。
 4. 只在当前 issue 的隔离仓库副本内工作，不触碰 workspace 之外的项目路径。
-5. 仓库内项目文档默认使用中文；引用外部原文、协议字段、代码标识符和错误输出可以保留原文。
+5. 仓库内项目文档默认使用中文；Workpad 标题和正文默认使用中文；引用外部原文、协议字段、代码标识符、命令、路径、日志和错误输出可以保留原文。
 
 ## 前置条件：Linear 工具
 
@@ -118,7 +118,7 @@ No description provided.
 - 先复现：修改代码前必须捕获当前行为、失败信号或可验证现状，并写入 workpad。
 - 保持 ticket 元数据、状态、检查清单、验收标准和链接准确。
 - 使用一个持久 Linear 评论作为进度事实源，不发布额外的完成摘要评论。
-- 如果 issue 描述或评论中包含 `Validation`、`Test Plan` 或 `Testing`，必须复制到 workpad 的验收/验证清单并执行，不能降级为可选项。
+- 如果 issue 描述或评论中包含 `Validation`、`Test Plan` 或 `Testing`，必须转写到 workpad 的验收/验证清单并执行，不能降级为可选项；转写说明用中文，原始命令、字段名和错误输出保留原文。
 - 发现有意义但超出范围的改进时，另建 Backlog Linear issue，不扩大当前 scope。新 issue 必须有清楚标题、描述、验收标准、同项目归属、与当前 issue 的 `related` 关系；如果依赖当前 issue，还要使用 `blockedBy`。
 - 只有满足对应质量门槛时才移动状态。
 - 自主端到端推进，除非被缺失需求、密钥、权限或工具阻塞。
@@ -150,7 +150,7 @@ No description provided.
 2. 读取当前 state。
 3. 按状态进入流程：
    - `Backlog`：不修改 issue 内容或状态，停止并等待人类移动到 `Todo`。
-   - `Todo`：立即更新为 `In Progress`，再确保 `## Codex Workpad` bootstrap 评论存在，然后进入执行流程。
+   - `Todo`：立即更新为 `In Progress`，再确保 `## Codex 工作台` bootstrap 评论存在，然后进入执行流程。
    - `In Progress`：从当前 workpad 评论继续执行流程。
    - `Human Review`：等待并轮询决策或评审更新，不做代码改动。
    - `Merging`：打开并遵循 `.codex/skills/land/SKILL.md`，不要直接调用 `gh pr merge`。
@@ -161,14 +161,14 @@ No description provided.
    - 从 `origin/main` 创建新分支，并作为新 attempt 重新进入执行流程。
 5. 对 `Todo` ticket，启动顺序必须严格为：
    - `update_issue(..., state: "In Progress")`
-   - 查找或创建 `## Codex Workpad` bootstrap 评论
+   - 查找或创建 `## Codex 工作台` bootstrap 评论
    - 再开始分析、计划和实现
 6. 如果状态和 issue 内容不一致，先在 workpad 简要记录，再走最安全流程。
 
 ## Step 1：开始或继续执行
 
 1. 查找或创建单一持久 scratchpad 评论：
-   - 搜索现有评论中的 marker header：`## Codex Workpad`。
+   - 搜索现有评论中的 marker header：优先 `## Codex 工作台`，兼容旧评论 `## Codex Workpad`。
    - 忽略已 resolved 评论，只复用活跃/未 resolved 评论。
    - 找到则复用，不创建新 workpad 评论。
    - 找不到则创建一个 workpad 评论，后续所有进度都更新这个评论。
@@ -177,7 +177,7 @@ No description provided.
 3. 立即同步 workpad：
    - 勾选已经完成的项。
    - 扩展或修正计划，使其覆盖当前 scope。
-   - 确认 `Acceptance Criteria` 和 `Validation` 与任务仍匹配。
+   - 确认 `验收标准` 和 `验证` 与任务仍匹配。
 4. 在 workpad 写入或更新层级计划。
 5. workpad 顶部必须包含一个紧凑环境戳代码块：
    - 格式：`host:path@shortSha`
@@ -186,11 +186,11 @@ No description provided.
 6. 在同一评论中加入明确的验收标准和 TODO checklist。
    - 如果涉及用户可见变化，验收标准必须包含端到端用户路径。
    - 如果触及 App/Web/后台行为，加入对应运行或交互路径检查。
-   - 如果 ticket 描述/评论包含 `Validation`、`Test Plan` 或 `Testing`，把它们复制到 workpad 的 `Acceptance Criteria` 和 `Validation`，作为必选 checkbox。
+   - 如果 ticket 描述/评论包含 `Validation`、`Test Plan` 或 `Testing`，把它们转写到 workpad 的 `验收标准` 和 `验证`，作为必选 checkbox；清单描述用中文，原始命令、字段名和错误输出保留原文。
 7. 对计划做一次 principal-style self-review，并把修正写回 workpad。
-8. 实现前捕获具体复现信号，写入 workpad 的 `Notes`：命令/输出、截图、日志或确定性行为。
-9. 代码编辑前同步最新 `origin/main`，并在 workpad `Notes` 写入 `pull skill evidence`：
-   - merge source(s)
+8. 实现前捕获具体复现信号，写入 workpad 的 `备注`：用中文说明命令/输出、截图、日志或确定性行为；命令、路径、日志和错误输出保留原文。
+9. 代码编辑前同步最新 `origin/main`，并在 workpad `备注` 写入同步证据：
+   - 合入来源
    - 结果：`clean` 或 `conflicts resolved`
    - 同步后的 `HEAD` short SHA
 10. 压缩上下文后进入执行。
@@ -237,9 +237,9 @@ No description provided.
    - 不要让已完成工作在计划中保持未勾选。
 5. 执行 scope 所需验证：
    - 必须执行 ticket 提供的 `Validation` / `Test Plan` / `Testing`。
-   - 优先给出直接证明改动行为的 targeted proof。
-   - 可临时做本地 proof edit 来验证假设，但必须在提交前还原。
-   - 临时 proof 步骤和结果必须写入 workpad 的 `Validation` 或 `Notes`。
+   - 优先给出直接证明改动行为的目标证明。
+   - 可临时做本地验证改动来验证假设，但必须在提交前还原。
+   - 临时验证步骤和结果必须用中文摘要写入 workpad 的 `验证` 或 `备注`；命令、路径、日志和错误输出保留原文。
 6. 重新检查所有验收标准并补齐缺口。
 7. 每次尝试 `git push` 前，必须运行 scope 所需验证并确认通过；如果失败，先修复并重跑。`git push` 必须有用户明确批准。
 8. 如果创建 PR：
@@ -247,10 +247,10 @@ No description provided.
    - 确保 GitHub PR 带有 `symphony` label。
 9. 将最新 `origin/main` 合入当前分支，解决冲突并重跑检查。
 10. 更新 workpad 最终 checklist 和验证记录：
-   - 勾选已完成的 Plan / Acceptance Criteria / Validation。
-   - 在同一 workpad 写 final handoff notes：commit + validation summary。
+   - 勾选已完成的 `计划` / `验收标准` / `验证`。
+   - 在同一 workpad 写最终交接备注：提交 + 验证摘要。
    - 不要在 workpad 里重复 PR URL，PR 关系应通过 issue attachment/link 表达。
-   - 如有不清楚的地方，在底部加入短小 `### Confusions`。
+   - 如有不清楚的地方，在底部加入短小 `### 疑问`。
    - 不发布额外完成摘要评论。
 11. 移动到 `Human Review` 前：
    - 如果有 PR Manual QA Plan，读取并用它加强 UI/runtime 验证。
@@ -258,7 +258,7 @@ No description provided.
    - 确认 PR checks 在最新提交后全绿。
    - 确认所有 ticket-provided 验证项已在 workpad 标记完成。
    - 重复 check-address-verify，直到无未处理评论且 checks 通过。
-   - 刷新 workpad，确保 `Plan`、`Acceptance Criteria`、`Validation` 与真实完成状态一致。
+   - 刷新 workpad，确保 `计划`、`验收标准`、`验证` 与真实完成状态一致。
 12. 只有完成以上步骤后，才把 issue 移动到 `Human Review`。
 13. 例外：如果按 blocked-access escape hatch 被必要非 GitHub 工具或认证阻塞，可移动到 `Human Review`，并写清 blocker brief 和 unblock 动作。
 
@@ -276,11 +276,11 @@ No description provided.
 1. 把 `Rework` 当作完整方案重置，不是小修小补。
 2. 重读完整 issue body 和所有人类评论，明确这次 attempt 会有什么不同。
 3. 关闭当前 issue 绑定的旧 PR。
-4. 移除当前 issue 的旧 `## Codex Workpad` 评论。
+4. 移除当前 issue 的旧 `## Codex 工作台` / `## Codex Workpad` 评论。
 5. 从 `origin/main` 创建新分支。
 6. 从正常 kickoff flow 重新开始：
    - 如果当前 issue 是 `Todo`，移动到 `In Progress`；否则保持状态。
-   - 创建新的 `## Codex Workpad` bootstrap 评论。
+   - 创建新的 `## Codex 工作台` bootstrap 评论。
    - 建立新计划/checklist 并端到端执行。
 
 ## HDX 仓库入口
@@ -376,14 +376,14 @@ pnpm build
 - PR feedback sweep 完成且没有未处理 actionable comments。
 - PR checks 绿色，分支已按授权推送，PR 已链接到 issue。
 - PR metadata 完整，包括 `symphony` label。
-- 如果触及 App/Web 运行行为，已完成对应 runtime validation 和必要媒体/截图证据。
+- 如果触及 App/Web 运行行为，已完成对应运行时验证和必要媒体/截图证据。
 
 ## Guardrails
 
 - 如果分支 PR 已关闭或合并，不复用该分支或旧实现状态。
 - 如果 issue 是 `Backlog`，不修改，等待人类移动到 `Todo`。
 - 不编辑 issue body/description 记录计划或进度。
-- 每个 issue 只使用一个持久 workpad 评论：`## Codex Workpad`。
+- 每个 issue 只使用一个持久 workpad 评论：优先使用 `## Codex 工作台`；继续兼容旧评论 `## Codex Workpad`。
 - 如果 comment editing 不可用，使用 update script；只有 MCP 编辑和脚本编辑都不可用时，才报告阻塞。
 - 临时 proof edits 只能用于本地验证，提交前必须还原。
 - 超出范围的改进另建 Backlog issue，不扩大当前 scope。
@@ -395,36 +395,36 @@ pnpm build
 
 ## Workpad 模板
 
-使用这个结构作为持久 workpad 评论，并在执行全过程原地更新：
+使用这个结构作为持久 workpad 评论，并在执行全过程原地更新。标题和正文默认中文，命令、路径、协议字段、日志和错误输出可以保留原文：
 
 ````md
-## Codex Workpad
+## Codex 工作台
 
 ```text
 host:path@shortSha
 ```
 
-### Plan
+### 计划
 
-- [ ] 1. Parent task
-  - [ ] 1.1 Child task
-  - [ ] 1.2 Child task
-- [ ] 2. Parent task
+- [ ] 1. 父任务
+  - [ ] 1.1 子任务
+  - [ ] 1.2 子任务
+- [ ] 2. 父任务
 
-### Acceptance Criteria
+### 验收标准
 
-- [ ] Criterion 1
-- [ ] Criterion 2
+- [ ] 验收项 1
+- [ ] 验收项 2
 
-### Validation
+### 验证
 
-- [ ] targeted tests: ``
+- [ ] 目标测试：``
 
-### Notes
+### 备注
 
--
+- 待补充
 
-### Confusions
+### 疑问
 
--
+- 暂无
 ````

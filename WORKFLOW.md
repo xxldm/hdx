@@ -2,7 +2,7 @@
 tracker:
   kind: linear
   api_key: $LINEAR_API_KEY
-  project_slug: TODO-HDX-LINEAR-PROJECT-SLUG
+  project_slug: hdx-44dde4471027
   active_states:
     - Todo
     - In Progress

@@ -33,7 +33,7 @@ agent:
   max_turns: 10
   max_retry_backoff_ms: 300000
 codex:
-  command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server
+  command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server -c "model_provider=\"$SYMPHONY_CODEX_MODEL_PROVIDER\"" -c "model=\"$SYMPHONY_CODEX_MODEL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.name=\"$SYMPHONY_CODEX_PROVIDER_NAME\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.base_url=\"$SYMPHONY_CODEX_BASE_URL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.wire_api=\"$SYMPHONY_CODEX_WIRE_API\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.requires_openai_auth=$SYMPHONY_CODEX_REQUIRES_OPENAI_AUTH"
   turn_timeout_ms: 3600000
   read_timeout_ms: 30000
   stall_timeout_ms: 300000

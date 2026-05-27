@@ -56,7 +56,7 @@ codex:
     type: workspaceWrite
     writableRoots:
       - D:\Project\symphony-workspaces\hdx
-    networkAccess: false
+    networkAccess: true
     excludeTmpdirEnvVar: false
     excludeSlashTmp: false
   turn_timeout_ms: 3600000

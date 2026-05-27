@@ -24,7 +24,7 @@ data/
 .env
 .env.*
 !.env.example
+start-symphony.local.ps1
 *.pem
 *.key
 *.crt
-

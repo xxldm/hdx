@@ -49,7 +49,7 @@ agent:
   max_turns: 20
   max_retry_backoff_ms: 300000
 codex:
-  command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server -c "model_provider=\"$SYMPHONY_CODEX_MODEL_PROVIDER\"" -c "model=\"$SYMPHONY_CODEX_MODEL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.name=\"$SYMPHONY_CODEX_PROVIDER_NAME\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.base_url=\"$SYMPHONY_CODEX_BASE_URL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.wire_api=\"$SYMPHONY_CODEX_WIRE_API\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.requires_openai_auth=$SYMPHONY_CODEX_REQUIRES_OPENAI_AUTH"
+  command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server -c "windows.sandbox=\"unelevated\"" -c "model_provider=\"$SYMPHONY_CODEX_MODEL_PROVIDER\"" -c "model=\"$SYMPHONY_CODEX_MODEL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.name=\"$SYMPHONY_CODEX_PROVIDER_NAME\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.base_url=\"$SYMPHONY_CODEX_BASE_URL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.wire_api=\"$SYMPHONY_CODEX_WIRE_API\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.requires_openai_auth=$SYMPHONY_CODEX_REQUIRES_OPENAI_AUTH"
   approval_policy: on-request
   thread_sandbox: workspace-write
   turn_sandbox_policy:

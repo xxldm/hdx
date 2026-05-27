@@ -33,9 +33,9 @@ agent:
   max_turns: 10
   max_retry_backoff_ms: 300000
 codex:
-  command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server
+  command: CODEX_HOME="/e/soft/codex-cli-home" PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server
   turn_timeout_ms: 3600000
-  read_timeout_ms: 5000
+  read_timeout_ms: 30000
   stall_timeout_ms: 300000
 server:
   port: 4321

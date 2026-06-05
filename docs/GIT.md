@@ -22,6 +22,19 @@
 - 如果工作开始前已经存在无关未提交改动，必须先识别并保护这些改动；只提交本轮自己产生的逻辑单元，不得顺手提交、覆盖或回滚他人改动。
 - 如果因为已有脏工作树、验证失败、权限限制或用户指令而无法提交，最终输出必须明确说明未提交文件、原因、已完成验证和剩余风险。
 
+## 智能体权限失败重试规则
+
+- 本规则适用于 Symphony、Codex Desktop、Codex CLI 和其他在本仓库工作的智能体。
+- 同一命令在同一工作目录下因 `Permission denied`、`AccessDeniedException`、`EPERM`、`spawn EPERM`、`.git/*.lock`、`.git/FETCH_HEAD`、Maven/Node 缓存写入、`target` 写入、`node_modules/.cache` 写入或沙盒网络限制失败时，只允许普通权限失败一次。
+- 首次普通权限失败必须记录到本地计划、提交说明、最终回复或其他 repo-local 交接位置；后续遇到同类命令时，直接使用审批/提权路径，不再为了复现而普通权限试跑。
+- 已知需要直接走审批/提权路径的命令类别：
+  - Git 写操作：`git add`、`git commit`、`git rebase`、`git merge`、`git checkout`、`git stash` 等会写 `.git` 的命令。
+  - Git 网络操作：`git push`、`git fetch`、`git pull`、`git ls-remote`，以及依赖 GitHub 网络或凭据的 `gh` 命令。
+  - 需要下载依赖或写外部缓存的命令，例如 Maven 首次解析新依赖、`pnpm install`。
+  - 已知会写入或清理受限构建产物的命令，例如 Maven AOT/native/package、`pnpm test`、`pnpm build`。
+- 提权后仍失败时，必须记录 blocker、失败命令、失败摘要、影响判断和下一步 unblock 条件；禁止循环重复普通权限试跑。
+- 只读排查命令仍优先普通权限执行，例如 `git status`、`git diff`、`git log`、`git rev-parse`、`rg`、`Get-Content -Encoding UTF8`。
+
 ## 提交前验证
 
 - 提交前必须完成与变更范围相称的验证，最低要求见 `docs/QUALITY.md`。

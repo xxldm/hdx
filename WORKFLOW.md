@@ -129,8 +129,8 @@ No description provided.
 
 - Workpad 使用“摘要 + 索引”结构：只保留当前计划、验收状态、验证摘要、最新 blocker、PR/commit、本地计划路径和最近检查戳；完整排障细节写入 `docs/plans/active/`，完成后移动到 `docs/plans/completed/`。
 - Workpad 必须包含 `详情位置`，指向本地计划文件；不要把完整命令输出、长日志或重复失败历史反复粘贴到 Linear。每个 blocker 在 workpad 保留一句可判断严重性的中文摘要，并引用本地计划路径。
-- 权限失败重试预算：同一命令在同一 cwd 下因 `Permission denied`、`AccessDeniedException`、`EPERM`、`spawn EPERM`、`.git/*.lock`、`.git/FETCH_HEAD` 失败时，只允许普通权限失败一次；首次失败必须写入本地计划，后续续作引用历史失败，不重复普通权限复现。
-- 已知会失败的命令在续作中直接走自动审批提权。Git 写操作、Maven AOT/native、`pnpm install`、`pnpm test`、`pnpm build` 如已有权限失败证据，优先使用提权路径；提权后仍失败则写 blocker，不循环重试。
+- 权限失败重试预算遵循 `docs/GIT.md` 的“智能体权限失败重试规则”，该规则适用于 Symphony、Codex Desktop、Codex CLI 和其他在本仓库工作的智能体；不要把它当作 Symphony 专用规则。
+- 在 Symphony workpad 中只写权限失败的中文摘要和 `详情位置`；首次失败、历史证据、提权结果和 blocker 细节写入本地计划。已知会失败的同类命令直接走自动审批提权，提权后仍失败则写 blocker，不循环重试。
 - Git 网络命令防挂：`git push`、`git fetch`、`git ls-remote`、`gh` 命令如果缺少凭据、触发交互式认证或疑似挂在 `git-askpass` / `git-remote-https`，必须快速失败并写 blocker；不要等待不可见登录窗口。
 - 无新增信息即停止：如果分支已推送、PR 已存在、无新 Linear 评论/附件、无新 PR comments/reviews/checks、head SHA 未变，则只做一次轻量 workpad 摘要更新并停止本轮；禁止连续写入“续作 N 审计”重复段落。
 - 重复读取控制：首轮必须读取 HDX 仓库入口文档；续作时如果 `HEAD`、`WORKFLOW.md` 和入口文档未变化，只读取 workpad 摘要、本地计划文件和本轮相关文件。Workpad 或本地计划记录“入口文档已读 @ shortSha”；关键文档或 `HEAD` 变化时强制重读。

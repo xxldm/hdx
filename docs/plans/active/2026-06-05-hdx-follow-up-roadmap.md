@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 1 步已完成，等待进入第 2 步前单独确认
+- 当前状态：第 2 步已完成，等待进入第 3 步前单独确认
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-05
@@ -28,7 +28,7 @@
 ## 总纲步骤
 
 - [x] 1. 收口当前 Git 状态
-- [ ] 2. 数据库迁移策略
+- [x] 2. 数据库迁移策略
 - [ ] 3. 认证与权限边界
 - [ ] 4. 自动化质量门禁
 - [ ] 5. OpenAPI 与 shared 层
@@ -109,6 +109,9 @@
 - 根仓库 commit `6b52844 杂项：添加 Symphony 本地环境示例` 已推送到 `origin/main`。
 - 根仓库 commit `f3a0459 杂项：记录 HDX 后续事项总纲` 已推送到 `origin/main`。
 - 后续进入第 2 步前，需要单独确认数据库迁移策略的需求、取舍、范围和验证方式。
+- 第 2 步已确认使用 Flyway，不支持 MySQL；PostgreSQL 为服务端事实源，H2 用于 desktop all-in-one/local/test；早期本地数据可清空重建。
+- 第 2 步已完成：`services/backend` 已新增 Flyway ADR、`V1__create_tool_definition.sql`、运行时 `ddl-auto: validate` 配置、测试 Flyway 集成和 README 说明。
+- 后续进入第 3 步前，需要单独确认认证与权限边界的需求、取舍、范围和验证方式。
 
 ## 验收标准
 
@@ -129,6 +132,8 @@
 
 - 2026-06-05：创建后续事项总纲，当前状态为“等待进入第 1 步前单独确认”。
 - 2026-06-05：完成第 1 步 Git 状态收口，已先推送 `services/backend`，再推送根仓库；当前等待进入第 2 步前单独确认。
+- 2026-06-05：开始第 2 步数据库迁移策略，已确认 Flyway/PostgreSQL/H2 范围，详细计划见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
+- 2026-06-05：完成第 2 步数据库迁移策略；当前等待进入第 3 步认证与权限边界前单独确认。
 
 ## 验证结果
 
@@ -137,13 +142,16 @@
 - 已使用 `git -C services/backend status --short --branch` 确认 `services/backend` 仍为 `main...origin/main [ahead 1]`，本轮未修改子模块内部文件。
 - 已使用 `git -C services/backend push origin main` 推送子模块 `main`。
 - 已使用 `git push origin main` 推送根仓库 `main`。
+- 第 2 步已执行 `mvn validate`、`mvn test` 和 `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`，均通过。
 
 ## 剩余风险
 
-- 第 2 步数据库迁移策略尚未开始；不能在未确认前引入迁移工具或目录约定。
+- 第 3 步认证与权限边界尚未开始；不能在未确认前固定 JWT issuer、权限模型、Web 登录态或 desktop token 交互。
+- 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
 
 ## 相关 commit
 
 - `9b1ed6a 杂项：说明 Symphony 本地环境配置`（`services/backend`）
 - `6b52844 杂项：添加 Symphony 本地环境示例`（根仓库）
 - `f3a0459 杂项：记录 HDX 后续事项总纲`（根仓库）
+- `9090455 功能：引入 Flyway 数据库迁移`（`services/backend`）

@@ -130,7 +130,7 @@ No description provided.
 - `linear`：与 Linear 交互。
 - `linear_graphql`：通过 Symphony 管理的 Linear 凭证执行 GraphQL 查询和 mutation。
 - `commit`：生成干净、逻辑单元清晰的提交。
-- `push`：只有用户或流程明确允许推送时才使用；本仓库规则禁止未经用户明确批准 `git push`。
+- `push`：流程需要发布分支、更新 PR 或推进状态时可以使用；推送前必须确认目标 remote、目标分支、工作树状态、验证结果和敏感信息检查。
 - `pull`：交接前同步最新 `origin/main`。
 - `land`：当 ticket 到达 `Merging` 时，必须打开并遵循 `.codex/skills/land/SKILL.md`；不要直接调用 `gh pr merge`。
 
@@ -209,7 +209,7 @@ No description provided.
    - 已通过代码、测试或文档更新解决。
    - 已在对应 thread 回复明确、有依据的 pushback。
 4. 把每个反馈项和处理状态写入 workpad 计划/checklist。
-5. 因反馈产生改动后重新运行验证并推送更新；推送仍受本仓库“未经用户明确批准不得 push”的规则约束。
+5. 因反馈产生改动后重新运行验证并推送更新；推送前必须确认目标分支、工作树状态、验证结果和敏感信息检查。
 6. 重复扫描，直到没有未处理 actionable comments。
 
 ## Blocked-access escape hatch
@@ -242,7 +242,7 @@ No description provided.
    - 可临时做本地验证改动来验证假设，但必须在提交前还原。
    - 临时验证步骤和结果必须用中文摘要写入 workpad 的 `验证` 或 `备注`；命令、路径、日志和错误输出保留原文。
 6. 重新检查所有验收标准并补齐缺口。
-7. 每次尝试 `git push` 前，必须运行 scope 所需验证并确认通过；如果失败，先修复并重跑。`git push` 必须有用户明确批准。
+7. 每次尝试 `git push` 前，必须运行 scope 所需验证并确认通过；如果失败，先修复并重跑。
 8. 如果创建 PR：
    - 将 PR URL 附加到 Linear issue，优先用 attachment/link；不可用时才写入 workpad。
    - 确保 GitHub PR 带有 `symphony` label。
@@ -365,7 +365,7 @@ pnpm build
 - 提交信息使用中文，并使用约定式前缀：`功能：`、`修复：`、`重构：`、`杂项：`。
 - 每个提交只包含一个逻辑单元。
 - 根仓库和子模块仓库分开提交；子模块内改动应先在对应子仓库提交，再视需要单独提交根仓库子模块指针更新。
-- 严禁未经用户明确批准执行 `git push`。
+- 流程需要发布分支、更新 PR 或推进状态时可以执行 `git push`；推送前必须确认目标 remote、目标分支、工作树状态、相关验证结果和敏感信息检查。
 - 如果本轮产生代码、文档或配置变更，完成相称验证后应提交本轮改动。
 - 如果因为已有脏工作树、验证失败、权限限制或用户指令而无法提交，必须在 workpad 和最终交接中说明未提交文件、原因、已验证内容和剩余风险。
 
@@ -375,7 +375,7 @@ pnpm build
 - 验收标准和 ticket-provided 验证项全部完成。
 - 最新提交对应的验证/tests 为绿色。
 - PR feedback sweep 完成且没有未处理 actionable comments。
-- PR checks 绿色，分支已按授权推送，PR 已链接到 issue。
+- PR checks 绿色，分支已推送，PR 已链接到 issue。
 - PR metadata 完整，包括 `symphony` label。
 - 如果触及 App/Web 运行行为，已完成对应运行时验证和必要媒体/截图证据。
 

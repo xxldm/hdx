@@ -51,6 +51,7 @@ agent:
 codex:
   command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server -c "windows.sandbox=\"unelevated\"" -c "model_provider=\"$SYMPHONY_CODEX_MODEL_PROVIDER\"" -c "model=\"$SYMPHONY_CODEX_MODEL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.name=\"$SYMPHONY_CODEX_PROVIDER_NAME\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.base_url=\"$SYMPHONY_CODEX_BASE_URL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.wire_api=\"$SYMPHONY_CODEX_WIRE_API\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.requires_openai_auth=$SYMPHONY_CODEX_REQUIRES_OPENAI_AUTH"
   approval_policy: on-request
+  approvals_reviewer: auto_review
   thread_sandbox: workspace-write
   turn_sandbox_policy:
     type: workspaceWrite

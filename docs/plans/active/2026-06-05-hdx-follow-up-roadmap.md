@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：总纲已建立，等待进入第 1 步前单独确认
+- 当前状态：第 1 步已完成，等待进入第 2 步前单独确认
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-05
@@ -27,7 +27,7 @@
 
 ## 总纲步骤
 
-- [ ] 1. 收口当前 Git 状态
+- [x] 1. 收口当前 Git 状态
 - [ ] 2. 数据库迁移策略
 - [ ] 3. 认证与权限边界
 - [ ] 4. 自动化质量门禁
@@ -104,11 +104,11 @@
 
 ## 当前已知事实
 
-- 根仓库当前为 `main...origin/main [ahead 1]`。
-- `services/backend` 子模块当前为 `main...origin/main [ahead 1]`。
-- 根仓库当前 ahead commit：`6b52844 杂项：添加 Symphony 本地环境示例`。
-- `services/backend` 当前 ahead commit：`9b1ed6a 杂项：说明 Symphony 本地环境配置`。
-- 如果进入第 1 步执行推送，应先推送 `services/backend`，再推送根仓库，避免根仓库远端指向不可获取的子模块 commit。
+- 第 1 步已按顺序收口：先推送 `services/backend`，再推送根仓库。
+- `services/backend` commit `9b1ed6a 杂项：说明 Symphony 本地环境配置` 已推送到 `origin/main`。
+- 根仓库 commit `6b52844 杂项：添加 Symphony 本地环境示例` 已推送到 `origin/main`。
+- 根仓库 commit `f3a0459 杂项：记录 HDX 后续事项总纲` 已推送到 `origin/main`。
+- 后续进入第 2 步前，需要单独确认数据库迁移策略的需求、取舍、范围和验证方式。
 
 ## 验收标准
 
@@ -123,23 +123,27 @@
 
 ## 风险与阻塞
 
-- 当前根仓库和 `services/backend` 仍各自 ahead 1；进入第 1 步前不要先推送根仓库。
 - 各步骤尚未展开，不能据此直接实施技术选型或架构调整。
 
 ## 状态记录
 
 - 2026-06-05：创建后续事项总纲，当前状态为“等待进入第 1 步前单独确认”。
+- 2026-06-05：完成第 1 步 Git 状态收口，已先推送 `services/backend`，再推送根仓库；当前等待进入第 2 步前单独确认。
 
 ## 验证结果
 
 - 已使用 `Get-Content -Encoding UTF8 -Path docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md` 验证中文内容读取正常。
 - 已使用 `git status --short --branch` 验证本轮根仓库新增文件为 `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`。
 - 已使用 `git -C services/backend status --short --branch` 确认 `services/backend` 仍为 `main...origin/main [ahead 1]`，本轮未修改子模块内部文件。
+- 已使用 `git -C services/backend push origin main` 推送子模块 `main`。
+- 已使用 `git push origin main` 推送根仓库 `main`。
 
 ## 剩余风险
 
-- 待进入第 1 步时收口当前 Git 状态。
+- 第 2 步数据库迁移策略尚未开始；不能在未确认前引入迁移工具或目录约定。
 
 ## 相关 commit
 
-- 待记录。
+- `9b1ed6a 杂项：说明 Symphony 本地环境配置`（`services/backend`）
+- `6b52844 杂项：添加 Symphony 本地环境示例`（根仓库）
+- `f3a0459 杂项：记录 HDX 后续事项总纲`（根仓库）

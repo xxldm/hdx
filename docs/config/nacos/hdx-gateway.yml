@@ -1,0 +1,18 @@
+# Nacos Data ID: hdx-gateway.yml
+# Group: DEFAULT_GROUP
+# 内容只放非密钥配置。
+
+server:
+  port: 18080
+
+spring:
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.example.com/realms/hdx
+
+hdx:
+  gateway:
+    routes:
+      core-uri: lb://hdx-core-service

@@ -92,7 +92,7 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 后端配置规则：
 
 - Spring Cloud Alibaba 2025.1.x 不使用 bootstrap 配置，Nacos 配置通过 `spring.config.import` 接入。
-- 服务端 profile 使用外部数据库和 Nacos。
+- 服务端 profile 使用外部数据库和 Nacos；非密钥配置放 Nacos，数据库密码、Nacos 登录凭据、API Key、证书和令牌通过环境变量或部署 Secret 注入。
 - all-in-one 使用本地配置文件和本地嵌入式数据库。
 - 数据库迁移使用 Flyway。迁移脚本由 `services/backend/backend-core/src/main/resources/db/migration/` 提供，PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。
 

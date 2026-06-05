@@ -1,0 +1,20 @@
+# Nacos Data ID: hdx-core-service.yml
+# Group: DEFAULT_GROUP
+# 内容只放非密钥配置；数据库密码通过 HDX_POSTGRES_PASSWORD 注入。
+
+server:
+  port: 18081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres.example.internal:5432/hdx
+    username: hdx
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: https://auth.example.com/realms/hdx
+
+hdx:
+  runtime:
+    topology: core-service

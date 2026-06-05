@@ -46,7 +46,7 @@ agent:
     In Progress: 1
     Merging: 1
     Rework: 1
-  max_turns: 20
+  max_turns: 8
   max_retry_backoff_ms: 300000
 codex:
   command: PATH="/e/soft/codex-cli/node_modules/.bin:$PATH" codex app-server -c "windows.sandbox=\"unelevated\"" -c "model_provider=\"$SYMPHONY_CODEX_MODEL_PROVIDER\"" -c "model=\"$SYMPHONY_CODEX_MODEL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.name=\"$SYMPHONY_CODEX_PROVIDER_NAME\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.base_url=\"$SYMPHONY_CODEX_BASE_URL\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.wire_api=\"$SYMPHONY_CODEX_WIRE_API\"" -c "model_providers.$SYMPHONY_CODEX_MODEL_PROVIDER.requires_openai_auth=$SYMPHONY_CODEX_REQUIRES_OPENAI_AUTH"
@@ -60,9 +60,9 @@ codex:
     networkAccess: true
     excludeTmpdirEnvVar: false
     excludeSlashTmp: false
-  turn_timeout_ms: 3600000
+  turn_timeout_ms: 1800000
   read_timeout_ms: 30000
-  stall_timeout_ms: 300000
+  stall_timeout_ms: 120000
 server:
   port: 4321
 observability:
@@ -125,6 +125,16 @@ No description provided.
 - 自主端到端推进，除非被缺失需求、密钥、权限或工具阻塞。
 - `blocked-access escape hatch` 只能用于真实外部阻塞，并且要先尝试文档化 fallback。
 
+## Token 消耗与重试控制
+
+- Workpad 使用“摘要 + 索引”结构：只保留当前计划、验收状态、验证摘要、最新 blocker、PR/commit、本地计划路径和最近检查戳；完整排障细节写入 `docs/plans/active/`，完成后移动到 `docs/plans/completed/`。
+- Workpad 必须包含 `详情位置`，指向本地计划文件；不要把完整命令输出、长日志或重复失败历史反复粘贴到 Linear。每个 blocker 在 workpad 保留一句可判断严重性的中文摘要，并引用本地计划路径。
+- 权限失败重试预算：同一命令在同一 cwd 下因 `Permission denied`、`AccessDeniedException`、`EPERM`、`spawn EPERM`、`.git/*.lock`、`.git/FETCH_HEAD` 失败时，只允许普通权限失败一次；首次失败必须写入本地计划，后续续作引用历史失败，不重复普通权限复现。
+- 已知会失败的命令在续作中直接走自动审批提权。Git 写操作、Maven AOT/native、`pnpm install`、`pnpm test`、`pnpm build` 如已有权限失败证据，优先使用提权路径；提权后仍失败则写 blocker，不循环重试。
+- Git 网络命令防挂：`git push`、`git fetch`、`git ls-remote`、`gh` 命令如果缺少凭据、触发交互式认证或疑似挂在 `git-askpass` / `git-remote-https`，必须快速失败并写 blocker；不要等待不可见登录窗口。
+- 无新增信息即停止：如果分支已推送、PR 已存在、无新 Linear 评论/附件、无新 PR comments/reviews/checks、head SHA 未变，则只做一次轻量 workpad 摘要更新并停止本轮；禁止连续写入“续作 N 审计”重复段落。
+- 重复读取控制：首轮必须读取 HDX 仓库入口文档；续作时如果 `HEAD`、`WORKFLOW.md` 和入口文档未变化，只读取 workpad 摘要、本地计划文件和本轮相关文件。Workpad 或本地计划记录“入口文档已读 @ shortSha”；关键文档或 `HEAD` 变化时强制重读。
+
 ## 相关能力
 
 - `linear`：与 Linear 交互。
@@ -179,26 +189,27 @@ No description provided.
    - 勾选已经完成的项。
    - 扩展或修正计划，使其覆盖当前 scope。
    - 确认 `验收标准` 和 `验证` 与任务仍匹配。
-4. 在 workpad 写入或更新层级计划。
+4. 在 workpad 写入或更新层级计划；如果本轮存在复杂失败处理、权限失败、跨多次续作、验证缺口或需要完整排障记录，必须创建或更新 `docs/plans/active/` 本地计划，并在 workpad 写明 `详情位置`。
 5. workpad 顶部必须包含一个紧凑环境戳代码块：
    - 格式：`host:path@shortSha`
    - 示例：`devbox-01:/home/dev-user/code/symphony-workspaces/HDX-32@7bdde33bc`
    - 不要包含 Linear 已能推导的 metadata，例如 issue ID、状态、分支、PR link。
-6. 在同一评论中加入明确的验收标准和 TODO checklist。
+6. 在同一评论中加入明确的验收标准、TODO checklist、`详情位置` 和最近检查戳。
    - 如果涉及用户可见变化，验收标准必须包含端到端用户路径。
    - 如果触及 App/Web/后台行为，加入对应运行或交互路径检查。
    - 如果 ticket 描述/评论包含 `Validation`、`Test Plan` 或 `Testing`，把它们转写到 workpad 的 `验收标准` 和 `验证`，作为必选 checkbox；清单描述用中文，原始命令、字段名和错误输出保留原文。
 7. 对计划做一次 principal-style self-review，并把修正写回 workpad。
-8. 实现前捕获具体复现信号，写入 workpad 的 `备注`：用中文说明命令/输出、截图、日志或确定性行为；命令、路径、日志和错误输出保留原文。
+8. 实现前捕获具体复现信号：workpad 只写中文摘要和本地计划路径；完整命令、失败输出摘要、重试路径、提权结果、剩余风险和下一步 unblock 条件写入本地计划。
 9. 代码编辑前同步最新 `origin/main`，并在 workpad `备注` 写入同步证据：
    - 合入来源
    - 结果：`clean` 或 `conflicts resolved`
    - 同步后的 `HEAD` short SHA
+   - 如果普通权限已在同一 workspace 失败过，直接按权限失败重试预算走提权路径，并在本地计划引用历史失败。
 10. 压缩上下文后进入执行。
 
 ## PR feedback sweep protocol
 
-当 ticket 已有关联 PR，或准备移动到 `Human Review` 前，必须执行：
+当准备移动到 `Human Review` 前必须执行完整 sweep；ticket 已有关联 PR 时，只有 PR head SHA 变化、出现新的 PR comment/review/check 更新时间，或当前 workpad/本地计划没有最近 sweep 证据时，才执行完整 sweep。其他续作只做轻量状态检查并引用最近 sweep 结果。
 
 1. 从 issue link/attachment 找到 PR number。
 2. 收集所有反馈渠道：
@@ -211,6 +222,7 @@ No description provided.
 4. 把每个反馈项和处理状态写入 workpad 计划/checklist。
 5. 因反馈产生改动后重新运行验证并推送更新；推送前必须确认目标分支、工作树状态、验证结果和敏感信息检查。
 6. 重复扫描，直到没有未处理 actionable comments。
+7. 如果仓库没有 CI checks，记录一次 `no checks reported` 即可；除非 PR head SHA 或 checks 状态发生变化，不要在续作中重复轮询 `gh pr checks`。
 
 ## Blocked-access escape hatch
 
@@ -230,17 +242,18 @@ No description provided.
 2. 如果 issue 仍是 `Todo`，先改为 `In Progress`；否则保持当前状态。
 3. 读取现有 workpad，把它当作活跃执行 checklist。
    - 当 scope、风险、验证方式或实际任务变化时，及时编辑 workpad。
+   - 如果 workpad 指向本地计划，优先读取本地计划恢复完整排障上下文。
 4. 按层级 TODO 实现，并持续保持 workpad 最新：
    - 勾选完成项。
    - 新发现事项加入合适位置。
    - 保持父子结构。
-   - 每个有意义里程碑后立即更新：复现完成、代码改动完成、验证运行、反馈处理等。
+   - 每个有意义里程碑后更新摘要：复现完成、代码改动完成、验证运行、反馈处理等；完整细节写入本地计划。
    - 不要让已完成工作在计划中保持未勾选。
 5. 执行 scope 所需验证：
    - 必须执行 ticket 提供的 `Validation` / `Test Plan` / `Testing`。
    - 优先给出直接证明改动行为的目标证明。
    - 可临时做本地验证改动来验证假设，但必须在提交前还原。
-   - 临时验证步骤和结果必须用中文摘要写入 workpad 的 `验证` 或 `备注`；命令、路径、日志和错误输出保留原文。
+   - 临时验证步骤和结果必须用中文摘要写入 workpad 的 `验证` 或 `备注`；完整命令、路径、日志和错误输出写入本地计划。
 6. 重新检查所有验收标准并补齐缺口。
 7. 每次尝试 `git push` 前，必须运行 scope 所需验证并确认通过；如果失败，先修复并重跑。
 8. 如果创建 PR：
@@ -249,7 +262,7 @@ No description provided.
 9. 将最新 `origin/main` 合入当前分支，解决冲突并重跑检查。
 10. 更新 workpad 最终 checklist 和验证记录：
    - 勾选已完成的 `计划` / `验收标准` / `验证`。
-   - 在同一 workpad 写最终交接备注：提交 + 验证摘要。
+   - 在同一 workpad 写最终交接备注：提交 + 验证摘要 + 本地计划路径。
    - 不要在 workpad 里重复 PR URL，PR 关系应通过 issue attachment/link 表达。
    - 如有不清楚的地方，在底部加入短小 `### 疑问`。
    - 不发布额外完成摘要评论。
@@ -266,7 +279,7 @@ No description provided.
 ## Step 3：Human Review 与合并处理
 
 1. 当 issue 在 `Human Review`，不要编码或修改 ticket 内容。
-2. 根据需要轮询更新，包括 GitHub PR 人类和 bot review comments。
+2. 根据需要轻量轮询更新，只检查 Linear 状态、PR head SHA、review/comment/check 更新时间；只有发现新活动时才执行完整 PR feedback sweep。
 3. 如果 review feedback 要求修改，把 issue 移动到 `Rework` 并执行返工流程。
 4. 如果批准，由人类把 issue 移动到 `Merging`。
 5. issue 在 `Merging` 时，打开并遵循 `.codex/skills/land/SKILL.md`，循环执行 `land` flow 直到 PR merged。不要直接调用 `gh pr merge`。
@@ -396,7 +409,7 @@ pnpm build
 
 ## Workpad 模板
 
-使用这个结构作为持久 workpad 评论，并在执行全过程原地更新。标题和正文默认中文，命令、路径、协议字段、日志和错误输出可以保留原文：
+使用这个结构作为持久 workpad 评论，并在执行全过程原地更新。标题和正文默认中文，命令、路径、协议字段、日志和错误输出可以保留原文；完整排障细节写入 `详情位置` 指向的本地计划：
 
 ````md
 ## Codex 工作台
@@ -404,6 +417,12 @@ pnpm build
 ```text
 host:path@shortSha
 ```
+
+### 详情位置
+
+- 本地计划：`docs/plans/active/<ticket>.md`
+- 入口文档已读：`HEAD@shortSha`
+- 最近检查：`YYYY-MM-DDTHH:mm:ssZ`，无新 Linear/PR 活动
 
 ### 计划
 

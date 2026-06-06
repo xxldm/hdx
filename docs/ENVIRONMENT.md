@@ -14,7 +14,8 @@
 - 对 `.env.local` 新增变量不需要用户事前同意，完成后必须提示用户填写真实值；修改或删除 `.env.local` 已有变量前必须征得用户同意。
 - 本地脚本应优先读取 `.env.local`。
 - 如果某个工具有专属覆盖文件，应在读取 `.env.local` 后再读取专属文件。
-- 本地 `.env.local` 可以保存 Nacos 地址、Nacos 登录凭据、数据库密码、Redis 密码、desktop all-in-one 本地库配置和 Nuxt server 私有配置。
+- 本地 `.env.local` 可以保存 Nacos 地址、Nacos 登录凭据、数据库密码、Redis 密码、desktop all-in-one 本地库覆盖项和 Nuxt server 私有配置。
+- `.env.example` 默认只让必须显式维护或高频变化的变量保持活跃；已有代码默认值的覆盖项以注释形式保留，需要改默认值时再取消注释。
 - 后端 service profile 的非密钥运行配置仍应通过 Nacos Data ID 管理；本地调试 service profile 时，也优先连接本机或测试 Nacos，而不是把 service 配置散落到多个 `.env.*` 文件。
 
 ### Symphony
@@ -37,7 +38,7 @@
 - Nacos 适合管理服务端非密钥配置，例如端口、数据库 JDBC URL、数据库用户名、JWT issuer、网关路由、服务治理和非敏感业务开关。
 - 数据库密码、API Key、证书、令牌等密钥优先使用部署平台 Secret 或环境变量注入。
 - Redis 地址、端口、database 和 timeout 属于非密钥配置，放 Nacos；Redis 密码和 PostgreSQL 密码一样属于密钥，通过服务启动配置中的环境变量或部署 Secret 注入，不写入 Nacos。
-- Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入。
+- Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入；Group 和 Data ID 已有代码默认值，只有改名或多环境复用启动脚本时才需要覆盖。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
 - 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须按模板原有层级和相邻位置同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改。
@@ -81,19 +82,21 @@ Nuxt SSR / 有 Nuxt server 时：
 
 ## 变量分层
 
+本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace/鉴权、Data ID、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
+
 ### 后端 service profile 环境变量
 
 - `NACOS_SERVER_ADDR`：Nacos 地址。
-- `NACOS_NAMESPACE`：Nacos Namespace；为空时使用 public namespace。
-- `NACOS_USERNAME`：Nacos 用户名；只在 Nacos 开启鉴权时需要。
-- `NACOS_PASSWORD`：Nacos 密码；只在 Nacos 开启鉴权时需要。
-- `HDX_NACOS_GROUP`：Nacos Group，默认 `DEFAULT_GROUP`。
-- `HDX_NACOS_DATABASE_DATA_ID`：后端数据库公共配置 Data ID，默认 `hdx-database.yml`。
-- `HDX_NACOS_AUTH_DATA_ID`：`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。
-- `HDX_NACOS_CORE_DATA_ID`：`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
-- `HDX_NACOS_GATEWAY_DATA_ID`：`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
-- `HDX_NACOS_REDIS_DATA_ID`：公共 Redis 配置 Data ID，默认 `hdx-redis.yml`。
-- `HDX_NACOS_DISCOVERY_IP`：服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
+- `NACOS_NAMESPACE`：可选，Nacos Namespace；为空时使用 public namespace。
+- `NACOS_USERNAME`：可选，Nacos 用户名；只在 Nacos 开启鉴权时需要。
+- `NACOS_PASSWORD`：可选，Nacos 密码；只在 Nacos 开启鉴权时需要。
+- `HDX_NACOS_GROUP`：可选覆盖项，Nacos Group，默认 `DEFAULT_GROUP`。
+- `HDX_NACOS_DATABASE_DATA_ID`：可选覆盖项，后端数据库公共配置 Data ID，默认 `hdx-database.yml`。
+- `HDX_NACOS_AUTH_DATA_ID`：可选覆盖项，`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。
+- `HDX_NACOS_CORE_DATA_ID`：可选覆盖项，`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
+- `HDX_NACOS_GATEWAY_DATA_ID`：可选覆盖项，`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
+- `HDX_NACOS_REDIS_DATA_ID`：可选覆盖项，公共 Redis 配置 Data ID，默认 `hdx-redis.yml`。
+- `HDX_NACOS_DISCOVERY_IP`：可选覆盖项，服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
 - `HDX_POSTGRES_PASSWORD`：PostgreSQL 默认密码。
 - `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
@@ -133,23 +136,23 @@ Nuxt SSR / 有 Nuxt server 时：
 
 ### 后端 all-in-one
 
-- `HDX_LOCAL_JDBC_URL`：desktop all-in-one 使用的 H2 JDBC URL。
-- `HDX_LOCAL_DB_USERNAME`：all-in-one 本地数据库用户名。
-- `HDX_LOCAL_DB_PASSWORD`：all-in-one 本地数据库密码。
+- `HDX_LOCAL_JDBC_URL`：可选覆盖项，desktop all-in-one 使用的 H2 JDBC URL。
+- `HDX_LOCAL_DB_USERNAME`：可选覆盖项，all-in-one 本地数据库用户名。
+- `HDX_LOCAL_DB_PASSWORD`：可选覆盖项，all-in-one 本地数据库密码。
 
 ### Web / BFF 环境变量
 
-- `HDX_BACKEND_BASE_URL`：本地和部署统一使用的后端 gateway 基础地址。
-- `NUXT_BACKEND_BASE_URL`：Nuxt 当前运行时读取的后端地址；本地加载脚本会在未显式设置时从 `HDX_BACKEND_BASE_URL` 派生。
-- `NUXT_BACKEND_LOCAL_TOKEN_HEADER`：desktop all-in-one 本机令牌 header 名。
-- `NUXT_BACKEND_LOCAL_TOKEN`：desktop all-in-one 本机令牌值。
-- `NUXT_AUTH_SESSION_COOKIE_NAME`：Web 加密 `HttpOnly` session cookie 名，默认 `hdx_web_session`。
+- `HDX_BACKEND_BASE_URL`：本地和部署统一使用的后端 gateway 基础地址；Nuxt server 未设置 `NUXT_BACKEND_BASE_URL` 时会直接读取它。
+- `NUXT_BACKEND_BASE_URL`：可选覆盖项，Nuxt 当前运行时读取的后端地址；只在 Web 需要使用不同于 `HDX_BACKEND_BASE_URL` 的地址时设置。
+- `NUXT_BACKEND_LOCAL_TOKEN_HEADER`：可选，desktop all-in-one 本机令牌 header 名。
+- `NUXT_BACKEND_LOCAL_TOKEN`：可选，desktop all-in-one 本机令牌值。
+- `NUXT_AUTH_SESSION_COOKIE_NAME`：可选覆盖项，Web 加密 `HttpOnly` session cookie 名，默认 `hdx_web_session`。
 - `NUXT_AUTH_SESSION_SECRET`：Web session 加密/签名密钥，至少 32 字符；真实环境必须稳定注入，Nuxt 重启后依靠它从 cookie 恢复登录态。
-- `NUXT_AUTH_CSRF_COOKIE_NAME`：Web CSRF cookie 名，默认 `hdx_csrf`。
-- `NUXT_AUTH_CSRF_HEADER_NAME`：Web 状态变更请求使用的 CSRF header 名，默认 `X-HDX-CSRF`。
-- `NUXT_AUTH_COOKIE_SECURE`：Web auth cookie 是否带 `Secure`；本地 HTTP 调试可为 `false`，HTTPS/生产环境必须为 `true`。
-- `NUXT_AUTH_SESSION_MAX_AGE_SECONDS`：Web session cookie 滑动有效期，默认 `604800` 秒。
-- `NUXT_AUTH_REFRESH_SKEW_SECONDS`：Web BFF 在 access token 距离过期多少秒内提前 refresh，默认 `60` 秒。
+- `NUXT_AUTH_CSRF_COOKIE_NAME`：可选覆盖项，Web CSRF cookie 名，默认 `hdx_csrf`。
+- `NUXT_AUTH_CSRF_HEADER_NAME`：可选覆盖项，Web 状态变更请求使用的 CSRF header 名，默认 `X-HDX-CSRF`。
+- `NUXT_AUTH_COOKIE_SECURE`：可选覆盖项，Web auth cookie 是否带 `Secure`；默认在生产环境为 `true`，其他环境为 `false`。
+- `NUXT_AUTH_SESSION_MAX_AGE_SECONDS`：可选覆盖项，Web session cookie 滑动有效期，默认 `604800` 秒。
+- `NUXT_AUTH_REFRESH_SKEW_SECONDS`：可选覆盖项，Web BFF 在 access token 距离过期多少秒内提前 refresh，默认 `60` 秒。
 
 Web 登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session。浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
 

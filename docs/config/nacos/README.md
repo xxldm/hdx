@@ -24,7 +24,7 @@
 
 公共数据库 Data ID 只放共用的 PostgreSQL JDBC URL 和用户名，不放密码。模块 Data ID 在公共数据库 Data ID 之后导入，因此可以在模块 Data ID 中覆盖 `spring.datasource.url` 和 `spring.datasource.username`，用于单独数据库、单独账号或临时联调。
 
-如需修改 Data ID 或 Group，通过环境变量覆盖：
+Group 和 Data ID 已有代码默认值，通常不需要写入本地环境文件。如需改名、隔离多套环境或复用同一启动脚本连接不同 Data ID，再通过环境变量覆盖：
 
 - `HDX_NACOS_DATABASE_DATA_ID`
 - `HDX_NACOS_CORE_DATA_ID`

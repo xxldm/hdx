@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已确认认证中心采用独立后端模块；已确认服务端与 all-in-one 的认证持久化边界；已确认 all-in-one 固定本机身份基础字段；等待继续确认服务端持久化模型
+- 当前状态：已确认认证中心采用独立后端模块；已确认服务端与 all-in-one 的认证持久化边界；已确认 all-in-one 固定本机身份基础字段；已确认服务端认证数据使用 PostgreSQL 独立 schema；等待继续确认最小数据模型
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -28,10 +28,12 @@
 - all-in-one 固定本机身份的稳定 principal/subject/id 使用 `local-admin`，角色使用 `ADMIN`，权限表达使用 `*` 或内部常量 `ALL`。
 - all-in-one 固定本机身份面向用户端回显的 `displayName` 使用 `用户`，不使用 `本机管理员`。
 - 日志、审计、权限判断和业务规则不得依赖 `displayName`；应使用稳定字段，例如 `actorType=LOCAL_ADMIN`、`subject=local-admin`、roles 或 permissions。
+- 服务端认证中心数据使用 PostgreSQL 独立 schema `auth`，不与 `backend-core-service` 的业务表混在默认 `public` schema。
+- `auth` schema 已由用户手动创建，所有者为 `hdx`。
+- 当前后端数据库账号已通过手工 SQL 验证：可在 `auth` schema 下建表、插入、查询、更新、删除和删表，满足 Flyway 开发阶段迁移权限。
 
 ## 待确认事项
 
-- 服务端认证中心数据与业务数据的数据库/Schema 边界。
 - 用户、角色、权限、用户角色关系、角色权限关系的最小数据模型。
 - OAuth2 client、authorization、consent 等 Authorization Server 持久化表的落点。
 - Web 登录态与 refresh token 策略。
@@ -46,7 +48,7 @@
 
 ## 下一步确认
 
-优先确认服务端认证中心持久化模型：是否在服务端 PostgreSQL 中为认证中心使用独立 schema，以及用户、角色、权限、OAuth2 授权表的最小落点。
+优先确认服务端认证中心最小数据模型：用户、角色、权限、用户角色关系、角色权限关系，以及 OAuth2 授权表是否全部落在 `auth` schema。
 
 ## 验证方式
 
@@ -58,9 +60,10 @@
 - 2026-06-06：用户确认认证中心按独立模块设计；创建本地计划，等待继续确认持久化边界。
 - 2026-06-06：用户确认登录只在 PostgreSQL 服务端模式执行；all-in-one/H2 不需要登录，默认管理员账号；Desktop 连接外部服务端时走 PostgreSQL 服务端认证中心。
 - 2026-06-06：用户确认 all-in-one 固定本机身份可使用稳定字段 `local-admin`、`ADMIN`、全量权限；用户端回显名改为 `用户`，日志和规则判断不得依赖该显示名。
+- 2026-06-06：用户确认服务端认证中心使用 PostgreSQL 独立 schema `auth`；`auth` schema 已手动创建且所有者为 `hdx`；手工 SQL 权限检查通过。
 
 ## 剩余风险
 
-- 尚未确定服务端认证中心数据库/Schema 边界，不能开始创建 Flyway 脚本或实体模型。
+- 尚未确定服务端认证中心最小数据模型，不能开始创建 Flyway 脚本或实体模型。
 - 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

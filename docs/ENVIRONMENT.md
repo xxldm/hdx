@@ -10,7 +10,7 @@
 
 - `.env.local` 不提交。
 - `.env.example` 是可提交模板，不包含真实密钥。
-- `.env.example` 修改后必须同步 `.env.local` 的文件结构，保证变量键一致但真实值可不同。
+- `.env.example` 修改后必须按模板原有分组和相邻位置同步 `.env.local` 的文件结构，不能简单追加到文件末尾；变量键保持一致但真实值可不同。
 - 对 `.env.local` 新增变量不需要用户事前同意，完成后必须提示用户填写真实值；修改或删除 `.env.local` 已有变量前必须征得用户同意。
 - 本地脚本应优先读取 `.env.local`。
 - 如果某个工具有专属覆盖文件，应在读取 `.env.local` 后再读取专属文件。
@@ -21,7 +21,7 @@
 
 `.env.symphony.local` 只放 Symphony 专用变量或覆盖项，例如 Linear API Key、Symphony/Codex provider 覆盖、临时实验开关。
 
-`.env.symphony.example` 修改后必须同步 `.env.symphony.local` 的文件结构。新增变量不需要用户事前同意，完成后提示用户填写真实值；修改或删除 `.env.symphony.local` 已有变量前必须征得用户同意。
+`.env.symphony.example` 修改后必须按模板原有分组和相邻位置同步 `.env.symphony.local` 的文件结构，不能简单追加到文件末尾。新增变量不需要用户事前同意，完成后提示用户填写真实值；修改或删除 `.env.symphony.local` 已有变量前必须征得用户同意。
 
 加载顺序：
 
@@ -40,7 +40,7 @@
 - Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
-- 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改。
+- 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须按模板原有层级和相邻位置同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改。
 
 默认 Data ID：
 
@@ -183,8 +183,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\load-env.ps1 -Path
 
 - 不提交 `.env.local`、`.env.symphony.local` 或任何真实密钥。
 - 新增环境变量时必须同步更新 `.env.example` 和本文档。
-- 修改 `.env.example` 或 `.env.symphony.example` 时，必须同步对应 local 文件的变量结构；新增变量可直接追加并提示用户填写真实值，修改或删除已有变量必须先征得用户同意。
+- 修改 `.env.example` 或 `.env.symphony.example` 时，必须按模板原有分组和相邻位置同步对应 local 文件的变量结构，不能简单追加到文件末尾；新增变量可直接补齐并提示用户填写真实值，修改或删除已有变量必须先征得用户同意。
 - 新增后端 service profile 非密钥配置时，必须同步更新 `docs/config/nacos/` 示例和本文档。
-- 修改 `docs/config/nacos/` 模板时，必须同步真实 Nacos Data ID；新增项可直接同步，修改或删除项必须先征得用户同意，占位 URL 等真实值由用户手动确认。
+- 修改 `docs/config/nacos/` 模板时，必须按模板原有层级和相邻位置同步真实 Nacos Data ID；新增项可直接同步，修改或删除项必须先征得用户同意，占位 URL 等真实值由用户手动确认。
 - 面向浏览器的 public runtime config 不得包含真实后端内网地址、令牌、数据库配置或密钥。
 - 部署环境使用同名变量或 Nacos 配置，不使用仓库内 `.env.local` 文件。

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已确认认证中心采用独立后端模块；已确认服务端与 all-in-one 的认证持久化边界；已确认 all-in-one 固定本机身份基础字段；已确认服务端认证数据使用 PostgreSQL 独立 schema；等待继续确认最小数据模型
+- 当前状态：已确认认证中心采用独立后端模块；已确认服务端与 all-in-one 的认证持久化边界；已确认 all-in-one 固定本机身份基础字段；已确认服务端认证数据使用 PostgreSQL 独立 schema；已确认认证中心最小数据模型方向；等待继续确认字段级设计
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -31,11 +31,14 @@
 - 服务端认证中心数据使用 PostgreSQL 独立 schema `auth`，不与 `backend-core-service` 的业务表混在默认 `public` schema。
 - `auth` schema 已由用户手动创建，所有者为 `hdx`。
 - 当前后端数据库账号已通过手工 SQL 验证：可在 `auth` schema 下建表、插入、查询、更新、删除和删表，满足 Flyway 开发阶段迁移权限。
+- 认证中心自有最小数据模型先包含 `auth_user`、`auth_role`、`auth_permission`、`auth_user_role`、`auth_role_permission`，全部放在 `auth` schema。
+- Spring Security Authorization Server 使用的 OAuth2 client、authorization、consent 等授权表也放在 `auth` schema。
+- OAuth2 授权表命名和字段应优先沿用 Spring Security Authorization Server 的脚本或约定，避免后续接入框架时增加不必要映射层；具体表名和字段在字段级设计时确认。
 
 ## 待确认事项
 
-- 用户、角色、权限、用户角色关系、角色权限关系的最小数据模型。
-- OAuth2 client、authorization、consent 等 Authorization Server 持久化表的落点。
+- 用户、角色、权限、用户角色关系、角色权限关系的字段、约束、索引和软删除策略。
+- OAuth2 client、authorization、consent 等 Authorization Server 持久化表的具体命名、字段和迁移来源。
 - Web 登录态与 refresh token 策略。
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
@@ -48,7 +51,7 @@
 
 ## 下一步确认
 
-优先确认服务端认证中心最小数据模型：用户、角色、权限、用户角色关系、角色权限关系，以及 OAuth2 授权表是否全部落在 `auth` schema。
+优先确认认证中心自有表字段级设计：用户、角色、权限、用户角色关系、角色权限关系的主键、唯一约束、状态字段、审计字段和权限编码规则。
 
 ## 验证方式
 
@@ -61,9 +64,10 @@
 - 2026-06-06：用户确认登录只在 PostgreSQL 服务端模式执行；all-in-one/H2 不需要登录，默认管理员账号；Desktop 连接外部服务端时走 PostgreSQL 服务端认证中心。
 - 2026-06-06：用户确认 all-in-one 固定本机身份可使用稳定字段 `local-admin`、`ADMIN`、全量权限；用户端回显名改为 `用户`，日志和规则判断不得依赖该显示名。
 - 2026-06-06：用户确认服务端认证中心使用 PostgreSQL 独立 schema `auth`；`auth` schema 已手动创建且所有者为 `hdx`；手工 SQL 权限检查通过。
+- 2026-06-06：用户确认认证中心最小数据模型方向；自有用户、角色、权限及关系表放入 `auth` schema，OAuth2 授权相关表也放入 `auth` schema，并优先沿用 Spring Security Authorization Server 约定。
 
 ## 剩余风险
 
-- 尚未确定服务端认证中心最小数据模型，不能开始创建 Flyway 脚本或实体模型。
+- 尚未确定服务端认证中心自有表字段级设计，不能开始创建 Flyway 脚本或实体模型。
 - 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

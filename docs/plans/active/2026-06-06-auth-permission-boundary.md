@@ -354,6 +354,7 @@
 - 2026-06-06：用户确认 refresh token 默认滑动不活跃窗口改为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并触发 refresh 时刷新会话窗口。
 - 2026-06-06：用户确认下一步进入 Web BFF 登录态接入；补充第 2 小步计划草案，等待用户确认后再实现。
 - 2026-06-06：用户确认使用加密 `HttpOnly` cookie session，不使用内存型服务端 session store；开始实现 Web BFF 登录态。
+- 2026-06-06：用户确认采用受环境变量控制的 bootstrap runner 创建首个全权限管理员账号；默认关闭，同时配置用户名和密码后创建或补齐 `ADMIN` 角色与 `*` 权限，账号已存在时不覆盖已有密码。
 
 ## 验证结果
 
@@ -383,7 +384,7 @@
 
 - 当前 JWK 为服务启动期临时 RSA key，仅用于打通 discovery/JWK 链路；真正签发 token 前必须设计并实现持久化密钥、密钥轮换和部署 Secret 管理。
 - 当前已实现第一方账号密码登录 API，但尚未实现登录页面、注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
-- 当前尚未实现首个用户创建、后台用户管理或生产 bootstrap 账号；真实登录需要数据库中已有 `auth_user`、`auth_user_identity` 和 `auth_password_credential`。
+- 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
 - 新增 `V3__create_first_party_login_tables.sql` 尚需在真实 PostgreSQL service profile 下复验。
 - Web BFF 登录态已开始实现，但尚未接登录 dialog UI；当前只能通过 BFF API 使用。

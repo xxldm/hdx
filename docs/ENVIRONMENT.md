@@ -82,7 +82,7 @@ Nuxt SSR / 有 Nuxt server 时：
 
 ## 变量分层
 
-本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace 和鉴权必须按环境确认，空值只代表 public namespace 或未开启鉴权；Data ID、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
+本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace 和鉴权必须按环境确认，空值只代表 public namespace 或未开启鉴权；Data ID、认证中心初始化管理员、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
 
 ### 后端 service profile 环境变量
 
@@ -101,6 +101,15 @@ Nuxt SSR / 有 Nuxt server 时：
 - `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_REDIS_PASSWORD`：Redis 密码。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME`：可选，认证中心初始化管理员用户名；与密码同时设置时启用 bootstrap。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`：可选，认证中心初始化管理员明文密码，只通过环境变量或部署 Secret 注入，服务端写入 BCrypt hash；不得写入 Nacos 或提交到仓库。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_DISPLAY_NAME`：可选覆盖项，初始化管理员显示名，默认 `管理员`。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_ROLE_CODE`：可选覆盖项，初始化管理员角色 code，默认 `ADMIN`。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_ROLE_NAME`：可选覆盖项，初始化管理员角色显示名，默认 `管理员`。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_PERMISSION_CODE`：可选覆盖项，初始化管理员权限 code，默认 `*`。
+- `HDX_AUTH_BOOTSTRAP_ADMIN_PERMISSION_NAME`：可选覆盖项，初始化管理员权限显示名，默认 `全部权限`。
+
+认证中心初始化管理员默认关闭。只设置用户名或只设置密码会导致 `backend-auth-service` 启动失败，以避免误以为初始化成功。账号不存在时创建用户、用户名标识、密码凭据、角色、权限和关联；账号已存在时只补齐角色、权限和关联，不覆盖已有密码。
 
 ### 后端 service profile Nacos 配置
 

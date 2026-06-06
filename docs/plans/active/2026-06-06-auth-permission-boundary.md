@@ -20,6 +20,9 @@
 - `backend-auth-service` 负责登录、签发 token、刷新 token、暴露 JWK/OIDC discovery，并持久化认证授权相关数据。
 - `backend-gateway` 和 `backend-core-service` 作为 OAuth2 Resource Server 校验 JWT，不承担 token issuer 职责。
 - 角色和权限需要持久化，后续作为鉴权事实源之一。
+- 登出即时生效采用 JWT `sid` 会话级撤销策略；认证中心负责写入 Redis 撤销记录，gateway 作为唯一外部资源入口负责检查 Redis。
+- `backend-core-service` 当前不重复检查 Redis，前提是它不作为外部 API 入口暴露，不允许绕过 gateway 直接访问。
+- Redis 不可用时，gateway 对受保护请求 fail-closed，返回 `503 Service Unavailable`，不得静默放行。
 - 当前技术线为 Spring Boot 4.x / Spring Security 7.x；认证中心设计应优先跟随 Spring Security 7 的 Authorization Server 能力。
 - 认证授权持久化只面向服务端 PostgreSQL；用户、角色、权限、OAuth2 client、authorization、consent 等认证授权数据不进入 all-in-one 的 H2 迁移路径。
 - `backend-all-in-one` 不运行认证中心，不提供登录流程；它继续绑定本机服务边界，并使用随机本机 token 保护 HTTP 调用。
@@ -190,6 +193,7 @@
 ## 待确认事项
 
 - Web 登录态与 refresh token 策略。
+- 认证中心签发 access token 时 `sid` 的生成、持久化关联和撤销 TTL 策略。
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
 
@@ -217,6 +221,7 @@
 - 服务端 refresh token 使用轮换策略；旧 refresh token 被使用后应失效，后续发现重复使用时按异常会话处理。
 - logout 需要同时清理 Web 本地会话；认证中心支持后，再撤销 refresh token 或关联 authorization。
 - 使用 cookie 维持浏览器登录态后，所有非幂等 BFF 路由必须有 CSRF 防护。推荐使用 `SameSite=Lax` cookie 加 `X-HDX-CSRF-Token` 请求头，登录回调等 OAuth2 固定入口按白名单处理。
+- 登出时 Web BFF 应调用认证中心登出接口，由认证中心撤销 refresh token/authorization 并写入 Redis 撤销 `sid`，随后 Web BFF 清理自身 session/cookie。
 
 ### 待确认取舍
 
@@ -295,6 +300,7 @@
 - 2026-06-06：用户确认 auth 服务后续使用独立域名，不通过 gateway 作为 issuer；当前本地 Nacos issuer 暂用 `http://192.168.50.100:18082`，反代后再改成 auth 独立域名。
 - 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
 - 2026-06-06：开始第 1 小步 Web 登录态与 refresh token 策略确认；根据 Nuxt SSR+BFF 现状补充推荐草案，等待用户确认会话/token 存储、cookie/CSRF 命名、token 有效期方向和是否进入实现。
+- 2026-06-06：用户确认登出即时生效使用 Redis 拉黑 JWT `sid`，只在 gateway 检查，Redis 不可用时返回 `503`；临时 Redis Docker Compose 不进入项目记录，但 Redis 撤销策略和代码配置进入项目事实源。
 
 ## 验证结果
 
@@ -306,10 +312,15 @@
 - 真实 Nacos service profile 联调通过：auth/core/gateway 均可读取各自 Data ID 并启动；auth/core 使用公共 `hdx-database.yml` 连通 PostgreSQL，Flyway 确认 `auth` 与 `public` schema 均已是最新版本。
 - 真实 Nacos issuer discovery 验证通过：`GET http://192.168.50.100:18082/.well-known/openid-configuration` 返回 `200`，`issuer` 为 `http://192.168.50.100:18082`，`jwks_uri` 为 `http://192.168.50.100:18082/oauth2/jwks`，JWK 返回 1 个 key。
 - 资源服务 issuer 链路验证通过：auth/core/gateway 同时以 service profile 启动成功。
+- gateway JWT `sid` 撤销检查单元测试通过：`mvn -pl :backend-gateway test` 覆盖未撤销放行、已撤销返回 `401`、缺少 `sid` 返回 `401`、Redis 查询失败返回 `503`。
+- 后端全量 `mvn test` 通过，覆盖 7 个 Maven 模块。
+- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot` 通过，验证 gateway 新增 Redis 依赖后的 AOT 入口。
+- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'` 通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 
 ## 剩余风险
 
 - 当前 JWK 为服务启动期临时 RSA key，仅用于打通 discovery/JWK 链路；真正签发 token 前必须设计并实现持久化密钥、密钥轮换和部署 Secret 管理。
 - 当前只暴露 Authorization Server 元数据和 JWK；尚未实现登录页面、用户名/邮箱/手机号认证、注册、refresh token 策略、OAuth2 client 初始化或管理。
+- gateway 已实现 Redis `sid` 撤销检查，但认证中心尚未签发包含 `sid` 的真实 access token，也尚未实现登出时写入 Redis 撤销记录和 TTL。
 - 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

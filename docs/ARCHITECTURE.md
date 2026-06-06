@@ -69,7 +69,7 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 以下事项尚未决策，不能在没有 ADR 的情况下擅自固定：
 
 - App 技术栈。
-- 缓存、对象存储和队列。
+- 对象存储和队列。
 - 部署、CI、发布和环境管理方式。
 
 ## 后端第一阶段架构
@@ -87,13 +87,14 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 
 运行拓扑：
 
-- 服务端微服务部署：`backend-gateway` 对外开放 REST API，转发到 `backend-auth-service` 和 `backend-core-service`；`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，`backend-gateway` 与 `backend-core-service` 作为 Resource Server 校验 token；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign 和 PostgreSQL。
+- 服务端微服务部署：`backend-gateway` 对外开放 REST API，转发到 `backend-auth-service` 和 `backend-core-service`；`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，`backend-gateway` 作为外部资源访问的统一入口校验 JWT，并通过 Redis 检查 `sid` 是否已撤销；`backend-core-service` 不作为外部 API 入口暴露；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign、PostgreSQL 和 Redis。
 - desktop all-in-one：`backend-all-in-one` 复用 `backend-core`，绑定 `127.0.0.1`，使用 H2，并通过随机本机令牌保护 HTTP 请求。
 
 后端配置规则：
 
 - Spring Cloud Alibaba 2025.1.x 不使用 bootstrap 配置，Nacos 配置通过 `spring.config.import` 接入。
 - 服务端 profile 使用外部数据库和 Nacos；非密钥配置放 Nacos，数据库密码、Nacos 登录凭据、API Key、证书和令牌通过环境变量或部署 Secret 注入。
+- Redis 用于 JWT 会话撤销/黑名单。认证中心登出或强制下线时写入撤销 `sid`，gateway 在 JWT 校验通过后检查 Redis；Redis 不可用时，受保护请求返回 `503`。
 - 数据库消费者默认先导入公共数据库 Nacos Data ID，再导入模块自己的 Data ID；公共层保存共用 JDBC URL 和用户名，模块层可以覆盖数据库 URL 和用户名，密码通过公共或模块专用环境变量注入。
 - all-in-one 使用本地配置文件和本地嵌入式数据库。
 - 数据库迁移使用 Flyway。核心业务迁移脚本由 `services/backend/backend-core/src/main/resources/db/migration/` 提供；认证中心迁移脚本由 `services/backend/backend-auth-service/src/main/resources/db/migration/` 提供，并只面向服务端 PostgreSQL `auth` schema。PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。

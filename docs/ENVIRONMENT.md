@@ -12,7 +12,7 @@
 - `.env.example` 是可提交模板，不包含真实密钥。
 - 本地脚本应优先读取 `.env.local`。
 - 如果某个工具有专属覆盖文件，应在读取 `.env.local` 后再读取专属文件。
-- 本地 `.env.local` 可以保存 Nacos 地址、Nacos 登录凭据、数据库密码、desktop all-in-one 本地库配置和 Nuxt server 私有配置。
+- 本地 `.env.local` 可以保存 Nacos 地址、Nacos 登录凭据、数据库密码、Redis 密码、desktop all-in-one 本地库配置和 Nuxt server 私有配置。
 - 后端 service profile 的非密钥运行配置仍应通过 Nacos Data ID 管理；本地调试 service profile 时，也优先连接本机或测试 Nacos，而不是把 service 配置散落到多个 `.env.*` 文件。
 
 ### Symphony
@@ -32,6 +32,7 @@
 
 - Nacos 适合管理服务端非密钥配置，例如端口、数据库 JDBC URL、数据库用户名、JWT issuer、网关路由、服务治理和非敏感业务开关。
 - 数据库密码、API Key、证书、令牌等密钥优先使用部署平台 Secret 或环境变量注入。
+- Redis 密码属于密钥，通过环境变量或部署 Secret 注入；Nacos 只保存 Redis host、port、database 和密码环境变量占位。
 - Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
@@ -39,6 +40,7 @@
 默认 Data ID：
 
 - 公共数据库配置：`hdx-database.yml`
+- 公共 Redis 配置：`hdx-redis.yml`
 - `backend-core-service`：`hdx-core-service.yml`
 - `backend-auth-service`：`hdx-auth-service.yml`
 - `backend-gateway`：`hdx-gateway.yml`
@@ -49,7 +51,8 @@
 
 1. 在 Nacos 中创建对应 Data ID，内容参考 `docs/config/nacos/`。
 2. 通过环境变量或部署 Secret 注入 `NACOS_SERVER_ADDR`、`HDX_POSTGRES_PASSWORD`。
-3. 如果 Nacos 开启鉴权，注入 `NACOS_USERNAME`、`NACOS_PASSWORD`。
+3. 启用 JWT 会话撤销时，通过环境变量或部署 Secret 注入 `HDX_REDIS_PASSWORD`。
+4. 如果 Nacos 开启鉴权，注入 `NACOS_USERNAME`、`NACOS_PASSWORD`。
 
 ### 前端部署
 
@@ -82,10 +85,15 @@ Nuxt SSR / 有 Nuxt server 时：
 - `HDX_NACOS_AUTH_DATA_ID`：`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。
 - `HDX_NACOS_CORE_DATA_ID`：`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
 - `HDX_NACOS_GATEWAY_DATA_ID`：`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
+- `HDX_NACOS_REDIS_DATA_ID`：公共 Redis 配置 Data ID，默认 `hdx-redis.yml`。
 - `HDX_NACOS_DISCOVERY_IP`：服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
 - `HDX_POSTGRES_PASSWORD`：PostgreSQL 默认密码。
 - `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
+- `HDX_REDIS_HOST`：Redis 主机，默认 `127.0.0.1`。
+- `HDX_REDIS_PORT`：Redis 端口，默认 `6379`。
+- `HDX_REDIS_DATABASE`：Redis database 编号，默认 `0`。
+- `HDX_REDIS_PASSWORD`：Redis 密码。
 
 ### 后端 service profile Nacos 配置
 
@@ -93,6 +101,13 @@ Nuxt SSR / 有 Nuxt server 时：
 
 - `spring.datasource.url`：PostgreSQL JDBC URL。
 - `spring.datasource.username`：PostgreSQL 用户名。
+
+公共 Redis Data ID 默认包含：
+
+- `spring.data.redis.host`：Redis 主机。
+- `spring.data.redis.port`：Redis 端口。
+- `spring.data.redis.database`：Redis database 编号。
+- `spring.data.redis.password`：Redis 密码环境变量占位。
 
 模块 Data ID 默认包含：
 
@@ -102,6 +117,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
 - `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
+- `hdx.security.jwt.revocation.enabled` 和 `hdx.security.jwt.revocation.key-prefix`：gateway JWT 会话撤销检查开关和 Redis key 前缀。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
 
 如果某个模块需要单独数据库或用户名，可以在该模块 Data ID 中重新声明 `spring.datasource.url` 和 `spring.datasource.username`；模块配置会覆盖公共数据库配置。数据库密码仍不放入 Nacos，使用模块专用环境变量或 `HDX_POSTGRES_PASSWORD`。

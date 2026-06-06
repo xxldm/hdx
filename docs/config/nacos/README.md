@@ -10,6 +10,7 @@
 - `backend-core-service` 默认读取 `hdx-core-service.yml`。
 - `backend-auth-service` 默认读取 `hdx-auth-service.yml`。
 - `backend-gateway` 默认读取 `hdx-gateway.yml`。
+- 启用 JWT 会话撤销时，相关服务可选读取公共 Redis 配置 `hdx-redis.yml`。
 - 默认 Group 为 `DEFAULT_GROUP`。
 - Namespace 由启动环境变量 `NACOS_NAMESPACE` 指定；为空时使用 Nacos public namespace。
 
@@ -21,6 +22,7 @@
 - `HDX_NACOS_CORE_DATA_ID`
 - `HDX_NACOS_AUTH_DATA_ID`
 - `HDX_NACOS_GATEWAY_DATA_ID`
+- `HDX_NACOS_REDIS_DATA_ID`
 - `HDX_NACOS_GROUP`
 
 ## 密钥边界
@@ -32,6 +34,7 @@
 - `HDX_POSTGRES_PASSWORD`
 - `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用数据库密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用数据库密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
+- `HDX_REDIS_PASSWORD`
 - `NACOS_USERNAME`
 - `NACOS_PASSWORD`
 

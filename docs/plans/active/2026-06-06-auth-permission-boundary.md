@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态计划草案待确认
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -266,6 +266,53 @@
 - 标准 `grant_type=password` OAuth token endpoint。
 - 首个用户创建、后台用户管理或生产 bootstrap 账号。
 
+## 第 2 小步：Web BFF 登录态与最小接口
+
+状态：计划草案待用户确认，确认前不实现。
+
+### 当前 Web 现状
+
+- Web 子模块 `apps/web/` 当前已有 Nuxt server API 边界 `server/api/hdx/v1/**`，并通过 `server/utils/backend-fetch.ts` 代理后端请求。
+- 当前 Web 私有运行时配置只有后端地址和 all-in-one 本机 token；尚无 Web session secret、auth cookie、CSRF cookie 或 Authorization Bearer 注入。
+- 当前 Web 类型边界集中在 `app/types/hdx-api.ts`，后端错误归一化在 `app/utils/api-error.ts`。
+- 当前测试入口为 Vitest，已有 schema 与 server config 单元测试。
+
+### 本小步目标
+
+- 让 Web 浏览器可以通过 Nuxt BFF 完成第一方账号密码登录、查询当前登录态、刷新和登出。
+- Web 浏览器不直接持有 access token 或 refresh token；token 只保存在 Nuxt server 的 `HttpOnly` session cookie 中。
+- BFF 在受保护请求或显式 refresh 时检查 access token，过期或接近过期则调用后端 `/api/auth/refresh`；refresh 成功后轮换 refresh token 并更新 session，实现 7 天内有操作时滑动续期。
+- 先实现 BFF 最小接口与测试，不实现登录 dialog UI、注册、找回密码、二维码登录或第三方 OAuth 登录。
+
+### 计划
+
+- [ ] 增加 Web 私有运行时配置：session cookie 名称、session password/secret、CSRF cookie/header 名称、access token refresh 提前量；密钥只通过环境变量或部署 Secret 注入，`.env.example` 只写占位。
+- [ ] 新增 auth 边界类型和 Zod schema，覆盖登录请求、后端 token 响应、Web public session 响应和 BFF 错误响应。
+- [ ] 新增 Nuxt server auth session helper，优先使用 Nuxt/H3 内置 cookie session；如果实际 API 或类型不匹配，则退回同等安全属性的本地 helper。session cookie 必须 `HttpOnly`、`SameSite=Lax`，生产环境启用 `Secure`。
+- [ ] 新增 CSRF helper：使用非 HttpOnly CSRF cookie + `X-HDX-CSRF` header 的 double-submit 校验，保护 login、refresh、logout 等状态变更接口。
+- [ ] 新增 BFF 接口：
+  - `GET /api/hdx/v1/auth/session`：返回当前 public session；无登录态时返回未登录状态，并提供 CSRF token。
+  - `POST /api/hdx/v1/auth/login`：校验输入，调用后端 `/api/auth/login`，保存 token session，只返回 public session。
+  - `POST /api/hdx/v1/auth/refresh`：使用 session 内 refresh token 调用后端 `/api/auth/refresh`，更新 token session，只返回 public session。
+  - `POST /api/hdx/v1/auth/logout`：调用后端 `/api/auth/logout`，清理 Web session；后端不可用时也清理本地 session，并返回可理解的登出结果。
+- [ ] 扩展 `fetchBackend` 或新增 authenticated backend helper，支持从 Web session 注入 `Authorization: Bearer <accessToken>`；保留 all-in-one 本机 token 分支。
+- [ ] 补充 Web 单元测试：配置解析、auth schema、CSRF 校验、登录保存 session、refresh 轮换 session、logout 清 session、后端响应格式错误和后端不可用错误。
+- [ ] 更新 `apps/web/README.md`、`.env.example`、`docs/ENVIRONMENT.md` 和本计划，记录 Web BFF 登录态、环境变量、验证命令和剩余风险。
+
+### 验证计划
+
+- `pnpm test`
+- `pnpm typecheck`
+- `pnpm lint`
+- 如本小步只改 server API 和工具，不改 UI，可暂不跑浏览器截图；如果实现过程中触碰登录入口 UI，则补 Playwright/浏览器手工验证。
+
+### 本小步不做
+
+- 不实现登录 dialog UI 或页面交互。
+- 不实现用户注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
+- 不新增 Redis/Web 服务端集中 session 存储；当前先采用 cookie session。若后续需要服务端主动踢掉 Web session，再单独设计集中 session 存储。
+- 不实现生产级登录风控、登录失败锁定或异常设备告警；这些仍保留在认证中心后续风险项中。
+
 ## 非目标
 
 - 本计划不把二维码登录、第三方 OAuth 登录、Passkey、MFA 或验证码提前实现。
@@ -274,7 +321,7 @@
 
 ## 下一步确认
 
-优先确认 Web dialog/BFF 如何调用第一方登录 API，以及浏览器 `HttpOnly` session cookie、CSRF 和 Nuxt server token 存储细节。
+请确认“第 2 小步：Web BFF 登录态与最小接口”计划。确认后开始实现；如需调整 cookie/session/CSRF 策略，先改计划再实现。
 
 ## 验证方式
 
@@ -304,6 +351,7 @@
 - 2026-06-06：用户确认第一方 Web 需要账号密码登录、二维码登录和第三方 OAuth 登录，第一方 App 需要账号密码登录和第三方 OAuth 登录；现阶段只实现第一方账号密码登录，其余能力保留扩展空间。
 - 2026-06-06：实现第一方账号密码登录后端能力：`/api/auth/login`、`/api/auth/refresh`、`/api/auth/logout`，refresh token 持久化哈希并轮换，复用旧 refresh token 或 logout 时撤销 `sid` 并写 Redis。
 - 2026-06-06：用户确认 refresh token 默认滑动不活跃窗口改为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并触发 refresh 时刷新会话窗口。
+- 2026-06-06：用户确认下一步进入 Web BFF 登录态接入；补充第 2 小步计划草案，等待用户确认后再实现。
 
 ## 验证结果
 

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；等待继续确认登录态和 token 策略
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；正在确认第 1 小步 Web 登录态与 refresh token 策略
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -193,6 +193,60 @@
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
 
+## 第 1 小步：Web 登录态与 refresh token 策略
+
+状态：待用户确认后实施。
+
+### 当前现状
+
+- Web 端采用 Nuxt 4 SSR + Nuxt server BFF。浏览器只调用同源 `/api/hdx/v1/**`，不直接访问后端地址。
+- Nuxt server 当前通过私有 `runtimeConfig` 读取后端地址，并在 all-in-one 场景下附加本机 token header。
+- 当前 `fetchBackend` 尚未支持服务端 OAuth2 access token，也没有 Web 登录态、refresh token、logout 或 CSRF 机制。
+- `backend-auth-service` 当前已暴露 OIDC discovery 与 JWK，但还没有持久签名密钥、登录页面、用户密码认证、注册、refresh token 策略或 OAuth2 client 初始化。
+
+### 推荐决策草案
+
+- Web 服务端模式采用 OAuth2 Authorization Code + PKCE 登录流程。
+- Nuxt server 作为 Web OAuth2 client 参与授权码回调和 token 交换；浏览器不直接拿 access token、refresh token 或 client secret。
+- Web client 默认按 confidential client 设计：`client_secret` 只保存在 Nuxt server 私有配置或部署 Secret 中；同时保留 PKCE，降低授权码被截获后的风险。
+- 浏览器只保存 `HttpOnly` 会话 cookie。该 cookie 不进入 `localStorage`、`sessionStorage`、Pinia 或普通浏览器脚本可读状态。
+- access token 与 refresh token 只保存在 Nuxt server 侧会话/token 存储中；BFF 调后端时附加 `Authorization: Bearer <access_token>`。
+- all-in-one 模式继续使用本机 token header；服务端 OAuth2 token 与 all-in-one 本机 token 在 Web BFF 配置层分支处理，不混用。
+- BFF 在调用后端前检查 access token 是否已过期或接近过期；需要时使用 refresh token 换取新 access token，再继续本次请求。
+- refresh token 失败、被撤销、过期或疑似重放时，Nuxt server 清理本地会话并向浏览器返回 `401`，由前端引导重新登录。
+- 服务端 refresh token 使用轮换策略；旧 refresh token 被使用后应失效，后续发现重复使用时按异常会话处理。
+- logout 需要同时清理 Web 本地会话；认证中心支持后，再撤销 refresh token 或关联 authorization。
+- 使用 cookie 维持浏览器登录态后，所有非幂等 BFF 路由必须有 CSRF 防护。推荐使用 `SameSite=Lax` cookie 加 `X-HDX-CSRF-Token` 请求头，登录回调等 OAuth2 固定入口按白名单处理。
+
+### 待确认取舍
+
+- 会话/token 存储首个实现采用哪种形态：
+  - 推荐：先通过 Nuxt/Nitro 服务端存储抽象实现，开发期可用内存存储；生产部署前必须切换到 Redis、数据库或等效共享存储。
+  - 不推荐：把 access token 或 refresh token 加密后直接放入浏览器 cookie；虽然脚本不可读，但令牌仍随浏览器 cookie 存在，泄漏影响面更大。
+- Web session cookie 名称建议使用 `hdx_session`；CSRF cookie 或 token 名称建议使用 `hdx_csrf`，请求头使用 `X-HDX-CSRF-Token`。
+- access token 与 refresh token 有效期需在认证中心配置中最终确定。建议 access token 使用短有效期，refresh token 使用较长有效期并开启轮换。
+- Web 登录入口建议使用 `/auth/login`、`/auth/callback`、`/auth/logout`；BFF session API 建议使用 `/api/auth/session` 与 `/api/auth/logout`。
+- 本小步是否只先沉淀策略与配置契约，还是直接开始实现 Nuxt BFF 登录骨架，需要用户确认。
+
+### 实施计划草案
+
+确认后按以下小切片实施：
+
+1. 更新 Web 认证 runtime config schema，新增 issuer、client id、client secret、redirect uri、session secret、cookie/CSRF 名称等私有配置。
+2. 新增 Web 端 OAuth2/OIDC 配置解析与 discovery 拉取边界，所有外部响应用 Zod 校验。
+3. 新增 Nuxt server 登录、回调、session、logout 路由骨架。
+4. 改造 `fetchBackend`，在服务端 OAuth2 模式下从 server session 取 access token 并附加 `Authorization`，all-in-one 模式继续走本机 token header。
+5. 为非幂等 BFF 路由补 CSRF 校验。
+6. 更新 `.env.example`、`docs/ENVIRONMENT.md`、`apps/web/README.md` 和本计划。
+7. 补充 Web server 单元测试，覆盖配置解析、未登录请求、token header 附加、refresh 失败清理会话和 CSRF 拒绝路径。
+
+### 暂不实施
+
+- 不实现真实登录页面 UI。
+- 不实现注册、找回密码、邮箱/手机号验证码或用户管理。
+- 不确定生产会话共享存储前，不承诺多副本 Web 部署下的会话连续性。
+- 不把 refresh token 暴露给浏览器脚本。
+
 ## 当前实施切片
 
 本轮实施范围：
@@ -218,7 +272,7 @@
 
 ## 下一步确认
 
-优先制定实现认证服务模块的小计划：新增 `backend-auth-service`、迁移脚本、最小配置、验证方式和剩余风险。
+优先确认 Web 登录态与 refresh token 策略，确认后再进入 Nuxt BFF 登录骨架实现。
 
 ## 验证方式
 
@@ -240,6 +294,7 @@
 - 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。
 - 2026-06-06：用户确认 auth 服务后续使用独立域名，不通过 gateway 作为 issuer；当前本地 Nacos issuer 暂用 `http://192.168.50.100:18082`，反代后再改成 auth 独立域名。
 - 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
+- 2026-06-06：开始第 1 小步 Web 登录态与 refresh token 策略确认；根据 Nuxt SSR+BFF 现状补充推荐草案，等待用户确认会话/token 存储、cookie/CSRF 命名、token 有效期方向和是否进入实现。
 
 ## 验证结果
 

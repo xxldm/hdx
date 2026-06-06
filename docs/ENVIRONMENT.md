@@ -11,7 +11,7 @@
 - `.env.local` 不提交。
 - `.env.example` 是可提交模板，不包含真实密钥。
 - `.env.example` 修改后必须按模板原有分组和相邻位置同步 `.env.local` 的文件结构，不能简单追加到文件末尾；变量键保持一致但真实值可不同。
-- 对 `.env.local` 新增变量不需要用户事前同意，完成后必须提示用户填写真实值；修改或删除 `.env.local` 已有变量前必须征得用户同意。
+- 对 `.env.local` 新增变量不需要用户事前同意，完成后必须提示用户填写真实值；修改或删除 `.env.local` 已有变量前必须主动请求用户确认，不能以“需要同意”为理由静默跳过。
 - 本地脚本应优先读取 `.env.local`。
 - 如果某个工具有专属覆盖文件，应在读取 `.env.local` 后再读取专属文件。
 - 本地 `.env.local` 可以保存 Nacos 地址、Nacos 登录凭据、数据库密码、Redis 密码、desktop all-in-one 本地库覆盖项和 Nuxt server 私有配置。
@@ -22,7 +22,7 @@
 
 `.env.symphony.local` 只放 Symphony 专用变量或覆盖项，例如 Linear API Key、Symphony/Codex provider 覆盖、临时实验开关。
 
-`.env.symphony.example` 修改后必须按模板原有分组和相邻位置同步 `.env.symphony.local` 的文件结构，不能简单追加到文件末尾。新增变量不需要用户事前同意，完成后提示用户填写真实值；修改或删除 `.env.symphony.local` 已有变量前必须征得用户同意。
+`.env.symphony.example` 修改后必须按模板原有分组和相邻位置同步 `.env.symphony.local` 的文件结构，不能简单追加到文件末尾。新增变量不需要用户事前同意，完成后提示用户填写真实值；修改或删除 `.env.symphony.local` 已有变量前必须主动请求用户确认，不能以“需要同意”为理由静默跳过。
 
 加载顺序：
 
@@ -186,7 +186,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\load-env.ps1 -Path
 
 - 不提交 `.env.local`、`.env.symphony.local` 或任何真实密钥。
 - 新增环境变量时必须同步更新 `.env.example` 和本文档。
-- 修改 `.env.example` 或 `.env.symphony.example` 时，必须按模板原有分组和相邻位置同步对应 local 文件的变量结构，不能简单追加到文件末尾；新增变量可直接补齐并提示用户填写真实值，修改或删除已有变量必须先征得用户同意。
+- 修改 `.env.example` 或 `.env.symphony.example` 时，必须按模板原有分组和相邻位置同步对应 local 文件的变量结构，不能简单追加到文件末尾；新增变量可直接补齐并提示用户填写真实值，修改或删除已有变量必须先主动请求用户确认，不能以“需要同意”为理由静默跳过。
 - 新增后端 service profile 非密钥配置时，必须同步更新 `docs/config/nacos/` 示例和本文档。
 - 修改 `docs/config/nacos/` 模板时，必须按模板原有层级和相邻位置同步真实 Nacos Data ID；新增项可直接同步，修改或删除项必须先征得用户同意，占位 URL 等真实值由用户手动确认。
 - 面向浏览器的 public runtime config 不得包含真实后端内网地址、令牌、数据库配置或密钥。

@@ -38,9 +38,12 @@
 
 默认 Data ID：
 
+- 公共数据库配置：`hdx-database.yml`
 - `backend-core-service`：`hdx-core-service.yml`
 - `backend-auth-service`：`hdx-auth-service.yml`
 - `backend-gateway`：`hdx-gateway.yml`
+
+`backend-core-service` 和 `backend-auth-service` 默认先可选导入公共数据库配置，再导入各自的服务配置。服务配置可以覆盖公共数据库配置中的 `spring.datasource.url` 和 `spring.datasource.username`，用于单独数据库、单独账号或临时联调。`backend-gateway` 不导入公共数据库配置。
 
 服务端启动前必须准备：
 
@@ -75,23 +78,33 @@ Nuxt SSR / 有 Nuxt server 时：
 - `NACOS_USERNAME`：Nacos 用户名；只在 Nacos 开启鉴权时需要。
 - `NACOS_PASSWORD`：Nacos 密码；只在 Nacos 开启鉴权时需要。
 - `HDX_NACOS_GROUP`：Nacos Group，默认 `DEFAULT_GROUP`。
+- `HDX_NACOS_DATABASE_DATA_ID`：后端数据库公共配置 Data ID，默认 `hdx-database.yml`。
 - `HDX_NACOS_AUTH_DATA_ID`：`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。
 - `HDX_NACOS_CORE_DATA_ID`：`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
 - `HDX_NACOS_GATEWAY_DATA_ID`：`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
 - `HDX_NACOS_DISCOVERY_IP`：服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
-- `HDX_POSTGRES_PASSWORD`：PostgreSQL 密码。
+- `HDX_POSTGRES_PASSWORD`：PostgreSQL 默认密码。
+- `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
+- `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 
 ### 后端 service profile Nacos 配置
 
-- `server.port`：服务端口。
+公共数据库 Data ID 默认包含：
+
 - `spring.datasource.url`：PostgreSQL JDBC URL。
 - `spring.datasource.username`：PostgreSQL 用户名。
+
+模块 Data ID 默认包含：
+
+- `server.port`：服务端口。
 - `spring.security.oauth2.resourceserver.jwt.issuer-uri`：OAuth2/JWT issuer 地址。
 - `spring.security.oauth2.authorizationserver.issuer`：认证中心 issuer 地址。
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
 - `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
+
+如果某个模块需要单独数据库或用户名，可以在该模块 Data ID 中重新声明 `spring.datasource.url` 和 `spring.datasource.username`；模块配置会覆盖公共数据库配置。数据库密码仍不放入 Nacos，使用模块专用环境变量或 `HDX_POSTGRES_PASSWORD`。
 
 ### 后端 all-in-one
 

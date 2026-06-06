@@ -1,14 +1,12 @@
 # Nacos Data ID: hdx-auth-service.yml
 # Group: DEFAULT_GROUP
-# 内容只放非密钥配置；数据库密码通过 HDX_POSTGRES_PASSWORD 注入。
+# 内容只放认证服务自己的非密钥配置；公共数据库配置默认来自 hdx-database.yml。
+# 如果认证服务需要单独数据库或用户名，可以在本 Data ID 中覆盖 spring.datasource.url 或 spring.datasource.username。
 
 server:
   port: 18082
 
 spring:
-  datasource:
-    url: jdbc:postgresql://postgres.example.internal:5432/hdx
-    username: hdx
   security:
     oauth2:
       authorizationserver:

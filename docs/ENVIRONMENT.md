@@ -38,7 +38,7 @@
 - Nacos 适合管理服务端非密钥配置，例如端口、数据库 JDBC URL、数据库用户名、JWT issuer、网关路由、服务治理和非敏感业务开关。
 - 数据库密码、API Key、证书、令牌等密钥优先使用部署平台 Secret 或环境变量注入。
 - Redis 地址、端口、database 和 timeout 属于非密钥配置，放 Nacos；Redis 密码和 PostgreSQL 密码一样属于密钥，通过服务启动配置中的环境变量或部署 Secret 注入，不写入 Nacos。
-- Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入；Group 和 Data ID 已有代码默认值，只有改名或多环境复用启动脚本时才需要覆盖。
+- Nacos 地址、Namespace 和登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入；Namespace 为空仅表示使用 public namespace，登录凭据为空仅适用于 Nacos 未开启鉴权。Group 和 Data ID 已有代码默认值，只有改名或多环境复用启动脚本时才需要覆盖。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
 - 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须按模板原有层级和相邻位置同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改。
@@ -58,7 +58,7 @@
 服务端启动前必须准备：
 
 1. 在 Nacos 中创建对应 Data ID，内容参考 `docs/config/nacos/`。
-2. 通过环境变量或部署 Secret 注入 `NACOS_SERVER_ADDR`、`HDX_POSTGRES_PASSWORD`。
+2. 通过环境变量或部署 Secret 注入 `NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`HDX_POSTGRES_PASSWORD`。
 3. 启用 JWT 会话撤销时，通过环境变量或部署 Secret 注入 `HDX_REDIS_PASSWORD`。
 4. 如果 Nacos 开启鉴权，注入 `NACOS_USERNAME`、`NACOS_PASSWORD`。
 
@@ -82,14 +82,14 @@ Nuxt SSR / 有 Nuxt server 时：
 
 ## 变量分层
 
-本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace/鉴权、Data ID、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
+本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace 和鉴权必须按环境确认，空值只代表 public namespace 或未开启鉴权；Data ID、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
 
 ### 后端 service profile 环境变量
 
 - `NACOS_SERVER_ADDR`：Nacos 地址。
-- `NACOS_NAMESPACE`：可选，Nacos Namespace；为空时使用 public namespace。
-- `NACOS_USERNAME`：可选，Nacos 用户名；只在 Nacos 开启鉴权时需要。
-- `NACOS_PASSWORD`：可选，Nacos 密码；只在 Nacos 开启鉴权时需要。
+- `NACOS_NAMESPACE`：Nacos Namespace；为空时使用 public namespace，非 public 环境必须显式配置。
+- `NACOS_USERNAME`：Nacos 用户名；仅 Nacos 未开启鉴权时可以为空。
+- `NACOS_PASSWORD`：Nacos 密码；仅 Nacos 未开启鉴权时可以为空。
 - `HDX_NACOS_GROUP`：可选覆盖项，Nacos Group，默认 `DEFAULT_GROUP`。
 - `HDX_NACOS_DATABASE_DATA_ID`：可选覆盖项，后端数据库公共配置 Data ID，默认 `hdx-database.yml`。
 - `HDX_NACOS_AUTH_DATA_ID`：可选覆盖项，`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。

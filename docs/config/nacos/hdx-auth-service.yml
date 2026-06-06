@@ -18,3 +18,8 @@ spring:
 hdx:
   runtime:
     topology: auth-service
+  auth:
+    tokens:
+      access-token-ttl: 15m
+      refresh-token-ttl: 30d
+      revocation-ttl-skew: 1m

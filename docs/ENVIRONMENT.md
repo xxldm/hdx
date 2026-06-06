@@ -47,6 +47,8 @@
 
 `backend-core-service` 和 `backend-auth-service` 默认先可选导入公共数据库配置，再导入各自的服务配置。服务配置可以覆盖公共数据库配置中的 `spring.datasource.url` 和 `spring.datasource.username`，用于单独数据库、单独账号或临时联调。`backend-gateway` 不导入公共数据库配置。
 
+`backend-auth-service` 和 `backend-gateway` 在启用 JWT `sid` 撤销时都读取公共 Redis Data ID：认证中心负责写入撤销 `sid`，gateway 负责读取并拒绝已撤销会话。
+
 服务端启动前必须准备：
 
 1. 在 Nacos 中创建对应 Data ID，内容参考 `docs/config/nacos/`。
@@ -111,13 +113,16 @@ Nuxt SSR / 有 Nuxt server 时：
 - `server.port`：服务端口。
 - `spring.security.oauth2.resourceserver.jwt.issuer-uri`：OAuth2/JWT issuer 地址。
 - `spring.security.oauth2.authorizationserver.issuer`：认证中心 issuer 地址。
+- `hdx.auth.tokens.access-token-ttl`：第一方账号密码登录 access token 有效期。
+- `hdx.auth.tokens.refresh-token-ttl`：第一方账号密码登录 refresh token 有效期。
+- `hdx.auth.tokens.revocation-ttl-skew`：写入 Redis `sid` 撤销索引时追加的时钟偏移缓冲。
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
 - `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
 - `hdx.security.jwt.revocation.enabled` 和 `hdx.security.jwt.revocation.key-prefix`：gateway JWT 会话撤销检查开关和 Redis key 前缀。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
 
-`backend-gateway` 的 service profile 本地启动配置会把 `spring.data.redis.password` 绑定到 `HDX_REDIS_PASSWORD`，与 core/auth 的 `spring.datasource.password` 绑定到 `HDX_POSTGRES_PASSWORD` 或模块专用密码保持一致。
+`backend-auth-service` 和 `backend-gateway` 的 service profile 本地启动配置会把 `spring.data.redis.password` 绑定到 `HDX_REDIS_PASSWORD`，与 core/auth 的 `spring.datasource.password` 绑定到 `HDX_POSTGRES_PASSWORD` 或模块专用密码保持一致。
 
 如果某个模块需要单独数据库或用户名，可以在该模块 Data ID 中重新声明 `spring.datasource.url` 和 `spring.datasource.username`；模块配置会覆盖公共数据库配置。数据库密码仍不放入 Nacos，使用模块专用环境变量或 `HDX_POSTGRES_PASSWORD`。
 

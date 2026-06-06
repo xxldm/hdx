@@ -30,7 +30,7 @@ HDX 服务端认证中心使用 JWT/OAuth2。JWT access token 是自包含令牌
 
 ## 影响范围
 
-- `backend-auth-service` 后续负责在登出和高风险会话失效时写入 Redis 撤销记录。
+- `backend-auth-service` 负责在登出、refresh token 复用和高风险会话失效时写入 Redis 撤销记录。
 - `backend-gateway` 负责读取 Redis 并拒绝已撤销 `sid`。
 - `backend-core-service` 依赖 gateway 作为唯一外部资源入口。
 - Nacos 示例增加公共 Redis Data ID；Redis 地址、端口、database 和 timeout 放 Nacos，密码与 PostgreSQL 密码一样通过服务启动配置中的环境变量或部署 Secret 注入。
@@ -43,7 +43,8 @@ HDX 服务端认证中心使用 JWT/OAuth2。JWT access token 是自包含令牌
   - 已撤销 `sid` 返回 `401`。
   - JWT 缺少 `sid` 返回 `401`。
   - Redis 查询失败返回 `503`。
-- 后续 auth-service 实现登出后，需补集成验证：登录获取 JWT，登出写入 Redis 后，同一个 `sid` 的旧 JWT 访问 gateway 被拒绝。
+- auth-service 单元测试覆盖 refresh token 复用和登出时触发 `sid` 撤销写入。
+- 后续需补真实链路集成验证：登录获取 JWT，登出写入 Redis 后，同一个 `sid` 的旧 JWT 访问 gateway 被拒绝。
 
 ## 回滚条件
 
@@ -54,7 +55,5 @@ HDX 服务端认证中心使用 JWT/OAuth2。JWT access token 是自包含令牌
 
 ## 后续事项
 
-- 认证中心签发 access token 时加入 `sid` claim。
-- 确认 access token 有效期、refresh token 有效期和撤销 TTL 缓冲。
-- 实现 auth-service 登出接口和 Redis 撤销写入。
+- 完成真实 PostgreSQL service profile 迁移验证，确认 `auth_password_credential`、`auth_login_session` 和 `auth_refresh_token` 创建正常。
 - Web BFF 登出时调用认证中心登出，并清理自身 session/cookie。

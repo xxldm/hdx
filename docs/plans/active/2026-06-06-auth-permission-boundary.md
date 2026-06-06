@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；正在确认第 1 小步 Web 登录态与 refresh token 策略
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -49,6 +49,12 @@
 - 当前阶段 `auth_user_identity` 只启用 `USERNAME` 类型；后续启用邮箱登录时新增或开放 `EMAIL` 类型，并可禁止新注册用户名账号。
 - `auth_user_identity` 保存原始标识 `identifier` 和归一化查询值 `normalized_value`，唯一约束按未删除记录的 `identity_type + normalized_value` 判断。
 - 邮箱是否验证属于 `EMAIL` 登录标识的属性，后续用 `verified_at` 表达，不塞入 `auth_user` 主体表。
+- 第一方 Web 需要支持账号密码登录、二维码登录和接入 GitHub 等第三方 OAuth 登录；第一方 App 需要支持账号密码登录和接入第三方 OAuth 登录。
+- 现阶段只实现第一方账号密码登录，二维码登录和第三方 OAuth 登录只保留模型与接口扩展空间。
+- 第一方账号密码登录本质上是 password-style credential login：Web 登录 dialog 通过 Nuxt BFF 调用认证中心，App 应用内登录页直接调用认证中心；该能力只面向 HDX 第一方客户端，不作为第三方 OAuth grant 开放。
+- 第三方 OAuth 登录后续统一采用 Authorization Code + PKCE；GitHub 等外部身份最终绑定到本地 `auth_user`，不替代本地用户主体。
+- 所有登录方式最终归一到同一套会话模型：`sid`、access token、refresh token、角色权限声明、会话撤销和审计记录。
+- Web 浏览器不直接持有 access token 或 refresh token；Web 侧 token 由 Nuxt server session 持有，浏览器只保存 `HttpOnly` session cookie。App token 后续保存到系统安全存储。
 
 ## 已确认表级字段清单
 
@@ -192,14 +198,13 @@
 
 ## 待确认事项
 
-- Web 登录态与 refresh token 策略。
-- 认证中心签发 access token 时 `sid` 的生成、持久化关联和撤销 TTL 策略。
+- Nuxt BFF 登录 dialog、session cookie、CSRF 和 refresh token 存储细节。
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
 
-## 第 1 小步：Web 登录态与 refresh token 策略
+## 第 1 小步：多客户端登录策略与第一方账号密码登录
 
-状态：待用户确认后实施。
+状态：已实现并完成本轮自动化验证。
 
 ### 当前现状
 
@@ -208,81 +213,75 @@
 - 当前 `fetchBackend` 尚未支持服务端 OAuth2 access token，也没有 Web 登录态、refresh token、logout 或 CSRF 机制。
 - `backend-auth-service` 当前已暴露 OIDC discovery 与 JWK，但还没有持久签名密钥、登录页面、用户密码认证、注册、refresh token 策略或 OAuth2 client 初始化。
 
-### 推荐决策草案
+### 已确认策略
 
-- Web 服务端模式采用 OAuth2 Authorization Code + PKCE 登录流程。
-- Nuxt server 作为 Web OAuth2 client 参与授权码回调和 token 交换；浏览器不直接拿 access token、refresh token 或 client secret。
-- Web client 默认按 confidential client 设计：`client_secret` 只保存在 Nuxt server 私有配置或部署 Secret 中；同时保留 PKCE，降低授权码被截获后的风险。
-- 浏览器只保存 `HttpOnly` 会话 cookie。该 cookie 不进入 `localStorage`、`sessionStorage`、Pinia 或普通浏览器脚本可读状态。
-- access token 与 refresh token 只保存在 Nuxt server 侧会话/token 存储中；BFF 调后端时附加 `Authorization: Bearer <access_token>`。
-- all-in-one 模式继续使用本机 token header；服务端 OAuth2 token 与 all-in-one 本机 token 在 Web BFF 配置层分支处理，不混用。
-- BFF 在调用后端前检查 access token 是否已过期或接近过期；需要时使用 refresh token 换取新 access token，再继续本次请求。
-- refresh token 失败、被撤销、过期或疑似重放时，Nuxt server 清理本地会话并向浏览器返回 `401`，由前端引导重新登录。
-- 服务端 refresh token 使用轮换策略；旧 refresh token 被使用后应失效，后续发现重复使用时按异常会话处理。
-- logout 需要同时清理 Web 本地会话；认证中心支持后，再撤销 refresh token 或关联 authorization。
-- 使用 cookie 维持浏览器登录态后，所有非幂等 BFF 路由必须有 CSRF 防护。推荐使用 `SameSite=Lax` cookie 加 `X-HDX-CSRF-Token` 请求头，登录回调等 OAuth2 固定入口按白名单处理。
-- 登出时 Web BFF 应调用认证中心登出接口，由认证中心撤销 refresh token/authorization 并写入 Redis 撤销 `sid`，随后 Web BFF 清理自身 session/cookie。
-
-### 待确认取舍
-
-- 会话/token 存储首个实现采用哪种形态：
-  - 推荐：先通过 Nuxt/Nitro 服务端存储抽象实现，开发期可用内存存储；生产部署前必须切换到 Redis、数据库或等效共享存储。
-  - 不推荐：把 access token 或 refresh token 加密后直接放入浏览器 cookie；虽然脚本不可读，但令牌仍随浏览器 cookie 存在，泄漏影响面更大。
-- Web session cookie 名称建议使用 `hdx_session`；CSRF cookie 或 token 名称建议使用 `hdx_csrf`，请求头使用 `X-HDX-CSRF-Token`。
-- access token 与 refresh token 有效期需在认证中心配置中最终确定。建议 access token 使用短有效期，refresh token 使用较长有效期并开启轮换。
-- Web 登录入口建议使用 `/auth/login`、`/auth/callback`、`/auth/logout`；BFF session API 建议使用 `/api/auth/session` 与 `/api/auth/logout`。
-- 本小步是否只先沉淀策略与配置契约，还是直接开始实现 Nuxt BFF 登录骨架，需要用户确认。
+- 首版实现第一方账号密码登录，暂不实现二维码登录、GitHub 等第三方 OAuth 登录、注册、找回密码、验证码、MFA 或 Passkey。
+- Web 用户体验采用当前页面 dialog 登录；dialog 调用 Nuxt BFF，Nuxt BFF 再调用 `backend-auth-service`，浏览器不直接接触 access token 或 refresh token。
+- App 用户体验采用应用内登录页；App 后续直接调用 `backend-auth-service`，并把 refresh token 存入系统安全存储。
+- 第三方 OAuth 登录后续统一走 Authorization Code + PKCE，并通过外部账号绑定归一到本地 `auth_user` 和同一套 `sid` 会话模型。
+- 账号密码登录不开放给第三方 OAuth client，不实现标准 `grant_type=password` token endpoint。
+- refresh token 需要持久化并轮换；重复使用已消费 refresh token 时，撤销整个 `sid` 会话。
+- 登出时撤销当前 `sid`，写入 Redis 撤销索引，使 gateway 能拒绝尚未自然过期的 access token。
 
 ### 实施计划草案
 
 确认后按以下小切片实施：
 
-1. 更新 Web 认证 runtime config schema，新增 issuer、client id、client secret、redirect uri、session secret、cookie/CSRF 名称等私有配置。
-2. 新增 Web 端 OAuth2/OIDC 配置解析与 discovery 拉取边界，所有外部响应用 Zod 校验。
-3. 新增 Nuxt server 登录、回调、session、logout 路由骨架。
-4. 改造 `fetchBackend`，在服务端 OAuth2 模式下从 server session 取 access token 并附加 `Authorization`，all-in-one 模式继续走本机 token header。
-5. 为非幂等 BFF 路由补 CSRF 校验。
-6. 更新 `.env.example`、`docs/ENVIRONMENT.md`、`apps/web/README.md` 和本计划。
-7. 补充 Web server 单元测试，覆盖配置解析、未登录请求、token header 附加、refresh 失败清理会话和 CSRF 拒绝路径。
+1. 为账号密码登录补充密码凭据、登录会话和 refresh token 持久化表。
+2. 新增 `backend-auth-service` 第一方登录 API：`POST /api/auth/login`、`POST /api/auth/refresh`、`POST /api/auth/logout`。
+3. 登录成功时签发包含 `sid`、角色和权限声明的 JWT access token，并返回轮换 refresh token。
+4. refresh 时消费旧 refresh token、生成新 refresh token；检测到已消费 token 被复用时撤销整个会话。
+5. logout 时撤销会话并写入 Redis `sid` 撤销索引。
+6. 更新环境配置、Nacos 示例、后端 README 和本计划。
+7. 补充后端单元测试，覆盖登录成功、密码错误、禁用账号、refresh 轮换、refresh 复用撤销和 logout 撤销。
 
 ### 暂不实施
 
-- 不实现真实登录页面 UI。
+- 不实现 Web dialog UI、Nuxt BFF session cookie 和 CSRF。
+- 不实现 App 登录页和 App token 安全存储。
 - 不实现注册、找回密码、邮箱/手机号验证码或用户管理。
-- 不确定生产会话共享存储前，不承诺多副本 Web 部署下的会话连续性。
-- 不把 refresh token 暴露给浏览器脚本。
+- 不实现二维码登录和第三方 OAuth 登录。
+- 不实现标准 `grant_type=password` OAuth token endpoint。
 
 ## 当前实施切片
 
 本轮实施范围：
 
-- 新增 `backend-auth-service` Maven 模块。
-- 接入 Spring Security 7 Authorization Server starter、JDBC、Flyway、Nacos Config/Discovery、Sentinel 和 Actuator。
-- 新增 `auth` schema 的 Flyway 迁移脚本。
-- 自有认证权限表按已确认字段创建。
-- OAuth2 授权表采用 Spring Security Authorization Server 7.0.0 官方 JDBC schema，并按官方 PostgreSQL 提示把 `timestamp` 调整为 `TIMESTAMP WITH TIME ZONE`、把 `blob` 调整为 `TEXT`。
-- 更新 Nacos 示例、环境文档、后端 README 和架构说明。
+- 新增第一方账号密码登录契约 DTO：登录、refresh、logout 请求和 token 响应。
+- 新增 `auth.auth_password_credential`、`auth.auth_login_session` 和 `auth.auth_refresh_token` 迁移脚本。
+- 新增 `backend-auth-service` 登录 API：`POST /api/auth/login`、`POST /api/auth/refresh`、`POST /api/auth/logout`。
+- 登录成功签发包含 `sid`、角色和权限声明的 JWT access token，并返回只存哈希的轮换 refresh token。
+- refresh 时消费旧 refresh token、签发新 access/refresh token；检测到旧 refresh token 复用时撤销整个会话并写 Redis。
+- logout 时通过 refresh token 定位会话，撤销会话并写 Redis `sid` 撤销索引。
+- `backend-auth-service` service profile 读取公共 Redis Data ID，并通过 `HDX_REDIS_PASSWORD` 注入 Redis 密码。
+- 更新 Nacos 示例、环境文档、Redis ADR、后端 README 和本计划。
 
 本轮不做：
 
-- 登录页面、注册、找回密码、邮箱/手机号验证码、用户管理接口、角色权限管理接口。
-- Web/App/Desktop 登录接入。
-- 完整 token 签发策略定制和真实 OAuth2 client 管理。
+- Web dialog UI、Nuxt BFF session cookie、CSRF 和 token server-session 存储。
+- App 登录页和 App token 安全存储。
+- 注册、找回密码、邮箱/手机号验证码、用户管理接口、角色权限管理接口。
+- 二维码登录和第三方 OAuth 登录。
+- 标准 `grant_type=password` OAuth token endpoint。
+- 首个用户创建、后台用户管理或生产 bootstrap 账号。
 
 ## 非目标
 
-- 本计划不立即实现认证服务代码。
-- 本计划不在未确认前固定 Web 登录流程、desktop 登录流程、App 登录流程或权限细粒度规则。
+- 本计划不把二维码登录、第三方 OAuth 登录、Passkey、MFA 或验证码提前实现。
+- 本计划不在未确认前固定 desktop 外部服务端登录流程或权限细粒度规则。
 - 本计划不把密钥、私钥、client secret 或真实用户数据提交到仓库。
 
 ## 下一步确认
 
-优先确认 Web 登录态与 refresh token 策略，确认后再进入 Nuxt BFF 登录骨架实现。
+优先确认 Web dialog/BFF 如何调用第一方登录 API，以及浏览器 `HttpOnly` session cookie、CSRF 和 Nuxt server token 存储细节。
 
 ## 验证方式
 
 - 使用 `Get-Content -Encoding UTF8` 读取本文件，确认中文内容正常。
-- 使用 `git status --short --branch` 确认本轮文档变更范围。
+- 使用 `mvn -pl :backend-auth-service -am test` 验证账号密码登录服务逻辑。
+- 使用 `mvn test` 做后端全量回归。
+- 使用 `compile spring-boot:process-aot` 覆盖 auth-service/gateway 新增配置后的 AOT 入口。
+- 使用 `git status --short --branch` 确认本轮变更范围。
 
 ## 状态记录
 
@@ -301,6 +300,8 @@
 - 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
 - 2026-06-06：开始第 1 小步 Web 登录态与 refresh token 策略确认；根据 Nuxt SSR+BFF 现状补充推荐草案，等待用户确认会话/token 存储、cookie/CSRF 命名、token 有效期方向和是否进入实现。
 - 2026-06-06：用户确认登出即时生效使用 Redis 拉黑 JWT `sid`，只在 gateway 检查，Redis 不可用时返回 `503`；临时 Redis Docker Compose 不进入项目记录，但 Redis 撤销策略和代码配置进入项目事实源。
+- 2026-06-06：用户确认第一方 Web 需要账号密码登录、二维码登录和第三方 OAuth 登录，第一方 App 需要账号密码登录和第三方 OAuth 登录；现阶段只实现第一方账号密码登录，其余能力保留扩展空间。
+- 2026-06-06：实现第一方账号密码登录后端能力：`/api/auth/login`、`/api/auth/refresh`、`/api/auth/logout`，refresh token 持久化哈希并轮换，复用旧 refresh token 或 logout 时撤销 `sid` 并写 Redis。
 
 ## 验证结果
 
@@ -316,11 +317,17 @@
 - 后端全量 `mvn test` 通过，覆盖 7 个 Maven 模块。
 - `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot` 通过，验证 gateway 新增 Redis 依赖后的 AOT 入口。
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'` 通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
+- `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service local profile 启动、账号密码登录成功、密码错误、禁用用户不能登录、禁用用户不能 refresh、refresh 轮换、旧 refresh token 复用撤销会话、logout 撤销会话。测试侧使用 H2 最小表结构验证服务逻辑；auth schema 生产迁移仍以 PostgreSQL 为事实源。
+- `mvn test`：通过，覆盖后端 7 个 Maven 模块。
+- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和 gateway auth 路由/安全配置的 AOT 入口。
+- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 
 ## 剩余风险
 
 - 当前 JWK 为服务启动期临时 RSA key，仅用于打通 discovery/JWK 链路；真正签发 token 前必须设计并实现持久化密钥、密钥轮换和部署 Secret 管理。
-- 当前只暴露 Authorization Server 元数据和 JWK；尚未实现登录页面、用户名/邮箱/手机号认证、注册、refresh token 策略、OAuth2 client 初始化或管理。
-- gateway 已实现 Redis `sid` 撤销检查，但认证中心尚未签发包含 `sid` 的真实 access token，也尚未实现登出时写入 Redis 撤销记录和 TTL。
-- 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
+- 当前已实现第一方账号密码登录 API，但尚未实现登录页面、注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
+- 当前尚未实现首个用户创建、后台用户管理或生产 bootstrap 账号；真实登录需要数据库中已有 `auth_user`、`auth_user_identity` 和 `auth_password_credential`。
+- 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
+- 新增 `V3__create_first_party_login_tables.sql` 尚需在真实 PostgreSQL service profile 下复验。
+- 尚未实现 Web dialog/BFF session cookie、CSRF、Nuxt server token 存储或 App token 安全存储。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

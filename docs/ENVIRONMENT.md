@@ -39,6 +39,7 @@
 默认 Data ID：
 
 - `backend-core-service`：`hdx-core-service.yml`
+- `backend-auth-service`：`hdx-auth-service.yml`
 - `backend-gateway`：`hdx-gateway.yml`
 
 服务端启动前必须准备：
@@ -74,6 +75,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `NACOS_USERNAME`：Nacos 用户名；只在 Nacos 开启鉴权时需要。
 - `NACOS_PASSWORD`：Nacos 密码；只在 Nacos 开启鉴权时需要。
 - `HDX_NACOS_GROUP`：Nacos Group，默认 `DEFAULT_GROUP`。
+- `HDX_NACOS_AUTH_DATA_ID`：`backend-auth-service` 读取的 Data ID，默认 `hdx-auth-service.yml`。
 - `HDX_NACOS_CORE_DATA_ID`：`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
 - `HDX_NACOS_GATEWAY_DATA_ID`：`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
 - `HDX_NACOS_DISCOVERY_IP`：服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
@@ -85,7 +87,10 @@ Nuxt SSR / 有 Nuxt server 时：
 - `spring.datasource.url`：PostgreSQL JDBC URL。
 - `spring.datasource.username`：PostgreSQL 用户名。
 - `spring.security.oauth2.resourceserver.jwt.issuer-uri`：OAuth2/JWT issuer 地址。
+- `spring.security.oauth2.authorizationserver.issuer`：认证中心 issuer 地址。
+- `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
+- `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
 
 ### 后端 all-in-one

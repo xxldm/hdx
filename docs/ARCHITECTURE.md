@@ -81,12 +81,13 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 - `backend-contract`：后端共享 API 契约与 DTO。
 - `backend-core`：核心业务能力、JPA 实体、Repository、服务和 REST 控制器。
 - `backend-core-service`：核心业务微服务启动器。
+- `backend-auth-service`：认证中心微服务启动器，作为 JWT/OAuth2 issuer，使用 PostgreSQL `auth` schema。
 - `backend-gateway`：API 网关微服务启动器。
 - `backend-all-in-one`：desktop 集成用本机后端启动器。
 
 运行拓扑：
 
-- 服务端微服务部署：`backend-gateway` 对外开放 REST API，转发到 `backend-core-service`；使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign、PostgreSQL 和 JWT/OAuth2 Resource Server。
+- 服务端微服务部署：`backend-gateway` 对外开放 REST API，转发到 `backend-auth-service` 和 `backend-core-service`；`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，`backend-gateway` 与 `backend-core-service` 作为 Resource Server 校验 token；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign 和 PostgreSQL。
 - desktop all-in-one：`backend-all-in-one` 复用 `backend-core`，绑定 `127.0.0.1`，使用 H2，并通过随机本机令牌保护 HTTP 请求。
 
 后端配置规则：
@@ -94,7 +95,7 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 - Spring Cloud Alibaba 2025.1.x 不使用 bootstrap 配置，Nacos 配置通过 `spring.config.import` 接入。
 - 服务端 profile 使用外部数据库和 Nacos；非密钥配置放 Nacos，数据库密码、Nacos 登录凭据、API Key、证书和令牌通过环境变量或部署 Secret 注入。
 - all-in-one 使用本地配置文件和本地嵌入式数据库。
-- 数据库迁移使用 Flyway。迁移脚本由 `services/backend/backend-core/src/main/resources/db/migration/` 提供，PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。
+- 数据库迁移使用 Flyway。核心业务迁移脚本由 `services/backend/backend-core/src/main/resources/db/migration/` 提供；认证中心迁移脚本由 `services/backend/backend-auth-service/src/main/resources/db/migration/` 提供，并只面向服务端 PostgreSQL `auth` schema。PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。
 
 后端 native 规则：
 

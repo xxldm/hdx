@@ -15,4 +15,5 @@ spring:
 hdx:
   gateway:
     routes:
+      auth-uri: lb://hdx-auth-service
       core-uri: lb://hdx-core-service

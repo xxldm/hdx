@@ -7,6 +7,7 @@
 后端服务端 profile 通过 `spring.config.import` 从 Nacos 读取配置：
 
 - `backend-core-service` 默认读取 `hdx-core-service.yml`。
+- `backend-auth-service` 默认读取 `hdx-auth-service.yml`。
 - `backend-gateway` 默认读取 `hdx-gateway.yml`。
 - 默认 Group 为 `DEFAULT_GROUP`。
 - Namespace 由启动环境变量 `NACOS_NAMESPACE` 指定；为空时使用 Nacos public namespace。
@@ -14,6 +15,7 @@
 如需修改 Data ID 或 Group，通过环境变量覆盖：
 
 - `HDX_NACOS_CORE_DATA_ID`
+- `HDX_NACOS_AUTH_DATA_ID`
 - `HDX_NACOS_GATEWAY_DATA_ID`
 - `HDX_NACOS_GROUP`
 

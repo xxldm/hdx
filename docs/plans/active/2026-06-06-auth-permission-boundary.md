@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已确认认证中心采用独立后端模块；已确认服务端与 all-in-one 的认证持久化边界；已确认 all-in-one 固定本机身份基础字段；已确认服务端认证数据使用 PostgreSQL 独立 schema；已确认认证中心最小数据模型方向；已确认自有表字段基础规则；已确认自有表字段清单；已确认 OAuth2 授权表贴近官方设计；等待制定实现认证服务模块的小计划
+- 当前状态：认证服务模块骨架已实现并通过本地验证；等待补充 Nacos Data ID 后进行 service profile 联调
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -193,6 +193,23 @@
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
 
+## 当前实施切片
+
+本轮实施范围：
+
+- 新增 `backend-auth-service` Maven 模块。
+- 接入 Spring Security 7 Authorization Server starter、JDBC、Flyway、Nacos Config/Discovery、Sentinel 和 Actuator。
+- 新增 `auth` schema 的 Flyway 迁移脚本。
+- 自有认证权限表按已确认字段创建。
+- OAuth2 授权表采用 Spring Security Authorization Server 7.0.0 官方 JDBC schema，并按官方 PostgreSQL 提示把 `timestamp` 调整为 `TIMESTAMP WITH TIME ZONE`、把 `blob` 调整为 `TEXT`。
+- 更新 Nacos 示例、环境文档、后端 README 和架构说明。
+
+本轮不做：
+
+- 登录页面、注册、找回密码、邮箱/手机号验证码、用户管理接口、角色权限管理接口。
+- Web/App/Desktop 登录接入。
+- 完整 token 签发策略定制和真实 OAuth2 client 管理。
+
 ## 非目标
 
 - 本计划不立即实现认证服务代码。
@@ -220,9 +237,18 @@
 - 2026-06-06：用户确认 `auth_user` 和 `auth_user_identity` 字段清单；时间字段沿用现有后端迁移风格 `TIMESTAMP(6) WITH TIME ZONE`。
 - 2026-06-06：用户确认 `auth_role`、`auth_permission`、`auth_user_role`、`auth_role_permission` 字段清单；权限编码优先使用 `resource:action` 风格。
 - 2026-06-06：用户确认 OAuth2/Spring Authorization Server 表直接贴近官方 JDBC schema，不做 HDX 自有字段改动；表落到 `auth` schema。
+- 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。
+
+## 验证结果
+
+- `mvn test`：通过，覆盖后端 7 个 Maven 模块，新增 `AuthServiceApplicationTest` 验证 local profile 骨架可启动。
+- `mvn compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 `backend-core-service`、`backend-auth-service`、`backend-gateway` 和 `backend-all-in-one`。
+- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
+- 使用临时 `migration-check` profile 和 `target/local-service-check.yml` 连接本地 PostgreSQL，`backend-auth-service` `/actuator/health` 返回 `UP`；因为 Flyway 失败会阻止应用启动，该结果验证 `auth` schema 迁移脚本可执行。
+- 已确认当前 Nacos 中存在 `hdx-core-service.yml`，但还不存在 `hdx-auth-service.yml`。
 
 ## 剩余风险
 
-- 尚未制定并确认认证服务模块实现小计划，不能开始创建 Flyway 脚本或认证服务代码。
+- Nacos 中尚未创建 `hdx-auth-service.yml`，因此 `backend-auth-service` 的真实 `service` profile 还不能直接从 Nacos 启动；需要按 `docs/config/nacos/hdx-auth-service.yml` 创建 Data ID 后再联调。
 - 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

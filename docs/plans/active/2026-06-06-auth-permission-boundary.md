@@ -221,6 +221,7 @@
 - 第三方 OAuth 登录后续统一走 Authorization Code + PKCE，并通过外部账号绑定归一到本地 `auth_user` 和同一套 `sid` 会话模型。
 - 账号密码登录不开放给第三方 OAuth client，不实现标准 `grant_type=password` token endpoint。
 - refresh token 需要持久化并轮换；重复使用已消费 refresh token 时，撤销整个 `sid` 会话。
+- refresh token 默认滑动不活跃窗口为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并由客户端或 BFF 触发 refresh 时，认证中心轮换 refresh token 并把会话窗口延后。
 - 登出时撤销当前 `sid`，写入 Redis 撤销索引，使 gateway 能拒绝尚未自然过期的 access token。
 
 ### 实施计划草案
@@ -302,6 +303,7 @@
 - 2026-06-06：用户确认登出即时生效使用 Redis 拉黑 JWT `sid`，只在 gateway 检查，Redis 不可用时返回 `503`；临时 Redis Docker Compose 不进入项目记录，但 Redis 撤销策略和代码配置进入项目事实源。
 - 2026-06-06：用户确认第一方 Web 需要账号密码登录、二维码登录和第三方 OAuth 登录，第一方 App 需要账号密码登录和第三方 OAuth 登录；现阶段只实现第一方账号密码登录，其余能力保留扩展空间。
 - 2026-06-06：实现第一方账号密码登录后端能力：`/api/auth/login`、`/api/auth/refresh`、`/api/auth/logout`，refresh token 持久化哈希并轮换，复用旧 refresh token 或 logout 时撤销 `sid` 并写 Redis。
+- 2026-06-06：用户确认 refresh token 默认滑动不活跃窗口改为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并触发 refresh 时刷新会话窗口。
 
 ## 验证结果
 
@@ -321,6 +323,7 @@
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块。
 - `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和 gateway auth 路由/安全配置的 AOT 入口。
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
+- `mvn -pl :backend-auth-service -am test`：通过，覆盖 refresh token 默认 7 天滑动不活跃窗口；登录后 refresh token 到第 7 天过期，超过 7 天未 refresh 会被拒绝，登录 2 天后 refresh 会轮换 token 并把新 refresh token 延后到第 9 天过期。
 
 ## 剩余风险
 

@@ -114,7 +114,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `spring.security.oauth2.resourceserver.jwt.issuer-uri`：OAuth2/JWT issuer 地址。
 - `spring.security.oauth2.authorizationserver.issuer`：认证中心 issuer 地址。
 - `hdx.auth.tokens.access-token-ttl`：第一方账号密码登录 access token 有效期。
-- `hdx.auth.tokens.refresh-token-ttl`：第一方账号密码登录 refresh token 有效期。
+- `hdx.auth.tokens.refresh-token-ttl`：第一方账号密码登录 refresh token 滑动不活跃窗口，默认 `7d`；7 天内没有触发 refresh 的用户需要重新登录，7 天内有操作并由客户端或 BFF 触发 refresh 时会签发新 refresh token 并刷新窗口。
 - `hdx.auth.tokens.revocation-ttl-skew`：写入 Redis `sid` 撤销索引时追加的时钟偏移缓冲。
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。

@@ -21,5 +21,5 @@ hdx:
   auth:
     tokens:
       access-token-ttl: 15m
-      refresh-token-ttl: 30d
+      refresh-token-ttl: 7d
       revocation-ttl-skew: 1m

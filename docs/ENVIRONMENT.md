@@ -76,6 +76,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `HDX_NACOS_GROUP`：Nacos Group，默认 `DEFAULT_GROUP`。
 - `HDX_NACOS_CORE_DATA_ID`：`backend-core-service` 读取的 Data ID，默认 `hdx-core-service.yml`。
 - `HDX_NACOS_GATEWAY_DATA_ID`：`backend-gateway` 读取的 Data ID，默认 `hdx-gateway.yml`。
+- `HDX_NACOS_DISCOVERY_IP`：服务注册到 Nacos 的可访问 IP；本地可填当前机器局域网 IP，云上优先由 Kubernetes Downward API、云主机 metadata 或部署脚本自动注入。
 - `HDX_POSTGRES_PASSWORD`：PostgreSQL 密码。
 
 ### 后端 service profile Nacos 配置

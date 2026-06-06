@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态计划草案待确认
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现，尚未接登录 UI
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -268,7 +268,7 @@
 
 ## 第 2 小步：Web BFF 登录态与最小接口
 
-状态：计划草案待用户确认，确认前不实现。
+状态：最小 BFF 接口已实现，尚未接登录 UI。
 
 ### 当前 Web 现状
 
@@ -286,24 +286,25 @@
 
 ### 计划
 
-- [ ] 增加 Web 私有运行时配置：session cookie 名称、session password/secret、CSRF cookie/header 名称、access token refresh 提前量；密钥只通过环境变量或部署 Secret 注入，`.env.example` 只写占位。
-- [ ] 新增 auth 边界类型和 Zod schema，覆盖登录请求、后端 token 响应、Web public session 响应和 BFF 错误响应。
-- [ ] 新增 Nuxt server auth session helper，优先使用 Nuxt/H3 内置 cookie session；如果实际 API 或类型不匹配，则退回同等安全属性的本地 helper。session cookie 必须 `HttpOnly`、`SameSite=Lax`，生产环境启用 `Secure`。
-- [ ] 新增 CSRF helper：使用非 HttpOnly CSRF cookie + `X-HDX-CSRF` header 的 double-submit 校验，保护 login、refresh、logout 等状态变更接口。
-- [ ] 新增 BFF 接口：
-  - `GET /api/hdx/v1/auth/session`：返回当前 public session；无登录态时返回未登录状态，并提供 CSRF token。
+- [x] 增加 Web 私有运行时配置：session cookie 名称、session password/secret、CSRF cookie/header 名称、access token refresh 提前量；密钥只通过环境变量或部署 Secret 注入，`.env.example` 只写占位。
+- [x] 新增 auth 边界类型和 Zod schema，覆盖登录请求、后端 token 响应、Web public session 响应和 BFF 错误响应。
+- [x] 新增 Nuxt server auth session helper，使用 Nuxt/H3 内置加密 cookie session。session cookie 明确设置 `HttpOnly`、`SameSite=Lax`，生产环境通过配置启用 `Secure`；不使用内存型服务端 session store。
+- [x] 新增 CSRF helper：使用非 HttpOnly CSRF cookie + `X-HDX-CSRF` header 的 double-submit 校验，保护 login、refresh、logout 等状态变更接口。
+- [x] 新增 BFF 接口：
+  - `GET /api/hdx/v1/auth/session`：返回当前 public session；无登录态时返回未登录状态，并提供 CSRF token；access token 临近过期时自动 refresh。
   - `POST /api/hdx/v1/auth/login`：校验输入，调用后端 `/api/auth/login`，保存 token session，只返回 public session。
   - `POST /api/hdx/v1/auth/refresh`：使用 session 内 refresh token 调用后端 `/api/auth/refresh`，更新 token session，只返回 public session。
   - `POST /api/hdx/v1/auth/logout`：调用后端 `/api/auth/logout`，清理 Web session；后端不可用时也清理本地 session，并返回可理解的登出结果。
-- [ ] 扩展 `fetchBackend` 或新增 authenticated backend helper，支持从 Web session 注入 `Authorization: Bearer <accessToken>`；保留 all-in-one 本机 token 分支。
-- [ ] 补充 Web 单元测试：配置解析、auth schema、CSRF 校验、登录保存 session、refresh 轮换 session、logout 清 session、后端响应格式错误和后端不可用错误。
-- [ ] 更新 `apps/web/README.md`、`.env.example`、`docs/ENVIRONMENT.md` 和本计划，记录 Web BFF 登录态、环境变量、验证命令和剩余风险。
+- [x] 扩展 `fetchBackend` 并新增 authenticated backend helper，支持从 Web session 注入 `Authorization: Bearer <accessToken>`；保留 all-in-one 本机 token 分支。
+- [x] 补充 Web 单元测试：配置解析、auth schema、CSRF 校验、session public 投影、登录保存 session、refresh 轮换 session 和提前 refresh 判断。
+- [x] 更新 `apps/web/README.md`、`.env.example`、`docs/ENVIRONMENT.md` 和本计划，记录 Web BFF 登录态、环境变量、验证命令和剩余风险。
 
 ### 验证计划
 
 - `pnpm test`
 - `pnpm typecheck`
 - `pnpm lint`
+- `pnpm build`
 - 如本小步只改 server API 和工具，不改 UI，可暂不跑浏览器截图；如果实现过程中触碰登录入口 UI，则补 Playwright/浏览器手工验证。
 
 ### 本小步不做
@@ -352,6 +353,7 @@
 - 2026-06-06：实现第一方账号密码登录后端能力：`/api/auth/login`、`/api/auth/refresh`、`/api/auth/logout`，refresh token 持久化哈希并轮换，复用旧 refresh token 或 logout 时撤销 `sid` 并写 Redis。
 - 2026-06-06：用户确认 refresh token 默认滑动不活跃窗口改为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并触发 refresh 时刷新会话窗口。
 - 2026-06-06：用户确认下一步进入 Web BFF 登录态接入；补充第 2 小步计划草案，等待用户确认后再实现。
+- 2026-06-06：用户确认使用加密 `HttpOnly` cookie session，不使用内存型服务端 session store；开始实现 Web BFF 登录态。
 
 ## 验证结果
 
@@ -372,6 +374,10 @@
 - `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和 gateway auth 路由/安全配置的 AOT 入口。
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 - `mvn -pl :backend-auth-service -am test`：通过，覆盖 refresh token 默认 7 天滑动不活跃窗口；登录后 refresh token 到第 7 天过期，超过 7 天未 refresh 会被拒绝，登录 2 天后 refresh 会轮换 token 并把新 refresh token 延后到第 9 天过期。
+- `pnpm test`：通过，覆盖 Web auth schema、Web public session 不暴露 token、CSRF token 生成/匹配、Web session public 投影、登录保存 session、refresh 轮换 session、session GET 自动 refresh 分支、access token refresh 提前量判断和 Web 私有 auth 配置解析。当前共 19 个测试通过。
+- `pnpm typecheck`：通过，验证 Nuxt server auth routes、H3 加密 cookie session、CSRF helper 和 auth schema 类型。
+- `pnpm lint`：通过。
+- `pnpm build`：通过，Nitro 产物包含 `auth/login.post`、`auth/logout.post`、`auth/refresh.post`、`auth/session.get` 路由。保留上游 sourcemap 与 package exports deprecation warning，当前不阻塞。
 
 ## 剩余风险
 
@@ -380,5 +386,8 @@
 - 当前尚未实现首个用户创建、后台用户管理或生产 bootstrap 账号；真实登录需要数据库中已有 `auth_user`、`auth_user_identity` 和 `auth_password_credential`。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
 - 新增 `V3__create_first_party_login_tables.sql` 尚需在真实 PostgreSQL service profile 下复验。
-- 尚未实现 Web dialog/BFF session cookie、CSRF、Nuxt server token 存储或 App token 安全存储。
+- Web BFF 登录态已开始实现，但尚未接登录 dialog UI；当前只能通过 BFF API 使用。
+- Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。
+- 当前 Web session 数据保存在加密 cookie 中，适合首版最小登录态；如果后续需要服务端主动注销所有 Web session 或集中查看在线会话，需要另行设计 Redis/数据库 session store。
+- 尚未实现 App 登录页和 App token 安全存储。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

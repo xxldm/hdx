@@ -62,7 +62,7 @@ Web 第一阶段采用：
 - Zod 作为 Web 边界数据解析与显式校验工具。
 - pnpm 作为 `apps/web/` 内包管理器。
 
-Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴露的 BFF/proxy 路径，例如 `/api/hdx/v1/**`；Nuxt server 再调用后端公开 REST API，例如 `/api/v1/**`。后端地址、本机 all-in-one 令牌和其他敏感配置只能放在 Nuxt server 私有 `runtimeConfig` 中。
+Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴露的 BFF/proxy 路径，例如 `/api/hdx/v1/**`；Nuxt server 再调用后端公开 REST API，例如 `/api/v1/**`。后端地址、本机 all-in-one 令牌、access token、refresh token 和其他敏感配置只能留在 Nuxt server 私有运行边界内；Web 登录态使用加密 `HttpOnly` cookie session，浏览器只能读取 public session 和 CSRF token。
 
 ## 待决策事项
 

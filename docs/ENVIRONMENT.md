@@ -138,6 +138,15 @@ Nuxt SSR / 有 Nuxt server 时：
 - `NUXT_BACKEND_BASE_URL`：Nuxt 当前运行时读取的后端地址；本地加载脚本会在未显式设置时从 `HDX_BACKEND_BASE_URL` 派生。
 - `NUXT_BACKEND_LOCAL_TOKEN_HEADER`：desktop all-in-one 本机令牌 header 名。
 - `NUXT_BACKEND_LOCAL_TOKEN`：desktop all-in-one 本机令牌值。
+- `NUXT_AUTH_SESSION_COOKIE_NAME`：Web 加密 `HttpOnly` session cookie 名，默认 `hdx_web_session`。
+- `NUXT_AUTH_SESSION_SECRET`：Web session 加密/签名密钥，至少 32 字符；真实环境必须稳定注入，Nuxt 重启后依靠它从 cookie 恢复登录态。
+- `NUXT_AUTH_CSRF_COOKIE_NAME`：Web CSRF cookie 名，默认 `hdx_csrf`。
+- `NUXT_AUTH_CSRF_HEADER_NAME`：Web 状态变更请求使用的 CSRF header 名，默认 `X-HDX-CSRF`。
+- `NUXT_AUTH_COOKIE_SECURE`：Web auth cookie 是否带 `Secure`；本地 HTTP 调试可为 `false`，HTTPS/生产环境必须为 `true`。
+- `NUXT_AUTH_SESSION_MAX_AGE_SECONDS`：Web session cookie 滑动有效期，默认 `604800` 秒。
+- `NUXT_AUTH_REFRESH_SKEW_SECONDS`：Web BFF 在 access token 距离过期多少秒内提前 refresh，默认 `60` 秒。
+
+Web 登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session。浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
 
 ## 本地使用
 

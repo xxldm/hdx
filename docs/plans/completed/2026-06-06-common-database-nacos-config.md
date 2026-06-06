@@ -37,6 +37,7 @@
 - [x] 更新环境变量模板和环境文档。
 - [x] 更新后端 README 与架构说明。
 - [x] 执行后端验证。
+- [x] 执行真实 Nacos service profile 联调。
 - [x] 提交后端子模块改动。
 - [x] 提交根仓库文档。
 - [ ] 提交根仓库子模块指针。
@@ -46,14 +47,17 @@
 - 2026-06-06：创建计划并开始实施公共数据库配置分层。
 - 2026-06-06：完成配置与文档改动，后端 `mvn test` 通过。
 - 2026-06-06：后端子模块提交 `fe98dbb`；因为直接推送 `origin/main` 需要用户再次明确授权，当前根仓库暂不提交子模块指针。
+- 2026-06-06：用户已在 Nacos 新建 `hdx-database.yml`；使用 service profile 临时随机端口启动 core/auth，均成功读取公共数据库 Data ID 并连通 PostgreSQL。
 
 ## 验证结果
 
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块。
+- `backend-core-service` service profile：成功读取 `hdx-database.yml` 与 `hdx-core-service.yml`，连接 PostgreSQL `hdx/public`，Flyway 显示 schema `public` 已在版本 1 且无新迁移，应用成功启动。
+- `backend-auth-service` service profile：成功读取 `hdx-database.yml`，连接 PostgreSQL `hdx/auth`，Flyway 显示 schema `auth` 已在版本 2 且无新迁移，应用成功启动。
 
 ## 剩余风险
 
-- 尚未连接真实 Nacos 逐项验证公共 Data ID 与模块 Data ID 的覆盖顺序；需要在 Nacos 中创建或确认 `hdx-database.yml` 后，用 service profile 启动 core/auth 验证。
+- 当前真实 Nacos 中 `hdx-auth-service.yml` 为空；认证服务仍可依赖公共数据库配置启动，但认证 issuer、固定端口等认证服务模块配置还未从模块 Data ID 生效。
 - `services/backend` 子模块新 commit 尚未推送，根仓库暂不能提交子模块指针；用户明确允许推送后，应先推送子模块，再提交根仓库指针。
 
 ## 相关 commit

@@ -10,7 +10,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: https://auth.example.com/realms/hdx
+          issuer-uri: https://auth.example.com
 
 hdx:
   gateway:

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现并通过本地验证；等待补充 Nacos Data ID 后进行 service profile 联调
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；等待继续确认登录态和 token 策略
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -238,6 +238,8 @@
 - 2026-06-06：用户确认 `auth_role`、`auth_permission`、`auth_user_role`、`auth_role_permission` 字段清单；权限编码优先使用 `resource:action` 风格。
 - 2026-06-06：用户确认 OAuth2/Spring Authorization Server 表直接贴近官方 JDBC schema，不做 HDX 自有字段改动；表落到 `auth` schema。
 - 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。
+- 2026-06-06：用户确认 auth 服务后续使用独立域名，不通过 gateway 作为 issuer；当前本地 Nacos issuer 暂用 `http://192.168.50.100:18082`，反代后再改成 auth 独立域名。
+- 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
 
 ## 验证结果
 
@@ -245,10 +247,14 @@
 - `mvn compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 `backend-core-service`、`backend-auth-service`、`backend-gateway` 和 `backend-all-in-one`。
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 - 使用临时 `migration-check` profile 和 `target/local-service-check.yml` 连接本地 PostgreSQL，`backend-auth-service` `/actuator/health` 返回 `UP`；因为 Flyway 失败会阻止应用启动，该结果验证 `auth` schema 迁移脚本可执行。
-- 已确认当前 Nacos 中存在 `hdx-core-service.yml`，但还不存在 `hdx-auth-service.yml`。
+- `backend-auth-service` 当前新增安全配置后，`mvn -pl :backend-auth-service test` 通过。
+- 真实 Nacos service profile 联调通过：auth/core/gateway 均可读取各自 Data ID 并启动；auth/core 使用公共 `hdx-database.yml` 连通 PostgreSQL，Flyway 确认 `auth` 与 `public` schema 均已是最新版本。
+- 真实 Nacos issuer discovery 验证通过：`GET http://192.168.50.100:18082/.well-known/openid-configuration` 返回 `200`，`issuer` 为 `http://192.168.50.100:18082`，`jwks_uri` 为 `http://192.168.50.100:18082/oauth2/jwks`，JWK 返回 1 个 key。
+- 资源服务 issuer 链路验证通过：auth/core/gateway 同时以 service profile 启动成功。
 
 ## 剩余风险
 
-- Nacos 中尚未创建 `hdx-auth-service.yml`，因此 `backend-auth-service` 的真实 `service` profile 还不能直接从 Nacos 启动；需要按 `docs/config/nacos/hdx-auth-service.yml` 创建 Data ID 后再联调。
+- 当前 JWK 为服务启动期临时 RSA key，仅用于打通 discovery/JWK 链路；真正签发 token 前必须设计并实现持久化密钥、密钥轮换和部署 Secret 管理。
+- 当前只暴露 Authorization Server 元数据和 JWK；尚未实现登录页面、用户名/邮箱/手机号认证、注册、refresh token 策略、OAuth2 client 初始化或管理。
 - 尚未确定 Web、App、desktop 的登录态和 token 策略，不能开始端侧认证集成。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。

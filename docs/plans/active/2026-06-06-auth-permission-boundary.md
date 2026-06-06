@@ -355,6 +355,9 @@
 - 2026-06-06：用户确认下一步进入 Web BFF 登录态接入；补充第 2 小步计划草案，等待用户确认后再实现。
 - 2026-06-06：用户确认使用加密 `HttpOnly` cookie session，不使用内存型服务端 session store；开始实现 Web BFF 登录态。
 - 2026-06-06：用户确认采用受环境变量控制的 bootstrap runner 创建首个全权限管理员账号；默认关闭，同时配置用户名和密码后创建或补齐 `ADMIN` 角色与 `*` 权限，账号已存在时不覆盖已有密码。
+- 2026-06-06：真实 PostgreSQL service profile 联调发现 `GeneratedKeyHolder.getKey()` 在 PostgreSQL 下拿到多列 generated key，导致初始化管理员插入失败；已改为 JDBC 插入时只请求 `id` 列。
+- 2026-06-06：真实 service profile 联调发现 `/api/auth/login` 被 Authorization Server/Bearer 安全入口提前返回 `401`，未进入登录 controller；已拆分认证服务器端点安全链和应用 API 安全链。
+- 2026-06-06：真实 Nacos gateway 配置启动时曾出现 `Target host is not specified`，经临时环境变量覆盖 `hdx.gateway.routes.auth-uri=http://127.0.0.1:18082` 后 gateway 登录链路通过；真实 Nacos 既有配置值需用户确认后再修改。
 
 ## 验证结果
 
@@ -379,6 +382,12 @@
 - `pnpm typecheck`：通过，验证 Nuxt server auth routes、H3 加密 cookie session、CSRF helper 和 auth schema 类型。
 - `pnpm lint`：通过。
 - `pnpm build`：通过，Nitro 产物包含 `auth/login.post`、`auth/logout.post`、`auth/refresh.post`、`auth/session.get` 路由。保留上游 sourcemap 与 package exports deprecation warning，当前不阻塞。
+- `mvn -pl :backend-auth-service -am test`：通过，验证 PostgreSQL generated key 修复不破坏 H2 测试路径，覆盖 auth-service local profile、初始化管理员和第一方登录服务逻辑。
+- 真实 PostgreSQL/Nacos/Redis service profile 联调：`backend-auth-service` 启动成功，Flyway 验证 `auth` schema 已在版本 3；bootstrap 管理员账号存在、启用、当前 `.env.local` 密码匹配，且拥有 `ADMIN` 角色与 `*` 权限。
+- 真实 auth-service API 联调：直连 `http://127.0.0.1:18082/api/auth/login` 登录成功，refresh token 轮换成功，logout 返回 `204`，旧 refresh token 被拒绝。
+- 真实 gateway API 联调：使用临时环境变量覆盖本机 auth/core 路由后，`http://127.0.0.1:18080/api/auth/login`、`/refresh`、`/logout` 全部通过；返回 token 类型为 `Bearer`，登录角色为 `ADMIN`，权限为 `*`。
+- `mvn test`：通过，覆盖后端 7 个 Maven 模块。
+- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 多安全链和 gateway 当前配置的 AOT 入口。
 
 ## 剩余风险
 
@@ -386,7 +395,7 @@
 - 当前已实现第一方账号密码登录 API，但尚未实现登录页面、注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
-- 新增 `V3__create_first_party_login_tables.sql` 尚需在真实 PostgreSQL service profile 下复验。
+- 真实 Nacos 中 `hdx-gateway.yml` 的 `hdx.gateway.routes.auth-uri` 或相关覆盖值当前疑似为空，导致 gateway 按真实配置启动时转发 `/api/auth/login` 报 `Target host is not specified`；本轮只用临时环境变量覆盖完成链路验证，修改真实 Nacos 既有值前需要用户确认。
 - Web BFF 登录态已开始实现，但尚未接登录 dialog UI；当前只能通过 BFF API 使用。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。
 - 当前 Web session 数据保存在加密 cookie 中，适合首版最小登录态；如果后续需要服务端主动注销所有 Web session 或集中查看在线会话，需要另行设计 Redis/数据库 session store。

@@ -5,10 +5,10 @@
 spring:
   data:
     redis:
-      host: ${HDX_REDIS_HOST:127.0.0.1}
-      port: ${HDX_REDIS_PORT:6379}
+      host: 127.0.0.1
+      port: 6379
       password: ${HDX_REDIS_PASSWORD:}
-      database: ${HDX_REDIS_DATABASE:0}
+      database: 0
       timeout: 2s
 
 hdx:

@@ -32,7 +32,7 @@
 
 - Nacos 适合管理服务端非密钥配置，例如端口、数据库 JDBC URL、数据库用户名、JWT issuer、网关路由、服务治理和非敏感业务开关。
 - 数据库密码、API Key、证书、令牌等密钥优先使用部署平台 Secret 或环境变量注入。
-- Redis 密码属于密钥，通过环境变量或部署 Secret 注入；Nacos 只保存 Redis host、port、database 和密码环境变量占位。
+- Redis 地址、端口、database 和 timeout 属于非密钥配置，放 Nacos；Redis 密码属于密钥，通过环境变量或部署 Secret 注入，Nacos 只保留密码环境变量占位。
 - Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
@@ -90,9 +90,6 @@ Nuxt SSR / 有 Nuxt server 时：
 - `HDX_POSTGRES_PASSWORD`：PostgreSQL 默认密码。
 - `HDX_AUTH_POSTGRES_PASSWORD`：可选，认证服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
 - `HDX_CORE_POSTGRES_PASSWORD`：可选，核心服务专用 PostgreSQL 密码；未设置时使用 `HDX_POSTGRES_PASSWORD`。
-- `HDX_REDIS_HOST`：Redis 主机，默认 `127.0.0.1`。
-- `HDX_REDIS_PORT`：Redis 端口，默认 `6379`。
-- `HDX_REDIS_DATABASE`：Redis database 编号，默认 `0`。
 - `HDX_REDIS_PASSWORD`：Redis 密码。
 
 ### 后端 service profile Nacos 配置
@@ -107,6 +104,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `spring.data.redis.host`：Redis 主机。
 - `spring.data.redis.port`：Redis 端口。
 - `spring.data.redis.database`：Redis database 编号。
+- `spring.data.redis.timeout`：Redis 连接超时时间。
 - `spring.data.redis.password`：Redis 密码环境变量占位。
 
 模块 Data ID 默认包含：

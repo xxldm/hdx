@@ -33,7 +33,7 @@ HDX 服务端认证中心使用 JWT/OAuth2。JWT access token 是自包含令牌
 - `backend-auth-service` 后续负责在登出和高风险会话失效时写入 Redis 撤销记录。
 - `backend-gateway` 负责读取 Redis 并拒绝已撤销 `sid`。
 - `backend-core-service` 依赖 gateway 作为唯一外部资源入口。
-- Nacos 示例增加公共 Redis Data ID；Redis 地址、端口、database 和 timeout 放 Nacos，密码通过环境变量或部署 Secret 注入。
+- Nacos 示例增加公共 Redis Data ID；Redis 地址、端口、database 和 timeout 放 Nacos，密码与 PostgreSQL 密码一样通过服务启动配置中的环境变量或部署 Secret 注入。
 - 环境文档增加 Redis 配置和密钥边界。
 
 ## 验证方式

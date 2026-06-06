@@ -32,7 +32,7 @@
 
 - Nacos 适合管理服务端非密钥配置，例如端口、数据库 JDBC URL、数据库用户名、JWT issuer、网关路由、服务治理和非敏感业务开关。
 - 数据库密码、API Key、证书、令牌等密钥优先使用部署平台 Secret 或环境变量注入。
-- Redis 地址、端口、database 和 timeout 属于非密钥配置，放 Nacos；Redis 密码属于密钥，通过环境变量或部署 Secret 注入，Nacos 只保留密码环境变量占位。
+- Redis 地址、端口、database 和 timeout 属于非密钥配置，放 Nacos；Redis 密码和 PostgreSQL 密码一样属于密钥，通过服务启动配置中的环境变量或部署 Secret 注入，不写入 Nacos。
 - Nacos 地址、Namespace、Group、Data ID 和 Nacos 登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
@@ -105,7 +105,6 @@ Nuxt SSR / 有 Nuxt server 时：
 - `spring.data.redis.port`：Redis 端口。
 - `spring.data.redis.database`：Redis database 编号。
 - `spring.data.redis.timeout`：Redis 连接超时时间。
-- `spring.data.redis.password`：Redis 密码环境变量占位。
 
 模块 Data ID 默认包含：
 
@@ -117,6 +116,8 @@ Nuxt SSR / 有 Nuxt server 时：
 - `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
 - `hdx.security.jwt.revocation.enabled` 和 `hdx.security.jwt.revocation.key-prefix`：gateway JWT 会话撤销检查开关和 Redis key 前缀。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
+
+`backend-gateway` 的 service profile 本地启动配置会把 `spring.data.redis.password` 绑定到 `HDX_REDIS_PASSWORD`，与 core/auth 的 `spring.datasource.password` 绑定到 `HDX_POSTGRES_PASSWORD` 或模块专用密码保持一致。
 
 如果某个模块需要单独数据库或用户名，可以在该模块 Data ID 中重新声明 `spring.datasource.url` 和 `spring.datasource.username`；模块配置会覆盖公共数据库配置。数据库密码仍不放入 Nacos，使用模块专用环境变量或 `HDX_POSTGRES_PASSWORD`。
 

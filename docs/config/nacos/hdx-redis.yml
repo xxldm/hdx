@@ -1,13 +1,12 @@
 # Nacos Data ID: hdx-redis.yml
 # Group: DEFAULT_GROUP
-# 内容只放 Redis 非密钥配置和密码环境变量占位；不要写入真实密码。
+# 内容只放 Redis 非密钥配置；Redis 密码通过服务启动环境变量注入。
 
 spring:
   data:
     redis:
       host: 127.0.0.1
       port: 6379
-      password: ${HDX_REDIS_PASSWORD:}
       database: 0
       timeout: 2s
 

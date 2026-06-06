@@ -62,7 +62,7 @@ Web 第一阶段采用：
 - Zod 作为 Web 边界数据解析与显式校验工具。
 - pnpm 作为 `apps/web/` 内包管理器。
 
-Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴露的 BFF/proxy 路径，例如 `/api/hdx/v1/**`；Nuxt server 再调用后端公开 REST API，例如 `/api/v1/**`。后端地址、本机 all-in-one 令牌、access token、refresh token 和其他敏感配置只能留在 Nuxt server 私有运行边界内；Web 登录态使用加密 `HttpOnly` cookie session，浏览器只能读取 public session 和 CSRF token。
+Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴露的 BFF/proxy 路径，例如 `/api/hdx/v1/**`；Nuxt server 再分别调用后端公开 REST API 和认证中心 API。业务请求通过 `backend-gateway`，登录、刷新和登出请求直接调用 `backend-auth-service`。后端地址、本机 all-in-one 令牌、access token、refresh token 和其他敏感配置只能留在 Nuxt server 私有运行边界内；Web 登录态使用加密 `HttpOnly` cookie session，浏览器只能读取 public session 和 CSRF token。
 
 ## 待决策事项
 
@@ -87,7 +87,7 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 
 运行拓扑：
 
-- 服务端微服务部署：`backend-gateway` 对外开放 REST API，转发到 `backend-auth-service` 和 `backend-core-service`；`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，`backend-gateway` 作为外部资源访问的统一入口校验 JWT，并通过 Redis 检查 `sid` 是否已撤销；`backend-core-service` 不作为外部 API 入口暴露；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign、PostgreSQL 和 Redis。
+- 服务端微服务部署：`backend-auth-service` 和 `backend-gateway` 是同级外部入口。`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，暴露登录、刷新、登出、OIDC discovery 和 JWK；`backend-gateway` 对外开放业务 REST API，只转发到 `backend-core-service`，并作为外部资源访问的统一入口校验 JWT，通过 Redis 检查 `sid` 是否已撤销；`backend-core-service` 不作为外部 API 入口暴露；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign、PostgreSQL 和 Redis。
 - desktop all-in-one：`backend-all-in-one` 复用 `backend-core`，绑定 `127.0.0.1`，使用 H2，并通过随机本机令牌保护 HTTP 请求。
 
 后端配置规则：

@@ -66,23 +66,25 @@
 
 前端不读取 Nacos。
 
-Web 浏览器代码不得直接访问后端地址。浏览器调用同源 BFF/proxy 路径，例如 `/api/hdx/v1/**`。后端地址只能存在于 Nuxt server 私有 `runtimeConfig`、部署平台环境变量或反向代理配置中。
+Web 浏览器代码不得直接访问后端地址。浏览器调用同源 BFF/proxy 路径，例如 `/api/hdx/v1/**`。后端 gateway 地址和认证中心地址只能存在于 Nuxt server 私有 `runtimeConfig`、部署平台环境变量或反向代理配置中。
 
 Nuxt SSR / 有 Nuxt server 时：
 
 ```text
-浏览器 -> /api/hdx/v1/** -> Nuxt server -> HDX_BACKEND_BASE_URL -> backend-gateway
+业务请求：浏览器 -> /api/hdx/v1/** -> Nuxt server -> HDX_BACKEND_BASE_URL -> backend-gateway
+认证请求：浏览器 -> /api/hdx/v1/auth/** -> Nuxt server -> HDX_AUTH_BASE_URL -> backend-auth-service
 ```
 
 纯静态部署时：
 
 ```text
-浏览器 -> /api/hdx/v1/** -> Nginx/网关反代 -> backend-gateway
+业务请求：浏览器 -> /api/hdx/v1/** -> Nginx/网关反代 -> backend-gateway
+认证请求：浏览器 -> /api/hdx/v1/auth/** -> Nginx/网关反代 -> backend-auth-service
 ```
 
 ## 变量分层
 
-本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace 和鉴权必须按环境确认，空值只代表 public namespace 或未开启鉴权；Data ID、认证中心初始化管理员、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
+本地开发建议保持最小活跃变量：`NACOS_SERVER_ADDR`、`NACOS_NAMESPACE`、`NACOS_USERNAME`、`NACOS_PASSWORD`、`HDX_POSTGRES_PASSWORD`、启用 Redis 会话撤销时的 `HDX_REDIS_PASSWORD`、`HDX_BACKEND_BASE_URL`、`HDX_AUTH_BASE_URL` 和 `NUXT_AUTH_SESSION_SECRET`。Nacos Namespace 和鉴权必须按环境确认，空值只代表 public namespace 或未开启鉴权；Data ID、认证中心初始化管理员、desktop all-in-one 数据库、Web cookie 名称、CSRF header、cookie secure、session 时长和 refresh 提前量都有默认值或只在特定场景需要，模板中默认保留为注释覆盖项。
 
 ### 后端 service profile 环境变量
 
@@ -135,7 +137,6 @@ Nuxt SSR / 有 Nuxt server 时：
 - `hdx.auth.tokens.revocation-ttl-skew`：写入 Redis `sid` 撤销索引时追加的时钟偏移缓冲。
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
-- `hdx.gateway.routes.auth-uri`：gateway 转发到 auth-service 的目标地址。
 - `hdx.security.jwt.revocation.enabled` 和 `hdx.security.jwt.revocation.key-prefix`：gateway JWT 会话撤销检查开关和 Redis key 前缀。
 - 其他非密钥服务治理、Sentinel 和业务开关配置。
 
@@ -153,6 +154,8 @@ Nuxt SSR / 有 Nuxt server 时：
 
 - `HDX_BACKEND_BASE_URL`：本地和部署统一使用的后端 gateway 基础地址；Nuxt server 未设置 `NUXT_BACKEND_BASE_URL` 时会直接读取它。
 - `NUXT_BACKEND_BASE_URL`：可选覆盖项，Nuxt 当前运行时读取的后端地址；只在 Web 需要使用不同于 `HDX_BACKEND_BASE_URL` 的地址时设置。
+- `HDX_AUTH_BASE_URL`：本地和部署统一使用的认证中心基础地址；Nuxt server 未设置 `NUXT_AUTH_BASE_URL` 时会直接读取它。
+- `NUXT_AUTH_BASE_URL`：可选覆盖项，Nuxt 当前运行时读取的认证中心地址；只在 Web 需要使用不同于 `HDX_AUTH_BASE_URL` 的地址时设置。
 - `NUXT_BACKEND_LOCAL_TOKEN_HEADER`：可选，desktop all-in-one 本机令牌 header 名。
 - `NUXT_BACKEND_LOCAL_TOKEN`：可选，desktop all-in-one 本机令牌值。
 - `NUXT_AUTH_SESSION_COOKIE_NAME`：可选覆盖项，Web 加密 `HttpOnly` session cookie 名，默认 `hdx_web_session`。
@@ -163,7 +166,7 @@ Nuxt SSR / 有 Nuxt server 时：
 - `NUXT_AUTH_SESSION_MAX_AGE_SECONDS`：可选覆盖项，Web session cookie 滑动有效期，默认 `604800` 秒。
 - `NUXT_AUTH_REFRESH_SKEW_SECONDS`：可选覆盖项，Web BFF 在 access token 距离过期多少秒内提前 refresh，默认 `60` 秒。
 
-Web 登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session。浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
+Web 登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session。浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。Nuxt server 的业务 API 请求走 `HDX_BACKEND_BASE_URL` 指向 gateway，认证 API 请求走 `HDX_AUTH_BASE_URL` 指向 auth-service。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
 
 ## 本地使用
 

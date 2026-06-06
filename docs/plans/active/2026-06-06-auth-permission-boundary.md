@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现，尚未接登录 UI
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现，认证中心独立入口拓扑已落地，尚未接登录 UI
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-06
@@ -281,7 +281,7 @@
 
 - 让 Web 浏览器可以通过 Nuxt BFF 完成第一方账号密码登录、查询当前登录态、刷新和登出。
 - Web 浏览器不直接持有 access token 或 refresh token；token 只保存在 Nuxt server 的 `HttpOnly` session cookie 中。
-- BFF 在受保护请求或显式 refresh 时检查 access token，过期或接近过期则调用后端 `/api/auth/refresh`；refresh 成功后轮换 refresh token 并更新 session，实现 7 天内有操作时滑动续期。
+- BFF 在受保护请求或显式 refresh 时检查 access token，过期或接近过期则调用认证中心 `/api/auth/refresh`；refresh 成功后轮换 refresh token 并更新 session，实现 7 天内有操作时滑动续期。
 - 先实现 BFF 最小接口与测试，不实现登录 dialog UI、注册、找回密码、二维码登录或第三方 OAuth 登录。
 
 ### 计划
@@ -292,9 +292,9 @@
 - [x] 新增 CSRF helper：使用非 HttpOnly CSRF cookie + `X-HDX-CSRF` header 的 double-submit 校验，保护 login、refresh、logout 等状态变更接口。
 - [x] 新增 BFF 接口：
   - `GET /api/hdx/v1/auth/session`：返回当前 public session；无登录态时返回未登录状态，并提供 CSRF token；access token 临近过期时自动 refresh。
-  - `POST /api/hdx/v1/auth/login`：校验输入，调用后端 `/api/auth/login`，保存 token session，只返回 public session。
-  - `POST /api/hdx/v1/auth/refresh`：使用 session 内 refresh token 调用后端 `/api/auth/refresh`，更新 token session，只返回 public session。
-  - `POST /api/hdx/v1/auth/logout`：调用后端 `/api/auth/logout`，清理 Web session；后端不可用时也清理本地 session，并返回可理解的登出结果。
+  - `POST /api/hdx/v1/auth/login`：校验输入，调用认证中心 `/api/auth/login`，保存 token session，只返回 public session。
+  - `POST /api/hdx/v1/auth/refresh`：使用 session 内 refresh token 调用认证中心 `/api/auth/refresh`，更新 token session，只返回 public session。
+  - `POST /api/hdx/v1/auth/logout`：调用认证中心 `/api/auth/logout`，清理 Web session；认证中心不可用时也清理本地 session，并返回可理解的登出结果。
 - [x] 扩展 `fetchBackend` 并新增 authenticated backend helper，支持从 Web session 注入 `Authorization: Bearer <accessToken>`；保留 all-in-one 本机 token 分支。
 - [x] 补充 Web 单元测试：配置解析、auth schema、CSRF 校验、session public 投影、登录保存 session、refresh 轮换 session 和提前 refresh 判断。
 - [x] 更新 `apps/web/README.md`、`.env.example`、`docs/ENVIRONMENT.md` 和本计划，记录 Web BFF 登录态、环境变量、验证命令和剩余风险。
@@ -344,7 +344,7 @@
 - 2026-06-06：用户确认 `auth_user` 和 `auth_user_identity` 字段清单；时间字段沿用现有后端迁移风格 `TIMESTAMP(6) WITH TIME ZONE`。
 - 2026-06-06：用户确认 `auth_role`、`auth_permission`、`auth_user_role`、`auth_role_permission` 字段清单；权限编码优先使用 `resource:action` 风格。
 - 2026-06-06：用户确认 OAuth2/Spring Authorization Server 表直接贴近官方 JDBC schema，不做 HDX 自有字段改动；表落到 `auth` schema。
-- 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。
+- 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、当时的 gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。后续已确认认证中心独立入口，并移除 gateway auth 路由。
 - 2026-06-06：用户确认 auth 服务后续使用独立域名，不通过 gateway 作为 issuer；当前本地 Nacos issuer 暂用 `http://192.168.50.100:18082`，反代后再改成 auth 独立域名。
 - 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
 - 2026-06-06：开始第 1 小步 Web 登录态与 refresh token 策略确认；根据 Nuxt SSR+BFF 现状补充推荐草案，等待用户确认会话/token 存储、cookie/CSRF 命名、token 有效期方向和是否进入实现。
@@ -358,6 +358,7 @@
 - 2026-06-06：真实 PostgreSQL service profile 联调发现 `GeneratedKeyHolder.getKey()` 在 PostgreSQL 下拿到多列 generated key，导致初始化管理员插入失败；已改为 JDBC 插入时只请求 `id` 列。
 - 2026-06-06：真实 service profile 联调发现 `/api/auth/login` 被 Authorization Server/Bearer 安全入口提前返回 `401`，未进入登录 controller；已拆分认证服务器端点安全链和应用 API 安全链。
 - 2026-06-06：真实 Nacos gateway 配置启动时曾出现 `Target host is not specified`，经临时环境变量覆盖 `hdx.gateway.routes.auth-uri=http://127.0.0.1:18082` 后 gateway 登录链路通过；真实 Nacos 既有配置值需用户确认后再修改。
+- 2026-06-06：用户确认认证中心与 gateway 同级，不再通过 gateway 代理认证中心。已移除 gateway auth/OIDC 代理路由和 `hdx.gateway.routes.auth-uri` 模板项；Web BFF 认证请求改为通过 `HDX_AUTH_BASE_URL`/`NUXT_AUTH_BASE_URL` 直连 auth-service，业务请求仍通过 `HDX_BACKEND_BASE_URL` 走 gateway。
 
 ## 验证结果
 
@@ -375,7 +376,7 @@
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'` 通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 - `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service local profile 启动、账号密码登录成功、密码错误、禁用用户不能登录、禁用用户不能 refresh、refresh 轮换、旧 refresh token 复用撤销会话、logout 撤销会话。测试侧使用 H2 最小表结构验证服务逻辑；auth schema 生产迁移仍以 PostgreSQL 为事实源。
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块。
-- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和 gateway auth 路由/安全配置的 AOT 入口。
+- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和当时 gateway auth 路由/安全配置的 AOT 入口。
 - `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
 - `mvn -pl :backend-auth-service -am test`：通过，覆盖 refresh token 默认 7 天滑动不活跃窗口；登录后 refresh token 到第 7 天过期，超过 7 天未 refresh 会被拒绝，登录 2 天后 refresh 会轮换 token 并把新 refresh token 延后到第 9 天过期。
 - `pnpm test`：通过，覆盖 Web auth schema、Web public session 不暴露 token、CSRF token 生成/匹配、Web session public 投影、登录保存 session、refresh 轮换 session、session GET 自动 refresh 分支、access token refresh 提前量判断和 Web 私有 auth 配置解析。当前共 19 个测试通过。
@@ -387,7 +388,13 @@
 - 真实 auth-service API 联调：直连 `http://127.0.0.1:18082/api/auth/login` 登录成功，refresh token 轮换成功，logout 返回 `204`，旧 refresh token 被拒绝。
 - 真实 gateway API 联调：使用临时环境变量覆盖本机 auth/core 路由后，`http://127.0.0.1:18080/api/auth/login`、`/refresh`、`/logout` 全部通过；返回 token 类型为 `Bearer`，登录角色为 `ADMIN`，权限为 `*`。
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块。
-- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 多安全链和 gateway 当前配置的 AOT 入口。
+- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 多安全链和 gateway 当时配置的 AOT 入口。
+- `mvn -pl :backend-gateway -am test`：通过，覆盖 gateway JWT `sid` 撤销过滤器；验证移除 auth/OIDC 代理路由后 gateway 模块测试仍通过。
+- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 gateway 当前只保留业务路由和 JWT resource server 配置后的 AOT 入口。
+- `pnpm test`：通过，5 个测试文件、19 个测试通过；`auth-session` 测试确认 refresh 调用认证中心地址 `http://localhost:18082`，不再走 gateway。
+- `pnpm typecheck`：通过，验证新增 `authBaseUrl` runtimeConfig、认证 fetch helper 和 Nuxt server auth routes 类型。
+- `pnpm lint`：通过。
+- `pnpm build`：通过，Nitro 产物包含 auth/session/login/refresh/logout 路由；保留 Nuxt/Tailwind/VueUse 上游 sourcemap 与 deprecation warning，当前不阻塞。
 
 ## 剩余风险
 
@@ -395,8 +402,9 @@
 - 当前已实现第一方账号密码登录 API，但尚未实现登录页面、注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
-- 真实 Nacos 中 `hdx-gateway.yml` 的 `hdx.gateway.routes.auth-uri` 或相关覆盖值当前疑似为空，导致 gateway 按真实配置启动时转发 `/api/auth/login` 报 `Target host is not specified`；本轮只用临时环境变量覆盖完成链路验证，修改真实 Nacos 既有值前需要用户确认。
+- 真实 Nacos 中 `hdx-gateway.yml` 如仍存在 `hdx.gateway.routes.auth-uri`，应在用户确认后删除或停用；repo 模板已移除该项，gateway 不再代理 `/api/auth/**`、OIDC discovery 或 JWK。
 - Web BFF 登录态已开始实现，但尚未接登录 dialog UI；当前只能通过 BFF API 使用。
+- `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。
 - 当前 Web session 数据保存在加密 cookie 中，适合首版最小登录态；如果后续需要服务端主动注销所有 Web session 或集中查看在线会话，需要另行设计 Redis/数据库 session store。
 - 尚未实现 App 登录页和 App token 安全存储。

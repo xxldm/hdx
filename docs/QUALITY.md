@@ -1,6 +1,35 @@
 ﻿# 质量门禁
 
-本文件定义 HDX 工具箱的最小质量要求。当前项目尚未确定框架，因此质量门禁先以原则和检查点形式存在。
+本文件定义 HDX 工具箱的最小质量要求。
+
+## 本地质量门禁脚本
+
+本地统一入口为根仓库脚本：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope changed
+```
+
+常用范围：
+
+- `-Scope changed`：默认值，根据 Git 改动选择文档、后端或 Web 检查。
+- `-Scope docs`：只检查关键文档 UTF-8 读取和根仓库空白错误。
+- `-Scope backend`：检查后端子模块并运行 `mvn test`。
+- `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
+- `-Scope all`：按顺序运行文档、后端和 Web 检查。
+
+轻量控制参数：
+
+- `-NoBuild`：后端只检查 Maven 环境，Web 跳过 build；适合先验证脚本分支和基础环境。
+- `-SkipBackend`：跳过后端检查。
+- `-SkipWeb`：跳过 Web 检查。
+
+脚本约束：
+
+- 脚本只覆盖本地常用质量门禁，不替代远端 CI。
+- 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
+- 脚本不依赖 `git submodule status`，而是分别使用 `git -C services/backend status --short --branch` 和 `git -C apps/web status --short --branch` 展示子模块状态，避免当前 Git for Windows 环境缺少 Unix 辅助命令导致误失败。
+- 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/GIT.md` 的权限失败重试规则处理。
 
 ## 提交前检查
 
@@ -21,6 +50,7 @@
 - 如果存在本地 active 计划，当前状态、checkbox 或状态表、状态记录、验证结果和剩余风险是否已同步。
 - 如果未创建本地计划，是否符合 `docs/plans/README.md` 的豁免条件，且最终回复是否说明变更范围、验证结果和剩余风险。
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。
+- 是否已运行与变更范围相称的 `scripts/quality-gate.ps1` 范围；如未运行，是否说明替代验证和剩余风险。
 
 ## 测试策略
 
@@ -41,7 +71,7 @@
 
 ## 未来自动化方向
 
-框架确定后，优先把以下约束编码为脚本、lint 或 CI：
+后续优先把以下约束继续编码为脚本、lint 或 CI：
 
 - 文档语言与索引检查。
 - 架构依赖方向检查。

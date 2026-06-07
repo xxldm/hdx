@@ -358,6 +358,40 @@
 - 不实现统一当前身份接口的后端改造；该能力作为后续小步单独确认。
 - 不新增服务端集中 Web session store。
 
+## 第 4 小步：真实登录链路联调
+
+状态：进行中。
+
+### 本小步目标
+
+- 使用本机 `.env.local`、真实 Nacos、PostgreSQL 和 Redis 启动 `backend-core-service`、`backend-auth-service`、`backend-gateway` 与 Web dev server。
+- 验证认证中心直连账号密码登录、refresh token 轮换和 logout。
+- 验证 Web BFF 能通过登录页完成登录，浏览器只保存加密 `HttpOnly` session cookie。
+- 验证业务请求通过 gateway 访问受保护后端，并由 Web BFF 注入 Bearer access token。
+
+### 计划
+
+- [x] 启动后端 core/auth/gateway 三个 service profile 服务，并确认健康检查通过。
+- [x] 启动 Web dev server，并确认 `/login`、`/api/hdx/v1/auth/session` 可访问。
+- [x] 直连 auth-service 验证登录、refresh、logout。
+- [x] 通过 Web BFF 验证 session、CSRF、登录、业务 runtime 请求和登出。
+- [x] 如发现链路缺口，按最小范围修复并补充相称测试。
+- [x] 更新本计划的验证结果和剩余风险。
+
+### 本轮联调环境记录
+
+- 2026-06-07：当前 Codex shell 中 `mvn` 不在 `PATH`，首次后端后台启动未实际执行 Maven 命令；后续需要使用显式 Maven 路径或补齐当前进程 PATH 后再启动。
+- 2026-06-07：当前 Codex shell 普通权限执行 `pnpm -v` 时因读取 `C:\Users\zengl` 触发 `EPERM`；后续 Web dev/test/build 命令按项目权限失败重试规则直接走审批/提权路径。
+- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 `D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1` 与 `D:\JetBrains\.m2\apache-maven-3.8.8\bin\mvn.cmd`；本地环境加载使用 `scripts/load-env.ps1`，直接 dot-source 受 PowerShell 执行策略限制时使用 `-ExecutionPolicy Bypass`。
+- 2026-06-07：真实 gateway 业务请求首次失败于 `Unroutable protocol scheme: lb://hdx-core-service`；修复为 `lb://` 配置走 Spring Cloud Gateway Server Web MVC 的 `lb(serviceId)` filter，并补充 `spring-cloud-starter-loadbalancer` 依赖。
+- 2026-06-07：Web session API 首次失败于 `Web 服务配置无效。`；根因是 Nuxt runtimeConfig 将未设置的 `backendLocalTokenHeader` 与 `backendLocalToken` 表达为空字符串，而 Web schema 只允许缺省或非空字符串。已将空字符串预处理为未设置。
+
+### 本小步不做
+
+- 不新增注册、找回密码、二维码登录、第三方 OAuth 登录或用户管理页面。
+- 不实现 JSONC 业务数据导入导出。
+- 不引入服务端集中 Web session store。
+
 ## 非目标
 
 - 本计划不把二维码登录、第三方 OAuth 登录、Passkey、MFA 或验证码提前实现。
@@ -405,6 +439,7 @@
 - 2026-06-06：用户确认认证中心与 gateway 同级，不再通过 gateway 代理认证中心。已移除 gateway auth/OIDC 代理路由和 `hdx.gateway.routes.auth-uri` 模板项；Web BFF 认证请求改为通过 `HDX_AUTH_BASE_URL`/`NUXT_AUTH_BASE_URL` 直连 auth-service，业务请求仍通过 `HDX_BACKEND_BASE_URL` 走 gateway。
 - 2026-06-07：实现 Web 独立 `/login` 登录页和全局登录守卫；登录页使用项目内 `apps/web/app/assets/images/login-background.bmp` 背景图，远程未登录访问业务页跳转登录页，all-in-one 模式通过本机 token 配置返回固定 `LOCAL_ADMIN:local-admin` public session。
 - 2026-06-07：修复登录页移动端卡片裁切问题，收紧内部 redirect 参数只允许单斜杠开头的站内路径；新增本地 lucide 图标集合，避免 Nuxt Icon 本地模式缺失图标集合；Web server route 统一使用 `message` 创建 H3 错误，避免 `statusMessage` deprecation warning 刷屏。
+- 2026-06-07：真实登录链路联调发现并修复 gateway `lb://` 路由缺少 load-balancer 处理、Web 可选本机 token 空字符串导致 runtimeConfig 校验失败、Web runtime BFF 未注入 Bearer token、logout 返回旧 public session 投影四个缺口。修复后远程模式 Web 登录、业务请求、runtime 请求和登出链路已通过。
 
 ## 验证结果
 
@@ -447,6 +482,16 @@
 - `pnpm build`：通过，登录背景图作为 Nuxt client asset 打包，产物包含约 7,056 kB 的 BMP 资源；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、单个约 521 kB chunk warning 和 Node DEP0155 deprecation warning，当前不阻塞。
 - 启动 Web dev server 检查：远程未登录访问 `http://127.0.0.1:3000/` 返回 `302 Location: /login?redirect=/`；`/login` SSR HTML 包含项目内背景图、登录文案、账号/密码输入和登录按钮。
 - 使用 Edge headless 截图检查 `1440x900` 与 `390x844` 视口：登录页背景图、磨砂玻璃登录框和表单控件均可见，移动端最终修复后无卡片/输入框右侧裁切。
+- `mvn -pl :backend-gateway -am test`：通过，新增 `CoreGatewayRoutesTest` 覆盖 `lb://hdx-core-service` 识别、service id 提取和缺少 service id 的错误路径；既有 `JwtSessionRevocationFilterTest` 继续通过。
+- 真实 service profile 联调：使用 `.env.local`、Nacos、PostgreSQL 和 Redis 启动 `backend-core-service`、`backend-auth-service`、`backend-gateway`，三者 `/actuator/health` 均返回 `200`。
+- 真实 auth-service API 联调：直连 `http://127.0.0.1:18082/api/auth/login` 登录成功，`/api/auth/refresh` 轮换 refresh token 成功，旧 refresh token 复用返回 `401`，`/api/auth/logout` 返回 `204`。
+- 真实 gateway API 联调：使用 auth-service 签发的 access token 请求 `http://127.0.0.1:18080/api/v1/runtime` 成功返回 `application=hdx-core-service`、`topology=core-service`；随后通过 auth-service logout 撤销同一 `sid`，复用旧 access token 请求 gateway 返回 `401`。
+- `pnpm test`：通过，7 个测试文件、28 个测试通过；新增覆盖 Web 可选本机 token 配置为空字符串时按未设置处理。
+- `pnpm typecheck`：通过，验证 Web runtimeConfig 空字符串预处理、runtime 认证代理和 logout 返回匿名 public session 的类型。
+- `pnpm lint`：通过。
+- `pnpm build`：通过，Nitro 产物包含 auth/session/login/logout/refresh、runtime 和 tools 路由；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、约 521 kB chunk warning、约 7 MB BMP 资源和 Node `DEP0155` warning，当前不阻塞。
+- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 gateway 新增 `spring-cloud-starter-loadbalancer` 后的 AOT 入口。
+- 真实 Web BFF 联调：`GET /api/hdx/v1/auth/session` 未登录返回匿名 session 和 CSRF token；未登录访问 `/api/hdx/v1/tools` 返回 `401`；`POST /api/hdx/v1/auth/login` 登录成功且 public session 不泄露 access token；登录后 `/api/hdx/v1/tools` 与 `/api/hdx/v1/runtime` 通过；`POST /api/hdx/v1/auth/logout` 返回匿名 session，登出后 `/api/hdx/v1/tools` 返回 `401`。
 
 ## 剩余风险
 

@@ -440,6 +440,7 @@
 - 2026-06-07：实现 Web 独立 `/login` 登录页和全局登录守卫；登录页使用项目内 `apps/web/app/assets/images/login-background.bmp` 背景图，远程未登录访问业务页跳转登录页，all-in-one 模式通过本机 token 配置返回固定 `LOCAL_ADMIN:local-admin` public session。
 - 2026-06-07：修复登录页移动端卡片裁切问题，收紧内部 redirect 参数只允许单斜杠开头的站内路径；新增本地 lucide 图标集合，避免 Nuxt Icon 本地模式缺失图标集合；Web server route 统一使用 `message` 创建 H3 错误，避免 `statusMessage` deprecation warning 刷屏。
 - 2026-06-07：真实登录链路联调发现并修复 gateway `lb://` 路由缺少 load-balancer 处理、Web 可选本机 token 空字符串导致 runtimeConfig 校验失败、Web runtime BFF 未注入 Bearer token、logout 返回旧 public session 投影四个缺口。修复后远程模式 Web 登录、业务请求、runtime 请求和登出链路已通过。
+- 2026-06-07：真实浏览器登录复现 `xxldm / xxldm` 直连 auth-service 与 Web BFF 命令行 session 流程均成功，但登录页提交失败；判断为页面复用 SSR 阶段 public session 中的 CSRF token，浏览器端未必持有对应 CSRF cookie。已改为登录前强制通过同源请求刷新当前浏览器 session/CSRF，并把 CSRF 失败提示从“账号或密码不正确”中拆分出来。
 
 ## 验证结果
 
@@ -492,6 +493,8 @@
 - `pnpm build`：通过，Nitro 产物包含 auth/session/login/logout/refresh、runtime 和 tools 路由；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、约 521 kB chunk warning、约 7 MB BMP 资源和 Node `DEP0155` warning，当前不阻塞。
 - `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 gateway 新增 `spring-cloud-starter-loadbalancer` 后的 AOT 入口。
 - 真实 Web BFF 联调：`GET /api/hdx/v1/auth/session` 未登录返回匿名 session 和 CSRF token；未登录访问 `/api/hdx/v1/tools` 返回 `401`；`POST /api/hdx/v1/auth/login` 登录成功且 public session 不泄露 access token；登录后 `/api/hdx/v1/tools` 与 `/api/hdx/v1/runtime` 通过；`POST /api/hdx/v1/auth/logout` 返回匿名 session，登出后 `/api/hdx/v1/tools` 返回 `401`。
+- `pnpm test`：通过，7 个测试文件、29 个测试通过；新增覆盖登录时强制重新加载同源 session/CSRF，且 CSRF 失败提示使用独立文案。
+- 真实内置浏览器联调：访问 `http://127.0.0.1:3000/login?redirect=/`，使用 `.env.local` 初始化管理员 `xxldm / xxldm` 登录成功并跳转 `/`，页面显示用户 `乡下来的喵`、runtime `hdx-core-service` 和 tools 空列表。
 
 ## 剩余风险
 

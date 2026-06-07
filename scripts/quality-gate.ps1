@@ -194,6 +194,19 @@ function Invoke-DocChecks {
             '-File',
             (Join-Path $RepoRoot 'scripts/openapi-contract-check.ps1')
         )
+
+    Invoke-Step `
+        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u751f\u6210\u68c0\u67e5') `
+        -WorkingDirectory $RepoRoot `
+        -Command 'powershell' `
+        -Arguments @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/openapi-generate-types.ps1'),
+            '-Check'
+        )
 }
 
 function Invoke-BackendChecks {
@@ -319,6 +332,7 @@ switch ($Scope) {
         $webChanged = (Test-PathChanged -Paths $rootPaths -Prefixes @('apps/web')) -or (Test-HasGitChanges -WorkingDirectory $WebRoot)
         $docsChanged = Test-PathChanged -Paths $rootPaths -Prefixes @(
             'docs',
+            'packages/shared',
             'scripts',
             'README.md',
             'AGENTS.md',

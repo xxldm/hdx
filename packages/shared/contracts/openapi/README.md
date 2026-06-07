@@ -31,3 +31,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-che
 ```
 
 如果后端公开路径或关键字段变化符合预期，必须同时提交后端测试或 OpenAPI 配置变更、`snapshots/` 快照更新、`expected-paths.json` 或 `expected-schemas.json` 变更。
+
+## 类型生成
+
+当前 OpenAPI TypeScript 类型原型从本目录快照生成：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1
+```
+
+提交前必须检查生成类型没有漂移：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check
+```

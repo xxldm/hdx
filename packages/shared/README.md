@@ -5,14 +5,14 @@
 ## 当前状态
 
 - 目录已作为共享层事实源占位。
-- 当前不包含可被 Web、App、desktop 或后端直接导入的运行时代码。
+- 当前包含 OpenAPI schema TypeScript 类型生成物原型，但不包含请求 client、运行时校验器或端侧适配代码。
 - 当前不提供 `package.json`、TypeScript 配置或发布流程。
 
 ## 目录
 
 - `contracts/`：人工维护的跨端协议说明、契约片段和手工示例。
 - `constants/`：稳定协议常量说明，例如错误码、权限 code、actor type 等；真正落代码前必须确认消费者和验证方式。
-- `generated/`：未来 OpenAPI 或其他契约工具生成 TypeScript 类型的候选落点；生成器、命令、提交策略和漂移检查确认前只能放占位说明。
+- `generated/`：OpenAPI 或其他契约工具生成 TypeScript 类型的候选落点；当前已有 `generated/openapi/` 类型生成物原型和漂移检查。
 - `tools/`：端无关稳定小工具的候选落点；不得放端侧运行时适配。
 
 ## 允许内容

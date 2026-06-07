@@ -52,6 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。
 - 是否已运行与变更范围相称的 `scripts/quality-gate.ps1` 范围；如未运行，是否说明替代验证和剩余风险。
 - 如果改动 OpenAPI、后端公开路径、Web BFF 契约、`packages/shared/contracts/openapi/expected-paths.json`、`expected-schemas.json` 或 OpenAPI 快照，是否已运行 `scripts/openapi-contract-check.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-refresh-snapshots.ps1` 并提交快照。
+- 如果改动 OpenAPI 快照、`scripts/openapi-generate-types.ps1` 或 `packages/shared/generated/openapi/`，是否已运行 `scripts/openapi-generate-types.ps1 -Check`；如果生成结果预期变化，是否先运行 `scripts/openapi-generate-types.ps1` 并提交生成物。
 
 ## 测试策略
 

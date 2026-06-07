@@ -48,9 +48,9 @@ HDX 暂定由以下部分组成：
 - 跨端共享的错误码、协议字段、权限枚举和基础类型应归入共享层。
 - 端侧私有展示模型不得污染后台领域模型。
 
-OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-boundary.md`，OpenAPI TypeScript 类型生成策略见 `docs/adr/0007-openapi-typescript-generation-strategy.md`。当前阶段 OpenAPI spec 按外部入口拆分：`backend-auth-service` 暴露认证中心契约，`backend-gateway` 暴露服务端业务入口契约；`backend-core-service` 和 `backend-all-in-one` 的 `/v3/api-docs` 只作为调试和本机集成参考。下一阶段只允许评估或生成 TypeScript 类型，不生成完整 API client，不创建根 pnpm workspace；Web 仍通过 Nuxt server BFF 调用后端，浏览器不得使用生成物直连后端。
+OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-boundary.md`，OpenAPI TypeScript 类型生成策略见 `docs/adr/0007-openapi-typescript-generation-strategy.md`。当前阶段 OpenAPI spec 按外部入口拆分：`backend-auth-service` 暴露认证中心契约，`backend-gateway` 暴露服务端业务入口契约；`backend-core-service` 和 `backend-all-in-one` 的 `/v3/api-docs` 只作为调试和本机集成参考。当前只从 OpenAPI 快照生成 TypeScript 类型原型，不生成完整 API client，不创建根 pnpm workspace；Web 仍通过 Nuxt server BFF 调用后端，浏览器不得使用生成物直连后端。
 
-`packages/shared/` 当前只建立轻量目录骨架：`contracts/`、`constants/`、`generated/` 和 `tools/`。这些目录只作为跨端协议资产的候选落点，不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
+`packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
 
 ## Web 第一阶段架构
 

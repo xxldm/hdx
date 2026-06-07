@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已接受 OpenAPI/shared 契约边界 ADR 与 OpenAPI TypeScript 类型生成策略 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已建立 OpenAPI 快照刷新入口、路径级漂移检查和关键字段级 schema 漂移检查；下一阶段只评估从 OpenAPI 生成 TypeScript 类型，不生成完整 API client。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR 与 OpenAPI TypeScript 类型生成策略 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已建立 OpenAPI 快照刷新入口、路径级漂移检查、关键字段级 schema 漂移检查和无外部依赖的 TypeScript 类型生成原型；当前仍不生成完整 API client。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -21,7 +21,7 @@
 
 ## 非目标
 
-- 本轮不直接引入 OpenAPI 生成器依赖；ADR 0007 只确认下一阶段的类型生成边界和验证要求。
+- 本轮不引入外部 OpenAPI 生成器依赖；当前只落地无外部依赖的 TypeScript 类型生成原型和漂移检查。
 - 本轮不把仓库根目录升级为 pnpm workspace。
 - 本轮不把 Web BFF、Nuxt server session、CSRF、UI store 或后端内部实现迁入 shared。
 - 本轮不决定 App 技术栈，也不为 App 创建运行时 SDK。
@@ -55,7 +55,7 @@
 ## 推荐方向草案
 
 - 后端公开 REST API 以 OpenAPI 文档作为跨端契约事实源；Java `backend-contract` 仍是后端内部编译期 DTO 源。
-- 下一阶段只允许评估或生成 Web 需要的 TypeScript 类型，不生成轻量请求函数或完整 API client，不生成会绕过 Nuxt server BFF 的浏览器直连调用逻辑。
+- 当前只允许生成 Web 需要的 TypeScript 类型，不生成轻量请求函数或完整 API client，不生成会绕过 Nuxt server BFF 的浏览器直连调用逻辑。
 - Web 浏览器继续只调用同源 `/api/hdx/v1/**`；生成 client 如用于 Web，应在 Nuxt server 边界或 BFF 内部使用。
 - `packages/shared` 首批只放端无关、运行时无关的稳定协议资产，例如错误码、权限 code 常量、OpenAPI 生成类型或协议枚举；不放 Nuxt composable、Pinia store、Spring DTO、数据库模型或 HTTP token/session 处理。
 - 生成产物应有清晰来源、命令和漂移检查；如果选择提交生成产物，提交前必须能复现生成结果。
@@ -75,6 +75,7 @@
 - [x] 建立 OpenAPI spec 快照刷新与默认检查闭环：后端 OpenAPI 测试输出 `target/openapi/*.json`，根仓库 `scripts/openapi-refresh-snapshots.ps1` 刷新 `packages/shared/contracts/openapi/snapshots/`，质量门禁默认运行路径级契约检查。
 - [x] 建立 OpenAPI 关键字段级 schema 漂移检查：新增 `expected-schemas.json`，检查 Web 当前依赖的 auth、runtime、current actor 和 tools schema 字段、类型、格式、ref、enum、数组 items 与 maxLength。
 - [x] 新增 OpenAPI TypeScript 类型生成策略 ADR：确认第一阶段只生成类型，不生成完整 API client，不升级根 pnpm workspace。
+- [x] 建立 OpenAPI TypeScript 类型生成原型：新增 `scripts/openapi-generate-types.ps1`，从 shared OpenAPI 快照生成 `packages/shared/generated/openapi/`，并提供 `-Check` 漂移检查。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
@@ -94,11 +95,12 @@
 - Web 生成物后续默认只允许在 Nuxt server BFF 边界使用，浏览器不得绕过 BFF 直连后端。
 - `packages/shared` 当前不升级为根 workspace 包；先保留轻量边界，只在后续确认首批协议资产后实施。
 - 本轮不生成产物；后续如选择提交生成产物，必须有可复现命令和漂移检查。
-- 当前不直接引入 TypeScript 类型生成器。下一步先捕获 auth-service 与 gateway/core 外部入口 OpenAPI spec 快照，建立手写 Zod schema 与 OpenAPI schema 的漂移检查入口。
+- 当前不引入外部 TypeScript 类型生成器；已先捕获 auth-service 与 gateway 外部入口 OpenAPI spec 快照，并建立手写 Zod schema 与 OpenAPI schema 的漂移检查入口。
 - 已先建立路径级契约检查入口。当前无真实 spec 快照时只校验期望路径清单格式；提供 spec 文件后会校验 `paths` 中包含 Web/BFF 已依赖路径。
 - 已提交 auth-service 与 gateway 外部入口 OpenAPI 快照；当前检查仍为路径级，不替代 Web Zod 运行时校验或 schema 级漂移检查。
 - 已补关键字段级 schema 检查；它只覆盖 Web 当前手写 Zod schema 已依赖的字段，不替代完整类型生成、请求/响应示例验证或运行时边界校验。
-- 已接受 ADR 0007；下一阶段可以评估只输出 TypeScript 类型的生成工具、生成脚本和漂移检查，但仍不生成完整 API client。
+- 已接受 ADR 0007；当前以 PowerShell 原型生成 TypeScript 类型并检查漂移，后续仍可评估是否替换为正式生成器，但仍不生成完整 API client。
+- 已落地无外部依赖的 TypeScript 类型生成原型；当前只生成 `components.schemas` 对应 interface/type，不生成 paths、operation、请求函数或 runtime validator。
 
 ## 验收标准
 
@@ -132,6 +134,7 @@
 - 2026-06-07：`backend-gateway` 补充外部业务路径 OpenAPI customizer；auth-service 和 gateway OpenAPI 测试均输出 `target/openapi/*.json`，根仓库新增快照刷新脚本与 `packages/shared/contracts/openapi/snapshots/`，质量门禁默认运行 OpenAPI 路径级漂移检查。
 - 2026-06-07：`backend-gateway` 的 OpenAPI customizer 补齐 runtime、current actor、tools 的最小 schema；根仓库新增 `expected-schemas.json`，`scripts/openapi-contract-check.ps1` 现在会校验路径、关键 schema 字段和快照漂移。
 - 2026-06-07：新增 ADR 0007，确认 OpenAPI TypeScript 生成策略为第一阶段只生成类型，不生成完整 API client，不升级根 pnpm workspace；同步更新架构文档和 shared 说明。
+- 2026-06-07：新增 `scripts/openapi-generate-types.ps1`，从 `packages/shared/contracts/openapi/snapshots/` 生成 `packages/shared/generated/openapi/*.ts`；质量门禁 docs 范围接入 `-Check` 漂移检查。
 
 ## 验证结果
 
@@ -151,15 +154,17 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-refresh-snapshots.ps1`：通过，从后端测试产物刷新 `packages/shared/contracts/openapi/snapshots/`。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1`：通过，默认读取 shared 快照并校验 auth-service 与 gateway 期望路径。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1 -AuthGeneratedSpecPath services/backend/backend-auth-service/target/openapi/auth-service.openapi.json -GatewayGeneratedSpecPath services/backend/backend-gateway/target/openapi/gateway.openapi.json`：通过，校验路径、关键 schema 字段以及 shared 快照与后端测试产物一致。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1`：通过，生成 `auth-service.ts`、`gateway.ts` 和 `index.ts`。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check`：通过，确认生成类型与已提交 OpenAPI 快照一致。
 
 ## 剩余风险
 
-- 已确认下一阶段只允许生成 TypeScript 类型，但尚未评估具体生成工具、脚本名称、输出目录细节和生成物提交策略。
+- 已落地无外部依赖的 TypeScript 类型生成原型，但尚未评估正式生成器或是否继续长期维护 PowerShell 生成器。
 - 已建立 OpenAPI spec 快照与路径级漂移检查脚本，但尚未接入远端 CI；Web 手写 Zod schema 与后端 OpenAPI schema 仍需要人工同步。
 - 已建立关键字段级 schema 漂移检查，但尚未接入远端 CI；Web 手写 Zod schema 与 `expected-schemas.json` 仍需要人工同步。
-- 尚未建立 TypeScript 类型生成器评估、请求/响应示例验证或自动启动服务抓取流程；当前快照来源是后端测试输出。
+- 尚未建立请求/响应示例验证、Web 消费验证或自动启动服务抓取流程；当前快照来源是后端测试输出。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
-- 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
+- 当前 Web 仍维护手写 Zod schema，尚未引用生成类型；`expected-schemas.json` 与 Web Zod schema 仍需要人工同步。
 - 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。
 - auth-service 已补 OpenAPI 与 Spring AOT 验证，但本轮未运行完整 native-image 编译和真实 service profile OpenAPI 端点手工访问。
 

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架，下一步确认生成 TypeScript 类型策略。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已确认当前暂不生成 TypeScript 类型，下一步优先设计 OpenAPI spec 快照与漂移检查。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -47,6 +47,7 @@
 - `backend-auth-service` 当前没有引入 springdoc，第一方登录接口仍只通过 Java DTO、测试和文档记录契约。
 - 后端 Java DTO 当前集中在 `services/backend/backend-contract/`，已覆盖 runtime、tools、auth login/refresh/logout/token、current actor 等响应与请求。
 - Web 当前在 `apps/web/app/types/hdx-api.ts` 和 `apps/web/app/types/hdx-auth.ts` 手写 Zod schema 与 TypeScript 类型，并在 Nuxt server BFF 边界运行时校验后端响应。
+- 当前 Web 手写契约面较小，主要覆盖 runtime、tools、auth token/session 三类；直接引入生成器的包管理和边界成本暂时高于收益。
 - `packages/shared/` 当前只有 README 占位，没有包管理器、构建脚本、测试入口或可被 Web 引用的代码。
 - 根架构文档允许 `apps/web/`、`apps/mobile/` 和 `services/backend/` 依赖 `packages/shared/`，但禁止 shared 依赖具体端。
 - Web 架构 ADR 已明确：后续如果需要从后端 OpenAPI 生成 TypeScript client，需要新增或更新 ADR。
@@ -69,6 +70,7 @@
 - [x] 确认生成工具和包管理边界：本轮不引入生成器、不创建根 pnpm workspace；后续如新增生成器需补充 ADR 或更新本 ADR。
 - [x] 确认 `packages/shared` 首批职责边界：仅放端无关、运行时无关的稳定协议资产，禁止放端侧状态、UI、HTTP token/session 和后端内部模型。
 - [x] 建立 `packages/shared` 轻量目录骨架：`contracts/`、`constants/`、`generated/` 和 `tools/`，只放 README 占位，不引入包管理器或运行时代码。
+- [x] 确认 TypeScript 生成策略：当前暂不生成类型或 client，下一步先做 OpenAPI spec 快照与漂移检查，等契约面扩大后再评估生成器。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
@@ -79,6 +81,7 @@
 - Web 生成物是否只允许服务端使用，防止浏览器绕过 Nuxt BFF 直连后端？
 - `packages/shared` 当前是否保持轻量源码包，还是等 App/Desktop 技术栈确认后再引入包管理和构建？
 - 生成产物是否提交到仓库，还是由脚本在验证阶段生成并做漂移检查？
+- 当前是否应该直接引入 TypeScript 类型生成器？
 
 已确认答案：
 
@@ -87,6 +90,7 @@
 - Web 生成物后续默认只允许在 Nuxt server BFF 边界使用，浏览器不得绕过 BFF 直连后端。
 - `packages/shared` 当前不升级为根 workspace 包；先保留轻量边界，只在后续确认首批协议资产后实施。
 - 本轮不生成产物；后续如选择提交生成产物，必须有可复现命令和漂移检查。
+- 当前不直接引入 TypeScript 类型生成器。下一步先捕获 auth-service 与 gateway/core 外部入口 OpenAPI spec 快照，建立手写 Zod schema 与 OpenAPI schema 的漂移检查入口。
 
 ## 验收标准
 
@@ -115,6 +119,7 @@
 - 2026-06-07：新增 ADR 0006，确认 OpenAPI 按外部入口拆分；本轮暂不引入 TypeScript 生成器或根 pnpm workspace。
 - 2026-06-07：`backend-auth-service` 补齐 springdoc OpenAPI 暴露，并新增测试验证 `/v3/api-docs` 包含登录、刷新和登出接口。
 - 2026-06-07：`packages/shared` 建立轻量骨架，明确 `contracts/`、`constants/`、`generated/` 和 `tools/` 的候选职责与禁止内容；当前仍不创建可安装包。
+- 2026-06-07：调研 Web 手写契约面，确认当前 runtime、tools、auth token/session 的 schema 数量仍小；本阶段不引入 TypeScript 生成器，下一步优先设计 OpenAPI spec 快照与漂移检查。
 
 ## 验证结果
 
@@ -128,13 +133,15 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证根仓库关键文档 UTF-8 读取和空白检查。
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块、32 个测试，确认 auth-service OpenAPI 依赖未破坏 core、gateway 和 all-in-one 既有测试。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证 `packages/shared` 轻量骨架、架构文档和本计划更新后的 UTF-8 读取与空白检查。
+- 已使用 `rg` 和 `Get-Content` 调研 Web BFF 路由、Web Zod schema、后端 controller/DTO 与 `apps/web/package.json`；确认当前不需要新增生成器依赖即可继续推进契约漂移检查设计。
 
 ## 剩余风险
 
-- 尚未确认是否引入 OpenAPI 生成器，因此不能开始修改 Web 契约来源。
-- 当前已确认本轮不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具、生成物提交策略和漂移检查。
+- 当前已确认暂不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具和生成物提交策略。
+- 尚未建立 OpenAPI spec 快照、漂移检查脚本或 CI 入口；Web 手写 Zod schema 与后端 OpenAPI 仍需要人工同步。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
+- 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。
 - auth-service 已补 OpenAPI 与 Spring AOT 验证，但本轮未运行完整 native-image 编译和真实 service profile OpenAPI 端点手工访问。
 
 ## 相关 commit

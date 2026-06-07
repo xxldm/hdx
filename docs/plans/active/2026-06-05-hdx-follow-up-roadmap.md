@@ -149,6 +149,7 @@
 - 2026-06-07：完成第 5 步 OpenAPI 与 shared 层收口，计划移动到 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`；当前等待进入第 6 步 Desktop 集成设计前单独确认。
 - 2026-06-07：复核 active 目录中已标记完成的历史计划，将后端 v1、Web Nuxt v1 和数据库迁移策略计划移动到 `docs/plans/completed/`，保留总纲与认证权限边界计划在 `active/`。
 - 2026-06-07：复核 `docs/plans/completed/` 中的剩余风险和提交状态，将已由后续认证、Nacos、公共数据库、OpenAPI 和 Git 收口解决的历史风险更新为当前状态；仍保留 native-image、远端 CI、Desktop/App、正式生成器和运行时消费生成类型等未解决风险。
+- 2026-06-08：收口 3 个小项：修正总纲第 2 步过期风险描述；复核 Web 中文文案源码未再发现 mojibake 乱码；修复并验证 `backend-auth-service` service profile 下 `/v3/api-docs` 无尾斜杠访问。
 
 ## 验证结果
 
@@ -160,11 +161,13 @@
 - 第 2 步已执行 `mvn validate`、`mvn test` 和 `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`，均通过。
 - 计划归档审计已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认文档 UTF-8、根仓库空白检查、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 - completed 计划风险复核已执行 stale 状态词扫描，确认不再保留“待提交”“尚未推送”“等待提交”“当前真实 Nacos 中”等已过期状态描述；并执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- 3 个小项收口中已执行 Web mojibake 字符扫描，覆盖 `apps/web` 下 `*.vue`、`*.ts`、`*.js`、`*.json` 和 `*.md`，未发现 `�`、`Ã`、`Â`、`æ`、`ç`、`è`、`é`、`ä`、`å`、`ï¼`、`ã€`、`ï¿½` 等乱码特征。
+- 3 个小项收口中已执行 `backend-auth-service` 临时 19082 service profile 实例验证：`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200`，且 OpenAPI 内容包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
 
 ## 剩余风险
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
-- 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
+- 第 2 步真实 PostgreSQL 服务端 profile 启动已由后续认证/Nacos 联调覆盖；尚未单独运行完整 native-image 编译，详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 
 ## 相关 commit
@@ -175,3 +178,4 @@
 - `9090455 功能：引入 Flyway 数据库迁移`（`services/backend`）
 - `3a18291 功能：添加本地质量门禁脚本`（根仓库）
 - `0267873 功能：添加 Web 契约类型对齐检查`（根仓库）
+- `70a4b57 修复：放行认证服务 OpenAPI 端点`（`services/backend`）

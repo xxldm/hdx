@@ -475,6 +475,7 @@
 - 2026-06-07：真实浏览器登录复现 `xxldm / xxldm` 直连 auth-service 与 Web BFF 命令行 session 流程均成功，但登录页提交失败；判断为页面复用 SSR 阶段 public session 中的 CSRF token，浏览器端未必持有对应 CSRF cookie。已改为登录前强制通过同源请求刷新当前浏览器 session/CSRF，并把 CSRF 失败提示从“账号或密码不正确”中拆分出来。
 - 2026-06-07：用户确认进入统一当前身份接口切片；新增 `GET /api/v1/auth/current` 后端接口，服务端模式从 JWT claims 投影 `USER:<id>` 身份，all-in-one 模式通过本机 token 认证注入固定 `LOCAL_ADMIN:local-admin` 身份。
 - 2026-06-07：本轮首次普通权限执行 `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test` 失败于当前 Codex shell 中 `mvn` 不在 `PATH`；改用 README 记录的 Maven 固定路径后，首次未显式设置 `JAVA_HOME` 失败于当前 shell 继承旧 Java、不支持 `release 25`；显式设置 GraalVM JDK 25 后普通权限又失败于 `target/maven-status` 写入，已按权限规则改走提权路径。
+- 2026-06-08：复核 3 个小项时发现正在运行的旧 `backend-auth-service` 对 `/v3/api-docs` 返回 `403`，根因是 service profile 安全链只放行 `/v3/api-docs/**` 而未覆盖无尾斜杠的 `/v3/api-docs`；已补精确路径并新增回归测试。
 
 ## 验证结果
 
@@ -532,6 +533,9 @@
 - `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test`：通过，覆盖 `CurrentActorControllerTest`、`JwtCurrentActorProviderTest` 和 `LocalCurrentActorProviderTest`；验证 core 当前身份 REST 投影、JWT claims 解析和 all-in-one 本机身份注入。保留 H2 2.4.240 高于 Flyway 已验证版本提示、Maven/Jansi Java 25 native access warning、Mockito/Byte Buddy 动态 agent warning，当前不阻塞。
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块、31 个测试；确认当前身份接口改动未破坏 auth-service、gateway 和既有 core/all-in-one 测试。
 - `mvn -pl :backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 core-service JWT 身份 provider 与 all-in-one 本机身份 provider 的 Spring AOT 入口。
+- `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service 15 个测试；新增 `AuthServiceOpenApiSecurityTest` 验证 service profile 安全链下 `/v3/api-docs` 无尾斜杠访问返回 `200` 并包含登录契约。
+- `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 auth-service OpenAPI 安全链修复后的 Spring AOT 入口。
+- 临时 19082 service profile 实例验证：使用 `.env.local`、真实 Nacos、PostgreSQL 和 Redis 启动修复后的 `backend-auth-service`，`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200` 且包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
 
 ## 剩余风险
 

@@ -139,6 +139,7 @@
 - 2026-06-07：新增 `scripts/openapi-generate-types.ps1`，从 `packages/shared/contracts/openapi/snapshots/` 生成 `packages/shared/generated/openapi/*.ts`；质量门禁 docs 范围接入 `-Check` 漂移检查。
 - 2026-06-07：新增 Web 只读类型对齐检查，并修正两个由检查暴露的 OpenAPI 表达问题：gateway `ToolRecordResponse.description` 改为可空可选，auth-service `AuthTokenResponse`/`AuthUserResponse` 补 required 和 `tokenType=Bearer` enum。
 - 2026-06-07：第 5 步目标已达成，计划移动到 `docs/plans/completed/`；后续正式生成器、Web 运行时消费生成类型和 shared 可安装包结构作为独立后续事项处理。
+- 2026-06-08：后续复核发现 auth-service service profile 下 `/v3/api-docs` 无尾斜杠访问被安全链返回 `403`；已在 `services/backend` 提交 `70a4b57 修复：放行认证服务 OpenAPI 端点`，补放行精确路径与回归测试，并完成真实 service profile 手工访问验证。
 
 ## 验证结果
 
@@ -162,6 +163,8 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check`：通过，确认生成类型与已提交 OpenAPI 快照一致。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-web-type-check.ps1`：通过，确认 Web 手写 Zod 类型与 OpenAPI 生成类型在当前覆盖面内兼容。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证本计划归档、总纲同步、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
+- Web 中文文案 mojibake 扫描：`rg -n "�|Ã|Â|æ|ç|è|é|ä|å|ï¼|ã€|ï¿½" apps/web -g "*.vue" -g "*.ts" -g "*.js" -g "*.json" -g "*.md"` 无结果，当前未复现旧“Web 中文错误提示乱码”风险。
+- `backend-auth-service` service profile OpenAPI 手工访问验证：修复后临时启动 19082 端口实例，`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200`，且响应包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`。
 
 ## 剩余风险
 
@@ -171,8 +174,8 @@
 - 已建立 Web 只读类型对齐检查，但尚未建立请求/响应示例验证或自动启动服务抓取流程；当前快照来源仍是后端测试输出。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 运行时代码仍维护手写 Zod schema，尚未正式导入生成类型；`expected-schemas.json` 与 Web Zod schema 仍需要人工同步。
-- 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。
-- auth-service 已补 OpenAPI 与 Spring AOT 验证，但本轮未运行完整 native-image 编译和真实 service profile OpenAPI 端点手工访问。
+- 后续复核已确认 `apps/web` 当前源码未再发现典型中文 mojibake 乱码；如后续在 UI 截图或运行时响应中复现，应按 Web 文案编码缺陷单独处理。
+- auth-service 已补 OpenAPI、Spring AOT 验证和真实 service profile OpenAPI 端点手工访问；本轮仍未运行完整 native-image 编译。
 
 ## 相关 commit
 
@@ -188,4 +191,5 @@
 - `df2dcc4 杂项：记录 OpenAPI 类型生成策略`（根仓库）
 - `9e5624e 功能：添加 OpenAPI 类型生成原型`（根仓库）
 - `0267873 功能：添加 Web 契约类型对齐检查`（根仓库）
+- `70a4b57 修复：放行认证服务 OpenAPI 端点`（`services/backend`）
 - 本计划归档收口提交由 Git 历史体现，不再回写避免递归提交。

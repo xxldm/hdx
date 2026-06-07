@@ -380,9 +380,9 @@
 
 ### 本轮联调环境记录
 
-- 2026-06-07：当前 Codex shell 中 `mvn` 不在 `PATH`，首次后端后台启动未实际执行 Maven 命令；后续需要使用显式 Maven 路径或补齐当前进程 PATH 后再启动。
+- 2026-06-07：早期 Codex shell 中 `mvn` 不在 `PATH`，首次后端后台启动未实际执行 Maven 命令；同日已将本机系统级 `JAVA_HOME`、`MAVEN_HOME` 和 `PATH` 修正为 GraalVM JDK 25 与 Maven 3.8.8，新开的 PowerShell / IDE 终端可直接使用 `java` 与 `mvn`。Codex Desktop、IDE 或长期运行的终端进程可能继承旧环境，需重启对应应用后自动生效。
 - 2026-06-07：当前 Codex shell 普通权限执行 `pnpm -v` 时因读取 `C:\Users\zengl` 触发 `EPERM`；后续 Web dev/test/build 命令按项目权限失败重试规则直接走审批/提权路径。
-- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 `D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1` 与 `D:\JetBrains\.m2\apache-maven-3.8.8\bin\mvn.cmd`；本地环境加载使用 `scripts/load-env.ps1`，直接 dot-source 受 PowerShell 执行策略限制时使用 `-ExecutionPolicy Bypass`。
+- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 GraalVM JDK 25 与 Maven 3.8.8；本地环境加载使用 `scripts/load-env.ps1`，直接 dot-source 受 PowerShell 执行策略限制时使用 `-ExecutionPolicy Bypass`。
 - 2026-06-07：真实 gateway 业务请求首次失败于 `Unroutable protocol scheme: lb://hdx-core-service`；修复为 `lb://` 配置走 Spring Cloud Gateway Server Web MVC 的 `lb(serviceId)` filter，并补充 `spring-cloud-starter-loadbalancer` 依赖。
 - 2026-06-07：Web session API 首次失败于 `Web 服务配置无效。`；根因是 Nuxt runtimeConfig 将未设置的 `backendLocalTokenHeader` 与 `backendLocalToken` 表达为空字符串，而 Web schema 只允许缺省或非空字符串。已将空字符串预处理为未设置。
 

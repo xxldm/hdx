@@ -34,7 +34,7 @@
 
 - Maven 固定使用 `D:\JetBrains\.m2\apache-maven-3.8.8`。
 - GraalVM JDK 25 安装目录统一放在 `D:\JetBrains\.jdks` 下。
-- 当前普通 PowerShell 默认 `java` 仍指向 Microsoft JDK 21；正式构建会话必须临时将 `JAVA_HOME` 与 `PATH` 指向 `D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1`。
+- 当前本机系统级 `JAVA_HOME` 已指向 `D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1`，系统级 `PATH` 已将 Microsoft JDK 21 `bin` 替换为 GraalVM JDK 25 `bin`，并加入 Maven `D:\JetBrains\.m2\apache-maven-3.8.8\bin`；新开的 PowerShell / IDE 终端可直接使用 `java` 与 `mvn`。Codex Desktop、IDE 或长期运行的终端进程可能继承旧环境，修改系统级环境变量后需要重启对应应用才会自动生效。
 - GraalVM JDK 25、`native-image`、Visual Studio Build Tools、MSVC `cl`/`link` 与 Windows SDK `10.0.26100.0` 已确认可用；native 构建前必须先加载 `E:\soft\Microsoft Visual Studio\2022\BuildTools\Common7\Tools\VsDevCmd.bat`。
 - 当前 Codex/PowerShell 会话可能同时带有 `PATH` 与 `Path` 两个环境变量；native 构建前需清理旧 `Path` 并只保留带 GraalVM 与 MSVC 的 `PATH`，否则 Java/GraalVM 子进程可能找不到 `cl.exe`。
 - GraalVM JDK 25 解析部分依赖内嵌旧式 `resource-config.json` 时会触发 `LegacyResourceConfigurationParser` 内部 NPE。

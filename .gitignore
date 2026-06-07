@@ -16,6 +16,7 @@ Thumbs.db
 logs/
 *.log
 data/
+.local/
 *.db
 *.mv.db
 *.trace.db

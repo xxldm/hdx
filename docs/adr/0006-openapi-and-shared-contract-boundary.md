@@ -36,7 +36,7 @@ HDX 后端已经形成 `backend-auth-service`、`backend-gateway`、`backend-cor
 - `services/backend/backend-auth-service/` 增加 springdoc OpenAPI 依赖、匿名文档端点和最小 OpenAPI 文档测试。
 - `docs/ARCHITECTURE.md` 需要记录 OpenAPI 入口拆分与 shared 层边界。
 - `services/backend/README.md` 需要记录 auth-service OpenAPI 文档入口。
-- `docs/plans/active/2026-06-07-openapi-shared-layer.md` 需要同步本决策状态和剩余风险。
+- `docs/plans/completed/2026-06-07-openapi-shared-layer.md` 已同步本决策状态和剩余风险。
 - 后续 Web 类型生成或 shared 包结构调整必须以本 ADR 为约束；如果需要引入生成器或根 workspace，需要补充 ADR。
 
 ## 验证方式

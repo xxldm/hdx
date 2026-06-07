@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 5 步 OpenAPI 与 shared 层已开始；已落地 OpenAPI TypeScript 类型生成原型和 Web 只读类型对齐检查，不生成完整 API client，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`。
+- 当前状态：第 5 步 OpenAPI 与 shared 层已完成；已落地 OpenAPI TypeScript 类型生成原型和 Web 只读类型对齐检查，不生成完整 API client，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`。下一步等待进入第 6 步 Desktop 集成设计前单独确认。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-07
@@ -31,7 +31,7 @@
 - [x] 2. 数据库迁移策略
 - [ ] 3. 认证与权限边界（进行中，详见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`）
 - [x] 4. 自动化质量门禁（最小本地脚本入口已完成，详见 `docs/plans/completed/2026-06-07-automated-quality-gate.md`）
-- [ ] 5. OpenAPI 与 shared 层（进行中，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`）
+- [x] 5. OpenAPI 与 shared 层（已完成，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`）
 - [ ] 6. Desktop 集成设计
 - [ ] 7. App 技术栈
 - [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
@@ -113,7 +113,7 @@
 - 第 2 步已完成：`services/backend` 已新增 Flyway ADR、`V1__create_tool_definition.sql`、运行时 `ddl-auto: validate` 配置、测试 Flyway 集成和 README 说明。
 - 用户临时要求先推进环境配置与 Nacos 分层；该切片已完成，详细记录见 `docs/plans/completed/2026-06-05-environment-nacos-config-layering.md`。这不表示第 9 步“部署、发布与环境管理”已经完整完成。
 - 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
-- 第 5 步 OpenAPI 与 shared 层已开始，已确认契约事实源、生成范围和 shared 首批职责；当前已建立 OpenAPI TypeScript 类型生成原型、漂移检查和 Web 只读类型对齐检查，不生成完整 API client。
+- 第 5 步 OpenAPI 与 shared 层已完成，已确认契约事实源、生成范围和 shared 首批职责；当前已建立 OpenAPI TypeScript 类型生成原型、漂移检查和 Web 只读类型对齐检查，不生成完整 API client。
 
 ## 验收标准
 
@@ -146,6 +146,7 @@
 - 2026-06-07：第 5 步新增 ADR 0007，确认 OpenAPI TypeScript 类型生成策略为第一阶段只生成类型，不生成完整 API client，不升级根 pnpm workspace。
 - 2026-06-07：第 5 步新增无外部依赖 TypeScript 类型生成原型，从 OpenAPI 快照生成 `packages/shared/generated/openapi/`，并接入质量门禁漂移检查。
 - 2026-06-07：第 5 步新增 Web 只读类型对齐检查，验证 Web Zod 推导类型与 OpenAPI 生成类型兼容。
+- 2026-06-07：完成第 5 步 OpenAPI 与 shared 层收口，计划移动到 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`；当前等待进入第 6 步 Desktop 集成设计前单独确认。
 
 ## 验证结果
 
@@ -160,7 +161,7 @@
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
-- 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
+- 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 
 ## 相关 commit
 
@@ -169,3 +170,4 @@
 - `f3a0459 杂项：记录 HDX 后续事项总纲`（根仓库）
 - `9090455 功能：引入 Flyway 数据库迁移`（`services/backend`）
 - `3a18291 功能：添加本地质量门禁脚本`（根仓库）
+- `0267873 功能：添加 Web 契约类型对齐检查`（根仓库）

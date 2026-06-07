@@ -48,6 +48,7 @@ HDX 后端已经形成 `backend-auth-service`、`backend-gateway`、`backend-cor
 ## 后续补充
 
 - 2026-06-07：`backend-gateway` 通过 OpenAPI customizer 显式声明当前对外代理的 `/api/v1/auth/current`、`/api/v1/runtime` 和 `/api/v1/tools` 业务路径；根仓库提交 `packages/shared/contracts/openapi/snapshots/` 作为外部入口 spec 快照，并通过 `scripts/openapi-contract-check.ps1` 做路径级漂移检查。
+- 2026-06-07：在不引入 TypeScript 生成器的前提下，根仓库新增 `expected-schemas.json`，对 Web 当前依赖的 auth token/user、runtime、current actor 和 tools 关键字段做 schema 级漂移检查；`backend-gateway` 的 OpenAPI customizer 同步补齐这些外部业务 DTO 的最小 schema。
 
 ## 回滚条件
 

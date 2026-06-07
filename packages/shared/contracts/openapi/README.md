@@ -3,9 +3,10 @@
 本目录记录 OpenAPI 契约检查的最小输入。
 
 - `expected-paths.json`：当前 Web/BFF 已依赖的后端公开路径清单。
+- `expected-schemas.json`：当前 Web Zod schema 已依赖的关键 OpenAPI schema 字段、类型、格式和最小约束清单。
 - `snapshots/`：后端外部入口 OpenAPI spec 快照，当前包含 `auth-service.openapi.json` 和 `gateway.openapi.json`。
 
-当前检查重点是避免已被 Web 使用的后端路径从 OpenAPI 中消失，并让快照漂移在提交前可见。
+当前检查重点是避免已被 Web 使用的后端路径和关键字段从 OpenAPI 中消失，并让快照漂移在提交前可见。
 
 ## 刷新流程
 
@@ -27,4 +28,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-refresh-snap
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1
 ```
 
-如果后端公开路径变化符合预期，必须同时提交后端测试或 OpenAPI 配置变更、`snapshots/` 快照更新和 `expected-paths.json` 变更。
+如果后端公开路径或关键字段变化符合预期，必须同时提交后端测试或 OpenAPI 配置变更、`snapshots/` 快照更新、`expected-paths.json` 或 `expected-schemas.json` 变更。

@@ -69,7 +69,7 @@
 - [x] 确认生成工具和包管理边界：本轮不引入生成器、不创建根 pnpm workspace；后续如新增生成器需补充 ADR 或更新本 ADR。
 - [x] 确认 `packages/shared` 首批职责边界：仅放端无关、运行时无关的稳定协议资产，禁止放端侧状态、UI、HTTP token/session 和后端内部模型。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
-- [ ] 完成验证、提交并记录 commit。
+- [x] 完成验证、提交并记录 commit。
 
 ## 待确认问题
 
@@ -137,4 +137,5 @@
 ## 相关 commit
 
 - `fed17f9 功能：补齐认证服务 OpenAPI 文档`（`services/backend`）
-- 根仓库 ADR、架构文档、计划和子模块指针提交待记录。
+- `5e84f5d 杂项：记录 OpenAPI shared 契约边界`（根仓库）
+- 本计划收尾记录提交由 Git 历史体现，不再回写避免递归提交。

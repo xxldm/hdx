@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现，认证中心独立入口拓扑已落地，尚未接登录 UI
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-06
+- 最后更新：2026-06-07
 
 ## 目标
 
@@ -51,7 +51,7 @@
 - 邮箱是否验证属于 `EMAIL` 登录标识的属性，后续用 `verified_at` 表达，不塞入 `auth_user` 主体表。
 - 第一方 Web 需要支持账号密码登录、二维码登录和接入 GitHub 等第三方 OAuth 登录；第一方 App 需要支持账号密码登录和接入第三方 OAuth 登录。
 - 现阶段只实现第一方账号密码登录，二维码登录和第三方 OAuth 登录只保留模型与接口扩展空间。
-- 第一方账号密码登录本质上是 password-style credential login：Web 登录 dialog 通过 Nuxt BFF 调用认证中心，App 应用内登录页直接调用认证中心；该能力只面向 HDX 第一方客户端，不作为第三方 OAuth grant 开放。
+- 第一方账号密码登录本质上是 password-style credential login：Web 独立登录页通过 Nuxt BFF 调用认证中心，App 应用内登录页后续直接调用认证中心；该能力只面向 HDX 第一方客户端，不作为第三方 OAuth grant 开放。
 - 第三方 OAuth 登录后续统一采用 Authorization Code + PKCE；GitHub 等外部身份最终绑定到本地 `auth_user`，不替代本地用户主体。
 - 所有登录方式最终归一到同一套会话模型：`sid`、access token、refresh token、角色权限声明、会话撤销和审计记录。
 - Web 浏览器不直接持有 access token 或 refresh token；Web 侧 token 由 Nuxt server session 持有，浏览器只保存 `HttpOnly` session cookie。App token 后续保存到系统安全存储。
@@ -198,7 +198,7 @@
 
 ## 待确认事项
 
-- Nuxt BFF 登录 dialog、session cookie、CSRF 和 refresh token 存储细节。
+- Web 登录页、Nuxt BFF session cookie、CSRF 和 refresh token 存储细节。
 - all-in-one 固定本机管理员身份与服务端用户身份的统一接口形状。
 - desktop all-in-one 本机 token 与服务端认证 token 的切换边界。
 
@@ -314,6 +314,50 @@
 - 不新增 Redis/Web 服务端集中 session 存储；当前先采用 cookie session。若后续需要服务端主动踢掉 Web session，再单独设计集中 session 存储。
 - 不实现生产级登录风控、登录失败锁定或异常设备告警；这些仍保留在认证中心后续风险项中。
 
+## 第 3 小步：Web 登录页与全局登录守卫
+
+状态：已实现并完成本轮自动化与浏览器检查。
+
+### 已确认策略
+
+- HDX Web 不提供访客模式。
+- 远程服务模式下，所有页面必须登录；未登录访问页面跳转 `/login`，登录成功后回到原地址。
+- 不再使用 dialog 登录框；登录页使用独立 `/login` 页面。
+- 登录页使用铺满视口的背景图，中间放磨砂玻璃登录框；背景图从用户指定的 `D:\SynologyDrive\主题\壁纸\小动物.bmp` 复制到项目内资产目录。
+- all-in-one 模式永远视为已登录，不展示登录页，不要求输入账号密码。
+- all-in-one 固定身份为 `actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=['ADMIN']`、`permissions=['*']`。
+- 运行模式不放进 session；运行模式仍从 runtime/config 边界判断。session 只表达当前是谁、是否已登录、有什么权限。
+- 后续 JSONC 导入导出只导用户使用过程中产生的业务数据，不导用户主体、登录标识、密码、token、session、角色、权限、Nacos 或环境配置；本小步只记录该方向，不实现导入导出。
+
+### 计划
+
+- [x] 复制登录页背景图到 `apps/web/app/assets/images/`。
+- [x] 扩展 Web public session 形状，加入 `actorType` 和 `subject`，支持远程用户和 all-in-one 本机用户。
+- [x] 在 Nuxt server auth session helper 中识别 all-in-one 本机令牌配置；本机模式直接返回已登录的 `LOCAL_ADMIN:local-admin` public session。
+- [x] 调整 authenticated backend fetch：all-in-one 使用本机令牌访问后端，远程模式从 Web session 注入 Bearer access token。
+- [x] 让 Web BFF 业务接口通过 authenticated backend fetch 访问后端，远程未登录时返回 401。
+- [x] 新增 Pinia auth store，负责加载 session、账号密码登录、登出和保存 public session。
+- [x] 新增全局路由守卫：未登录访问非 `/login` 页面跳转登录页；已登录访问 `/login` 返回目标页或首页。
+- [x] 新增 `/login` 页面：全屏背景图、磨砂玻璃登录框、账号/密码输入、密码显示切换、加载态、错误提示和回车提交。
+- [x] 更新工作台 header，显示当前用户；远程模式提供登出按钮，all-in-one 只显示本机用户状态。
+- [x] 补充单元测试，覆盖 all-in-one public session、认证 fetch 分支、auth store 登录/登出和 schema 变化。
+- [x] 更新 README、环境文档和本计划验证结果。
+
+### 验证计划
+
+- `pnpm test`
+- `pnpm typecheck`
+- `pnpm lint`
+- `pnpm build`
+- 启动 Web dev server 后用浏览器检查 `/login` 与 `/` 在远程未登录、远程已登录、all-in-one 配置下的跳转与视觉表现。
+
+### 本小步不做
+
+- 不实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
+- 不实现 JSONC 业务数据导入导出。
+- 不实现统一当前身份接口的后端改造；该能力作为后续小步单独确认。
+- 不新增服务端集中 Web session store。
+
 ## 非目标
 
 - 本计划不把二维码登录、第三方 OAuth 登录、Passkey、MFA 或验证码提前实现。
@@ -322,7 +366,7 @@
 
 ## 下一步确认
 
-请确认“第 2 小步：Web BFF 登录态与最小接口”计划。确认后开始实现；如需调整 cookie/session/CSRF 策略，先改计划再实现。
+第 3 小步已完成。后续可单独确认统一当前身份接口、JSONC 业务数据导入导出，或 App/Desktop 登录边界；继续前仍按“小步确认、小步计划、小步实现”推进。
 
 ## 验证方式
 
@@ -359,6 +403,8 @@
 - 2026-06-06：真实 service profile 联调发现 `/api/auth/login` 被 Authorization Server/Bearer 安全入口提前返回 `401`，未进入登录 controller；已拆分认证服务器端点安全链和应用 API 安全链。
 - 2026-06-06：真实 Nacos gateway 配置启动时曾出现 `Target host is not specified`，经临时环境变量覆盖 `hdx.gateway.routes.auth-uri=http://127.0.0.1:18082` 后 gateway 登录链路通过；真实 Nacos 既有配置值需用户确认后再修改。
 - 2026-06-06：用户确认认证中心与 gateway 同级，不再通过 gateway 代理认证中心。已移除 gateway auth/OIDC 代理路由和 `hdx.gateway.routes.auth-uri` 模板项；Web BFF 认证请求改为通过 `HDX_AUTH_BASE_URL`/`NUXT_AUTH_BASE_URL` 直连 auth-service，业务请求仍通过 `HDX_BACKEND_BASE_URL` 走 gateway。
+- 2026-06-07：实现 Web 独立 `/login` 登录页和全局登录守卫；登录页使用项目内 `apps/web/app/assets/images/login-background.bmp` 背景图，远程未登录访问业务页跳转登录页，all-in-one 模式通过本机 token 配置返回固定 `LOCAL_ADMIN:local-admin` public session。
+- 2026-06-07：修复登录页移动端卡片裁切问题，收紧内部 redirect 参数只允许单斜杠开头的站内路径；新增本地 lucide 图标集合，避免 Nuxt Icon 本地模式缺失图标集合；Web server route 统一使用 `message` 创建 H3 错误，避免 `statusMessage` deprecation warning 刷屏。
 
 ## 验证结果
 
@@ -395,6 +441,12 @@
 - `pnpm typecheck`：通过，验证新增 `authBaseUrl` runtimeConfig、认证 fetch helper 和 Nuxt server auth routes 类型。
 - `pnpm lint`：通过。
 - `pnpm build`：通过，Nitro 产物包含 auth/session/login/refresh/logout 路由；保留 Nuxt/Tailwind/VueUse 上游 sourcemap 与 deprecation warning，当前不阻塞。
+- `pnpm test`：通过，7 个测试文件、27 个测试通过；覆盖 Web public session `actorType/subject`、all-in-one fixed local admin session、authenticated backend fetch、auth store 登录/登出和站内 redirect 归一化。
+- `pnpm typecheck`：通过，验证登录页、全局 route middleware、auth store、server auth helper 和 H3 错误 helper 类型。
+- `pnpm lint`：通过。
+- `pnpm build`：通过，登录背景图作为 Nuxt client asset 打包，产物包含约 7,056 kB 的 BMP 资源；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、单个约 521 kB chunk warning 和 Node DEP0155 deprecation warning，当前不阻塞。
+- 启动 Web dev server 检查：远程未登录访问 `http://127.0.0.1:3000/` 返回 `302 Location: /login?redirect=/`；`/login` SSR HTML 包含项目内背景图、登录文案、账号/密码输入和登录按钮。
+- 使用 Edge headless 截图检查 `1440x900` 与 `390x844` 视口：登录页背景图、磨砂玻璃登录框和表单控件均可见，移动端最终修复后无卡片/输入框右侧裁切。
 
 ## 剩余风险
 
@@ -403,9 +455,10 @@
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
 - 真实 Nacos 中 `hdx-gateway.yml` 如仍存在 `hdx.gateway.routes.auth-uri`，应在用户确认后删除或停用；repo 模板已移除该项，gateway 不再代理 `/api/auth/**`、OIDC discovery 或 JWK。
-- Web BFF 登录态已开始实现，但尚未接登录 dialog UI；当前只能通过 BFF API 使用。
+- Web 登录页和全局登录守卫已实现；当前仍未实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
 - `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。
 - 当前 Web session 数据保存在加密 cookie 中，适合首版最小登录态；如果后续需要服务端主动注销所有 Web session 或集中查看在线会话，需要另行设计 Redis/数据库 session store。
 - 尚未实现 App 登录页和 App token 安全存储。
 - 尚未确定本机身份与服务端用户身份的统一接口形状，不能开始改造 all-in-one 当前用户注入逻辑。
+- 登录背景图按用户要求保留原始 BMP，当前构建产物约 7 MB；如果后续 Web 首屏加载变慢，可单独确认是否转换为 WebP/AVIF 或增加响应式图片策略。

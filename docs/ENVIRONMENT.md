@@ -166,7 +166,9 @@ Nuxt SSR / 有 Nuxt server 时：
 - `NUXT_AUTH_SESSION_MAX_AGE_SECONDS`：可选覆盖项，Web session cookie 滑动有效期，默认 `604800` 秒。
 - `NUXT_AUTH_REFRESH_SKEW_SECONDS`：可选覆盖项，Web BFF 在 access token 距离过期多少秒内提前 refresh，默认 `60` 秒。
 
-Web 登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session。浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。Nuxt server 的业务 API 请求走 `HDX_BACKEND_BASE_URL` 指向 gateway，认证 API 请求走 `HDX_AUTH_BASE_URL` 指向 auth-service。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
+Web 不提供访客模式。远程服务模式下，登录态由 Nuxt server 保存到加密 `HttpOnly` cookie session；浏览器不能读取 access token 或 refresh token，只通过同源 BFF 接口访问 session、login、refresh 和 logout。Nuxt server 的业务 API 请求走 `HDX_BACKEND_BASE_URL` 指向 gateway，认证 API 请求走 `HDX_AUTH_BASE_URL` 指向 auth-service。后端 refresh token 仍是 7 天滑动不活跃窗口的事实源；BFF 触发 refresh 后会轮换后端 refresh token，并重写 Web session cookie。
+
+all-in-one 模式通过 `NUXT_BACKEND_LOCAL_TOKEN_HEADER` 和 `NUXT_BACKEND_LOCAL_TOKEN` 判断。该模式永远视为已登录，不展示登录页，不要求输入账号密码；Nuxt server 返回固定本机 public session：`actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=['ADMIN']`、`permissions=['*']`。运行模式不写入 auth session，仍由 runtime/config 边界表达。
 
 ## 本地使用
 

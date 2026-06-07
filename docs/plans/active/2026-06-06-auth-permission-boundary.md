@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证。
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证；第 5 小步统一当前身份接口已实现并完成自动化验证。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
 - 最后更新：2026-06-07
@@ -392,6 +392,39 @@
 - 不实现 JSONC 业务数据导入导出。
 - 不引入服务端集中 Web session store。
 
+## 第 5 小步：统一当前身份接口
+
+状态：已实现并完成自动化验证，等待提交收口。
+
+### 本小步目标
+
+- 后端业务层通过统一接口读取当前身份，不直接感知 JWT、Web session 或 all-in-one 本机 token。
+- 服务端模式从认证中心签发的 JWT claims 解析 `actorType`、`subject`、`displayName`、`roles` 和 `permissions`。
+- all-in-one 模式注入固定本机身份：`actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=['ADMIN']`、`permissions=['*']`。
+- 提供最小后端当前身份 REST 接口，便于 Web、Desktop 和后续排障统一确认业务后端看到的身份。
+
+### 计划
+
+- [x] 在 `backend-contract` 新增当前身份契约 DTO 和 actor 类型枚举。
+- [x] 在 `backend-core` 新增当前身份模型、provider 接口、REST 接口和未登录错误处理。
+- [x] 在 `backend-core-service` 新增 JWT 当前身份 provider，从 Spring Security `Jwt` claims 解析身份。
+- [x] 在 `backend-all-in-one` 的本机 token 认证成功后注入固定本机身份，并提供对应 provider。
+- [x] 补充后端单元测试，覆盖 JWT 身份解析、all-in-one 本机身份和 REST 投影。
+- [x] 更新后端 README、本计划和必要架构文档，记录接口形状、验证结果和剩余风险。
+
+### 验证计划
+
+- `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test`
+- `mvn test`
+- 视改动结果补充 `mvn -pl :backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`
+
+### 本小步不做
+
+- 不新增用户管理、角色权限管理、注册、找回密码、MFA、二维码登录或第三方 OAuth 登录。
+- 不实现细粒度权限注解或资源级授权规则；本轮只提供可被后续授权逻辑消费的当前身份。
+- 不改变 Web public session 已有形状，不把 access token 或 refresh token 暴露给浏览器。
+- 不让 `backend-core-service` 重复检查 Redis 撤销状态；撤销仍只由 gateway 在外部入口执行。
+
 ## 非目标
 
 - 本计划不把二维码登录、第三方 OAuth 登录、Passkey、MFA 或验证码提前实现。
@@ -400,7 +433,7 @@
 
 ## 下一步确认
 
-第 3 小步已完成。后续可单独确认统一当前身份接口、JSONC 业务数据导入导出，或 App/Desktop 登录边界；继续前仍按“小步确认、小步计划、小步实现”推进。
+第 5 小步统一当前身份接口已完成。后续可单独确认 JSONC 业务数据导入导出、App/Desktop 登录边界或自动化质量门禁；继续前仍按“小步确认、小步计划、小步实现”推进。
 
 ## 验证方式
 
@@ -408,6 +441,7 @@
 - 使用 `mvn -pl :backend-auth-service -am test` 验证账号密码登录服务逻辑。
 - 使用 `mvn test` 做后端全量回归。
 - 使用 `compile spring-boot:process-aot` 覆盖 auth-service/gateway 新增配置后的 AOT 入口。
+- 使用 `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test` 验证当前身份接口切片。
 - 使用 `git status --short --branch` 确认本轮变更范围。
 
 ## 状态记录
@@ -441,6 +475,8 @@
 - 2026-06-07：修复登录页移动端卡片裁切问题，收紧内部 redirect 参数只允许单斜杠开头的站内路径；新增本地 lucide 图标集合，避免 Nuxt Icon 本地模式缺失图标集合；Web server route 统一使用 `message` 创建 H3 错误，避免 `statusMessage` deprecation warning 刷屏。
 - 2026-06-07：真实登录链路联调发现并修复 gateway `lb://` 路由缺少 load-balancer 处理、Web 可选本机 token 空字符串导致 runtimeConfig 校验失败、Web runtime BFF 未注入 Bearer token、logout 返回旧 public session 投影四个缺口。修复后远程模式 Web 登录、业务请求、runtime 请求和登出链路已通过。
 - 2026-06-07：真实浏览器登录复现 `xxldm / xxldm` 直连 auth-service 与 Web BFF 命令行 session 流程均成功，但登录页提交失败；判断为页面复用 SSR 阶段 public session 中的 CSRF token，浏览器端未必持有对应 CSRF cookie。已改为登录前强制通过同源请求刷新当前浏览器 session/CSRF，并把 CSRF 失败提示从“账号或密码不正确”中拆分出来。
+- 2026-06-07：用户确认进入统一当前身份接口切片；新增 `GET /api/v1/auth/current` 后端接口，服务端模式从 JWT claims 投影 `USER:<id>` 身份，all-in-one 模式通过本机 token 认证注入固定 `LOCAL_ADMIN:local-admin` 身份。
+- 2026-06-07：本轮首次普通权限执行 `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test` 失败于当前 Codex shell 中 `mvn` 不在 `PATH`；改用 README 记录的 Maven 固定路径后，首次未显式设置 `JAVA_HOME` 失败于当前 shell 继承旧 Java、不支持 `release 25`；显式设置 GraalVM JDK 25 后普通权限又失败于 `target/maven-status` 写入，已按权限规则改走提权路径。
 
 ## 验证结果
 
@@ -495,6 +531,9 @@
 - 真实 Web BFF 联调：`GET /api/hdx/v1/auth/session` 未登录返回匿名 session 和 CSRF token；未登录访问 `/api/hdx/v1/tools` 返回 `401`；`POST /api/hdx/v1/auth/login` 登录成功且 public session 不泄露 access token；登录后 `/api/hdx/v1/tools` 与 `/api/hdx/v1/runtime` 通过；`POST /api/hdx/v1/auth/logout` 返回匿名 session，登出后 `/api/hdx/v1/tools` 返回 `401`。
 - `pnpm test`：通过，7 个测试文件、29 个测试通过；新增覆盖登录时强制重新加载同源 session/CSRF，且 CSRF 失败提示使用独立文案。
 - 真实内置浏览器联调：访问 `http://127.0.0.1:3000/login?redirect=/`，使用 `.env.local` 初始化管理员 `xxldm / xxldm` 登录成功并跳转 `/`，页面显示用户 `乡下来的喵`、runtime `hdx-core-service` 和 tools 空列表。
+- `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test`：通过，覆盖 `CurrentActorControllerTest`、`JwtCurrentActorProviderTest` 和 `LocalCurrentActorProviderTest`；验证 core 当前身份 REST 投影、JWT claims 解析和 all-in-one 本机身份注入。保留 H2 2.4.240 高于 Flyway 已验证版本提示、Maven/Jansi Java 25 native access warning、Mockito/Byte Buddy 动态 agent warning，当前不阻塞。
+- `mvn test`：通过，覆盖后端 7 个 Maven 模块、31 个测试；确认当前身份接口改动未破坏 auth-service、gateway 和既有 core/all-in-one 测试。
+- `mvn -pl :backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 core-service JWT 身份 provider 与 all-in-one 本机身份 provider 的 Spring AOT 入口。
 
 ## 剩余风险
 

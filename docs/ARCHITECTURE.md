@@ -90,6 +90,13 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 - 服务端微服务部署：`backend-auth-service` 和 `backend-gateway` 是同级外部入口。`backend-auth-service` 使用 Spring Security Authorization Server 签发 token，暴露登录、刷新、登出、OIDC discovery 和 JWK；`backend-gateway` 对外开放业务 REST API，只转发到 `backend-core-service`，并作为外部资源访问的统一入口校验 JWT，通过 Redis 检查 `sid` 是否已撤销；`backend-core-service` 不作为外部 API 入口暴露；服务端使用 Nacos Discovery、Nacos Config、Sentinel、OpenFeign、PostgreSQL 和 Redis。
 - desktop all-in-one：`backend-all-in-one` 复用 `backend-core`，绑定 `127.0.0.1`，使用 H2，并通过随机本机令牌保护 HTTP 请求。
 
+身份边界：
+
+- 业务核心通过统一当前身份抽象读取请求身份，不直接读取 JWT、Web session 或 all-in-one 本机 token。
+- `backend-core` 暴露 `GET /api/v1/auth/current`，返回 `actorType`、`subject`、`displayName`、`roles` 和 `permissions`。
+- 服务端模式由 `backend-core-service` 从认证中心签发的 JWT claims 投影当前身份；all-in-one 模式由本机 token 过滤器注入固定 `LOCAL_ADMIN:local-admin` 身份。
+- `displayName` 只用于回显，不作为日志、审计、权限判断或业务规则依据。
+
 后端配置规则：
 
 - Spring Cloud Alibaba 2025.1.x 不使用 bootstrap 配置，Nacos 配置通过 `spring.config.import` 接入。

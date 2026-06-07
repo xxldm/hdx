@@ -45,3 +45,11 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-typ
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check
 ```
+
+## Web 类型对齐
+
+`web-type-compatibility.ts` 是只读编译期检查文件，用于确认 Web Zod schema 推导出的类型和 OpenAPI 生成类型仍兼容。它不生成运行时代码，不替代 Web Zod 边界校验。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-web-type-check.ps1
+```

@@ -24,7 +24,7 @@ export interface RuntimeInfoResponse {
 
 export interface ToolRecordResponse {
   createdAt: string;
-  description: string;
+  description?: string | null;
   displayName: string;
   enabled: boolean;
   id: number;

@@ -166,6 +166,68 @@ function Assert-StringPropertyEquals {
     }
 }
 
+function Get-SchemaTypeNames {
+    param([Parameter(Mandatory = $true)]$Schema)
+
+    $typesValue = Get-JsonPropertyValue -Object $Schema -Name 'types'
+    if ($null -ne $typesValue) {
+        return @($typesValue | Where-Object { $_ -is [string] })
+    }
+
+    $typeValue = Get-JsonPropertyValue -Object $Schema -Name 'type'
+    if ($null -eq $typeValue) {
+        return @()
+    }
+
+    return @($typeValue | Where-Object { $_ -is [string] })
+}
+
+function Test-SchemaNullable {
+    param([Parameter(Mandatory = $true)]$Schema)
+
+    $nullable = Get-JsonPropertyValue -Object $Schema -Name 'nullable'
+    if ($nullable -is [bool] -and $nullable) {
+        return $true
+    }
+
+    foreach ($typeName in Get-SchemaTypeNames -Schema $Schema) {
+        if ($typeName -eq 'null') {
+            return $true
+        }
+    }
+
+    return $false
+}
+
+function Assert-TypePropertyMatches {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected
+    )
+
+    if (-not (Test-JsonPropertyExists -Object $Expected -Name 'type')) {
+        return
+    }
+
+    $expectedTypes = @(Get-SchemaTypeNames -Schema $Expected | Where-Object { $_ -ne 'null' })
+    $actualTypes = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($typeName in Get-SchemaTypeNames -Schema $Actual) {
+        [void]$actualTypes.Add($typeName)
+    }
+
+    foreach ($typeName in $expectedTypes) {
+        if (-not $actualTypes.Contains($typeName)) {
+            throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u5b57\u6bb5\u4e0d\u5339\u914d\uff1a')$Context type=$(U '\u671f\u671b')$typeName$(U '\uff0c\u5b9e\u9645')$($actualTypes -join ' ')"
+        }
+    }
+
+    $expectedNullable = Test-SchemaNullable -Schema $Expected
+    if ($expectedNullable -and -not (Test-SchemaNullable -Schema $Actual)) {
+        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u7f3a\u5c11\u53ef\u7a7a\u6807\u8bb0\uff1a')$Context"
+    }
+}
+
 function Assert-NumberPropertyEquals {
     param(
         [Parameter(Mandatory = $true)][string]$Context,
@@ -182,6 +244,25 @@ function Assert-NumberPropertyEquals {
     $actualValue = Get-JsonPropertyValue -Object $Actual -Name $Name
     if ([int]$actualValue -ne [int]$expectedValue) {
         throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u6570\u503c\u4e0d\u5339\u914d\uff1a')$Context $Name=$(U '\u671f\u671b')$expectedValue$(U '\uff0c\u5b9e\u9645')$actualValue"
+    }
+}
+
+function Assert-BooleanPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    if (-not (Test-JsonPropertyExists -Object $Expected -Name $Name)) {
+        return
+    }
+
+    $expectedValue = Get-JsonPropertyValue -Object $Expected -Name $Name
+    $actualValue = Get-JsonPropertyValue -Object $Actual -Name $Name
+    if ([bool]$actualValue -ne [bool]$expectedValue) {
+        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u5e03\u5c14\u503c\u4e0d\u5339\u914d\uff1a')$Context $Name=$(U '\u671f\u671b')$expectedValue$(U '\uff0c\u5b9e\u9645')$actualValue"
     }
 }
 
@@ -218,10 +299,13 @@ function Assert-PropertyMatches {
         [Parameter(Mandatory = $true)]$Expected
     )
 
-    Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'type'
+    Assert-TypePropertyMatches -Context $Context -Actual $Actual -Expected $Expected
     Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'format'
     Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name '$ref'
     Assert-NumberPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'maxLength'
+    if ((Test-JsonPropertyExists -Object $Expected -Name 'nullable') -and -not (Test-SchemaNullable -Schema $Expected)) {
+        Assert-BooleanPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'nullable'
+    }
     Assert-EnumContainsExpected -Context $Context -Actual $Actual -Expected $Expected
 
     $expectedItems = Get-JsonPropertyValue -Object $Expected -Name 'items'

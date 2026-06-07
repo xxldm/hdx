@@ -207,6 +207,18 @@ function Invoke-DocChecks {
             (Join-Path $RepoRoot 'scripts/openapi-generate-types.ps1'),
             '-Check'
         )
+
+    Invoke-Step `
+        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u4e0e\u0020Web\u0020\u7c7b\u578b\u5bf9\u9f50\u68c0\u67e5') `
+        -WorkingDirectory $RepoRoot `
+        -Command 'powershell' `
+        -Arguments @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/openapi-web-type-check.ps1')
+        )
 }
 
 function Invoke-BackendChecks {

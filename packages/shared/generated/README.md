@@ -29,4 +29,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-typ
 
 - 当前脚本只覆盖 `components.schemas`，不生成 paths、operation、request client 或 runtime validator。
 - 当前脚本是无外部依赖的 PowerShell 原型，不代表最终生成器选型。
-- Web 尚未正式引用这些生成类型；Zod 仍是运行时边界校验事实源。
+- Web 运行时代码尚未正式引用这些生成类型；当前只通过 `packages/shared/contracts/openapi/web-type-compatibility.ts` 做编译期兼容性验证。
+- Zod 仍是 Web 运行时边界校验事实源。

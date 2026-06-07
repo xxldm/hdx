@@ -16,19 +16,19 @@ export interface AuthRefreshRequest {
 }
 
 export interface AuthTokenResponse {
-  accessToken?: string;
-  accessTokenExpiresAt?: string;
-  permissions?: string[];
-  refreshToken?: string;
-  refreshTokenExpiresAt?: string;
-  roles?: string[];
-  sid?: string;
-  tokenType?: string;
-  user?: AuthUserResponse;
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  permissions: string[];
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+  roles: string[];
+  sid: string;
+  tokenType: "Bearer";
+  user: AuthUserResponse;
 }
 
 export interface AuthUserResponse {
-  displayName?: string;
-  id?: number;
+  displayName: string;
+  id: number;
 }
 

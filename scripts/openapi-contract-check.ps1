@@ -1,5 +1,6 @@
 param(
     [string]$ExpectedPathsPath = '',
+    [string]$ExpectedSchemasPath = '',
     [string]$AuthSpecPath = '',
     [string]$GatewaySpecPath = '',
     [string]$AuthGeneratedSpecPath = '',
@@ -19,6 +20,10 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 if ([string]::IsNullOrWhiteSpace($ExpectedPathsPath)) {
     $ExpectedPathsPath = Join-Path $RepoRoot 'packages/shared/contracts/openapi/expected-paths.json'
+}
+
+if ([string]::IsNullOrWhiteSpace($ExpectedSchemasPath)) {
+    $ExpectedSchemasPath = Join-Path $RepoRoot 'packages/shared/contracts/openapi/expected-schemas.json'
 }
 
 if ([string]::IsNullOrWhiteSpace($SnapshotsDir)) {
@@ -66,6 +71,15 @@ function Get-JsonPropertyValue {
     return $property.Value
 }
 
+function Test-JsonPropertyExists {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    return $null -ne $Object.PSObject.Properties[$Name]
+}
+
 function Assert-ExpectedPaths {
     param([Parameter(Mandatory = $true)]$Expected)
 
@@ -111,6 +125,167 @@ function Assert-SpecContainsExpectedPaths {
     }
 }
 
+function Assert-RequiredContainsExpected {
+    param(
+        [Parameter(Mandatory = $true)][string]$ServiceName,
+        [Parameter(Mandatory = $true)][string]$SchemaName,
+        [Parameter(Mandatory = $true)]$ActualSchema,
+        [Parameter(Mandatory = $true)][string[]]$ExpectedRequired
+    )
+
+    $actualRequired = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($name in @($ActualSchema.required)) {
+        if ($name -is [string]) {
+            [void]$actualRequired.Add($name)
+        }
+    }
+
+    foreach ($name in $ExpectedRequired) {
+        if (-not $actualRequired.Contains($name)) {
+            throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')$ServiceName $SchemaName.$name"
+        }
+    }
+}
+
+function Assert-StringPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $expectedValue = Get-JsonPropertyValue -Object $Expected -Name $Name
+    if ($null -eq $expectedValue) {
+        return
+    }
+
+    $actualValue = Get-JsonPropertyValue -Object $Actual -Name $Name
+    if ([string]$actualValue -ne [string]$expectedValue) {
+        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u5b57\u6bb5\u4e0d\u5339\u914d\uff1a')$Context $Name=$(U '\u671f\u671b')$expectedValue$(U '\uff0c\u5b9e\u9645')$actualValue"
+    }
+}
+
+function Assert-NumberPropertyEquals {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected,
+        [Parameter(Mandatory = $true)][string]$Name
+    )
+
+    $expectedValue = Get-JsonPropertyValue -Object $Expected -Name $Name
+    if ($null -eq $expectedValue) {
+        return
+    }
+
+    $actualValue = Get-JsonPropertyValue -Object $Actual -Name $Name
+    if ([int]$actualValue -ne [int]$expectedValue) {
+        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u6570\u503c\u4e0d\u5339\u914d\uff1a')$Context $Name=$(U '\u671f\u671b')$expectedValue$(U '\uff0c\u5b9e\u9645')$actualValue"
+    }
+}
+
+function Assert-EnumContainsExpected {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected
+    )
+
+    if (-not (Test-JsonPropertyExists -Object $Expected -Name 'enum')) {
+        return
+    }
+
+    $expectedEnum = @(Get-JsonPropertyValue -Object $Expected -Name 'enum')
+    $actualEnum = [System.Collections.Generic.HashSet[string]]::new()
+    foreach ($item in @($Actual.enum)) {
+        if ($item -is [string]) {
+            [void]$actualEnum.Add($item)
+        }
+    }
+
+    foreach ($item in $expectedEnum) {
+        if (-not $actualEnum.Contains($item)) {
+            throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020enum\u0020\u7f3a\u5c11\u503c\uff1a')$Context $item"
+        }
+    }
+}
+
+function Assert-PropertyMatches {
+    param(
+        [Parameter(Mandatory = $true)][string]$Context,
+        [Parameter(Mandatory = $true)]$Actual,
+        [Parameter(Mandatory = $true)]$Expected
+    )
+
+    Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'type'
+    Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'format'
+    Assert-StringPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name '$ref'
+    Assert-NumberPropertyEquals -Context $Context -Actual $Actual -Expected $Expected -Name 'maxLength'
+    Assert-EnumContainsExpected -Context $Context -Actual $Actual -Expected $Expected
+
+    $expectedItems = Get-JsonPropertyValue -Object $Expected -Name 'items'
+    if ($null -ne $expectedItems) {
+        $actualItems = Get-JsonPropertyValue -Object $Actual -Name 'items'
+        if ($null -eq $actualItems) {
+            throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u5b57\u6bb5\u7f3a\u5c11\u0020items\uff1a')$Context"
+        }
+        Assert-PropertyMatches -Context "$Context.items" -Actual $actualItems -Expected $expectedItems
+    }
+}
+
+function Assert-SpecContainsExpectedSchemas {
+    param(
+        [Parameter(Mandatory = $true)][string]$ServiceName,
+        [Parameter(Mandatory = $true)][string]$SpecPath,
+        [Parameter(Mandatory = $true)]$ExpectedSchemas
+    )
+
+    $spec = Read-JsonFile -Path $SpecPath
+    if ($null -eq $spec.components -or $null -eq $spec.components.schemas) {
+        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u6587\u6863\u7f3a\u5c11\u0020components.schemas\uff1a')$ServiceName $SpecPath"
+    }
+
+    foreach ($schemaName in Get-JsonPropertyNames -Object $ExpectedSchemas) {
+        $expectedSchema = Get-JsonPropertyValue -Object $ExpectedSchemas -Name $schemaName
+        $actualSchema = Get-JsonPropertyValue -Object $spec.components.schemas -Name $schemaName
+        if ($null -eq $actualSchema) {
+            throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u6587\u6863\u7f3a\u5c11\u0020schema\uff1a')$ServiceName $schemaName"
+        }
+
+        $expectedRequired = @()
+        if (Test-JsonPropertyExists -Object $expectedSchema -Name 'required') {
+            $expectedRequired = @(Get-JsonPropertyValue -Object $expectedSchema -Name 'required' | Where-Object { $_ -is [string] -and -not [string]::IsNullOrWhiteSpace($_) })
+        }
+        if ($expectedRequired.Count -gt 0) {
+            Assert-RequiredContainsExpected `
+                -ServiceName $ServiceName `
+                -SchemaName $schemaName `
+                -ActualSchema $actualSchema `
+                -ExpectedRequired $expectedRequired
+        }
+
+        $expectedProperties = Get-JsonPropertyValue -Object $expectedSchema -Name 'properties'
+        if ($null -eq $expectedProperties) {
+            continue
+        }
+
+        foreach ($propertyName in Get-JsonPropertyNames -Object $expectedProperties) {
+            $expectedProperty = Get-JsonPropertyValue -Object $expectedProperties -Name $propertyName
+            $actualProperties = Get-JsonPropertyValue -Object $actualSchema -Name 'properties'
+            $actualProperty = if ($null -eq $actualProperties) { $null } else { Get-JsonPropertyValue -Object $actualProperties -Name $propertyName }
+            if ($null -eq $actualProperty) {
+                throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020schema\u0020\u7f3a\u5c11\u5b57\u6bb5\uff1a')$ServiceName $schemaName.$propertyName"
+            }
+
+            Assert-PropertyMatches `
+                -Context "$ServiceName $schemaName.$propertyName" `
+                -Actual $actualProperty `
+                -Expected $expectedProperty
+        }
+    }
+}
+
 function Assert-TextFilesMatch {
     param(
         [Parameter(Mandatory = $true)][string]$ServiceName,
@@ -131,10 +306,12 @@ function Assert-TextFilesMatch {
 
 Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u5951\u7ea6\u68c0\u67e5')
 Write-Host "$(U '\u671f\u671b\u8def\u5f84\uff1a')$ExpectedPathsPath"
+Write-Host "$(U '\u671f\u671b\u0020schema\uff1a')$ExpectedSchemasPath"
 Write-Host "$(U '\u5feb\u7167\u76ee\u5f55\uff1a')$SnapshotsDir"
 
 $expected = Read-JsonFile -Path $ExpectedPathsPath
 Assert-ExpectedPaths -Expected $expected
+$expectedSchemasByService = Read-JsonFile -Path $ExpectedSchemasPath
 
 $specInputs = @{
     'auth-service' = @{
@@ -167,6 +344,15 @@ foreach ($serviceName in Get-JsonPropertyNames -Object $expected) {
         -SpecPath $specPath `
         -ExpectedPaths $expectedPaths
     Write-Host "$(U '\u901a\u8fc7\u0020spec\u0020\u8def\u5f84\u6821\u9a8c\uff1a')$serviceName"
+
+    $expectedSchemas = Get-JsonPropertyValue -Object $expectedSchemasByService -Name $serviceName
+    if ($null -ne $expectedSchemas) {
+        Assert-SpecContainsExpectedSchemas `
+            -ServiceName $serviceName `
+            -SpecPath $specPath `
+            -ExpectedSchemas $expectedSchemas
+        Write-Host "$(U '\u901a\u8fc7\u0020schema\u0020\u5b57\u6bb5\u6821\u9a8c\uff1a')$serviceName"
+    }
 
     $generatedSpecPath = $specInputs[$serviceName]['Generated']
     if (-not [string]::IsNullOrWhiteSpace($generatedSpecPath)) {

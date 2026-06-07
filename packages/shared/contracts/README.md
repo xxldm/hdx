@@ -6,4 +6,4 @@
 
 ## 子目录
 
-- `openapi/`：OpenAPI 契约检查输入，当前记录 Web/BFF 已依赖的后端公开路径清单。
+- `openapi/`：OpenAPI 契约检查输入，当前记录 Web/BFF 已依赖的后端公开路径、关键 schema 字段清单和外部入口 spec 快照。

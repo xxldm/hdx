@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试，下一步确认生成 TypeScript 类型和 `packages/shared` 首批目录结构。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架，下一步确认生成 TypeScript 类型策略。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -68,6 +68,7 @@
 - [x] 确认本轮生成范围：暂不引入 TypeScript 生成器，不生成浏览器直连后端 client，先补齐 auth-service OpenAPI。
 - [x] 确认生成工具和包管理边界：本轮不引入生成器、不创建根 pnpm workspace；后续如新增生成器需补充 ADR 或更新本 ADR。
 - [x] 确认 `packages/shared` 首批职责边界：仅放端无关、运行时无关的稳定协议资产，禁止放端侧状态、UI、HTTP token/session 和后端内部模型。
+- [x] 建立 `packages/shared` 轻量目录骨架：`contracts/`、`constants/`、`generated/` 和 `tools/`，只放 README 占位，不引入包管理器或运行时代码。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
@@ -113,6 +114,7 @@
 - 2026-06-07：用户确认进入第 5 步；已创建本地计划并完成现状调研，等待确认 OpenAPI 生成策略与 shared 首批职责。
 - 2026-06-07：新增 ADR 0006，确认 OpenAPI 按外部入口拆分；本轮暂不引入 TypeScript 生成器或根 pnpm workspace。
 - 2026-06-07：`backend-auth-service` 补齐 springdoc OpenAPI 暴露，并新增测试验证 `/v3/api-docs` 包含登录、刷新和登出接口。
+- 2026-06-07：`packages/shared` 建立轻量骨架，明确 `contracts/`、`constants/`、`generated/` 和 `tools/` 的候选职责与禁止内容；当前仍不创建可安装包。
 
 ## 验证结果
 
@@ -125,12 +127,13 @@
 - `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 auth-service 增加 springdoc 后的 Spring AOT 入口。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证根仓库关键文档 UTF-8 读取和空白检查。
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块、32 个测试，确认 auth-service OpenAPI 依赖未破坏 core、gateway 和 all-in-one 既有测试。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证 `packages/shared` 轻量骨架、架构文档和本计划更新后的 UTF-8 读取与空白检查。
 
 ## 剩余风险
 
 - 尚未确认是否引入 OpenAPI 生成器，因此不能开始修改 Web 契约来源。
 - 当前已确认本轮不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具、生成物提交策略和漂移检查。
-- 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认最小目录结构和第一批协议资产。
+- 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
 - auth-service 已补 OpenAPI 与 Spring AOT 验证，但本轮未运行完整 native-image 编译和真实 service profile OpenAPI 端点手工访问。
 

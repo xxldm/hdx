@@ -52,9 +52,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check
 ```
 
+Web 与生成类型的只读对齐验证：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-web-type-check.ps1
+```
+
 后续真正引入生成器时，必须新增至少以下验证：
 
-- Web 类型检查，确认 Web 消费生成类型不会绕过 BFF 或取消 Zod 边界校验。
 - 如生成器引入新依赖，补充对应包管理、锁文件和安装复现说明。
 
 ## 回滚条件

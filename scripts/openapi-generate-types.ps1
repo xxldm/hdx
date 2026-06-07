@@ -112,6 +112,11 @@ function Get-SchemaNameFromRef {
 function Get-SchemaTypeNames {
     param([Parameter(Mandatory = $true)]$Schema)
 
+    $typesValue = Get-JsonPropertyValue -Object $Schema -Name 'types'
+    if ($null -ne $typesValue) {
+        return @($typesValue | Where-Object { $_ -is [string] })
+    }
+
     $typeValue = Get-JsonPropertyValue -Object $Schema -Name 'type'
     if ($null -eq $typeValue) {
         return @()

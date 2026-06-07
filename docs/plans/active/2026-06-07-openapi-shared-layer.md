@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已确认当前暂不生成 TypeScript 类型，下一步优先设计 OpenAPI spec 快照与漂移检查。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已确认当前暂不生成 TypeScript 类型；已新增 OpenAPI 路径级契约检查入口，下一步补真实 spec 快照或抓取流程。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -71,6 +71,7 @@
 - [x] 确认 `packages/shared` 首批职责边界：仅放端无关、运行时无关的稳定协议资产，禁止放端侧状态、UI、HTTP token/session 和后端内部模型。
 - [x] 建立 `packages/shared` 轻量目录骨架：`contracts/`、`constants/`、`generated/` 和 `tools/`，只放 README 占位，不引入包管理器或运行时代码。
 - [x] 确认 TypeScript 生成策略：当前暂不生成类型或 client，下一步先做 OpenAPI spec 快照与漂移检查，等契约面扩大后再评估生成器。
+- [x] 建立 OpenAPI 路径级契约检查入口：新增 `packages/shared/contracts/openapi/expected-paths.json` 和 `scripts/openapi-contract-check.ps1`。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
@@ -91,6 +92,7 @@
 - `packages/shared` 当前不升级为根 workspace 包；先保留轻量边界，只在后续确认首批协议资产后实施。
 - 本轮不生成产物；后续如选择提交生成产物，必须有可复现命令和漂移检查。
 - 当前不直接引入 TypeScript 类型生成器。下一步先捕获 auth-service 与 gateway/core 外部入口 OpenAPI spec 快照，建立手写 Zod schema 与 OpenAPI schema 的漂移检查入口。
+- 已先建立路径级契约检查入口。当前无真实 spec 快照时只校验期望路径清单格式；提供 spec 文件后会校验 `paths` 中包含 Web/BFF 已依赖路径。
 
 ## 验收标准
 
@@ -120,6 +122,7 @@
 - 2026-06-07：`backend-auth-service` 补齐 springdoc OpenAPI 暴露，并新增测试验证 `/v3/api-docs` 包含登录、刷新和登出接口。
 - 2026-06-07：`packages/shared` 建立轻量骨架，明确 `contracts/`、`constants/`、`generated/` 和 `tools/` 的候选职责与禁止内容；当前仍不创建可安装包。
 - 2026-06-07：调研 Web 手写契约面，确认当前 runtime、tools、auth token/session 的 schema 数量仍小；本阶段不引入 TypeScript 生成器，下一步优先设计 OpenAPI spec 快照与漂移检查。
+- 2026-06-07：新增 `scripts/openapi-contract-check.ps1` 与 `packages/shared/contracts/openapi/expected-paths.json`，先做无依赖路径级契约检查；真实 spec 快照和 schema 级漂移检查后续补齐。
 
 ## 验证结果
 
@@ -134,11 +137,13 @@
 - `mvn test`：通过，覆盖后端 7 个 Maven 模块、32 个测试，确认 auth-service OpenAPI 依赖未破坏 core、gateway 和 all-in-one 既有测试。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证 `packages/shared` 轻量骨架、架构文档和本计划更新后的 UTF-8 读取与空白检查。
 - 已使用 `rg` 和 `Get-Content` 调研 Web BFF 路由、Web Zod schema、后端 controller/DTO 与 `apps/web/package.json`；确认当前不需要新增生成器依赖即可继续推进契约漂移检查设计。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1`：通过，校验 OpenAPI 期望路径清单 JSON 格式、路径前缀和重复路径。
 
 ## 剩余风险
 
 - 当前已确认暂不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具和生成物提交策略。
 - 尚未建立 OpenAPI spec 快照、漂移检查脚本或 CI 入口；Web 手写 Zod schema 与后端 OpenAPI 仍需要人工同步。
+- 尚未建立真实 OpenAPI spec 快照、自动抓取流程、schema 级漂移检查或 CI 入口；当前脚本只是路径级最小检查。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
 - 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。

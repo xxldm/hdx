@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已确认当前暂不生成 TypeScript 类型；已新增 OpenAPI 路径级契约检查入口，下一步补真实 spec 快照或抓取流程。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试；`packages/shared` 已建立轻量目录骨架；已确认当前暂不生成 TypeScript 类型；已建立 OpenAPI 快照刷新入口和路径级漂移检查，下一步补 schema 级漂移检查或生成器评估。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -72,6 +72,7 @@
 - [x] 建立 `packages/shared` 轻量目录骨架：`contracts/`、`constants/`、`generated/` 和 `tools/`，只放 README 占位，不引入包管理器或运行时代码。
 - [x] 确认 TypeScript 生成策略：当前暂不生成类型或 client，下一步先做 OpenAPI spec 快照与漂移检查，等契约面扩大后再评估生成器。
 - [x] 建立 OpenAPI 路径级契约检查入口：新增 `packages/shared/contracts/openapi/expected-paths.json` 和 `scripts/openapi-contract-check.ps1`。
+- [x] 建立 OpenAPI spec 快照刷新与默认检查闭环：后端 OpenAPI 测试输出 `target/openapi/*.json`，根仓库 `scripts/openapi-refresh-snapshots.ps1` 刷新 `packages/shared/contracts/openapi/snapshots/`，质量门禁默认运行路径级契约检查。
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
@@ -93,6 +94,7 @@
 - 本轮不生成产物；后续如选择提交生成产物，必须有可复现命令和漂移检查。
 - 当前不直接引入 TypeScript 类型生成器。下一步先捕获 auth-service 与 gateway/core 外部入口 OpenAPI spec 快照，建立手写 Zod schema 与 OpenAPI schema 的漂移检查入口。
 - 已先建立路径级契约检查入口。当前无真实 spec 快照时只校验期望路径清单格式；提供 spec 文件后会校验 `paths` 中包含 Web/BFF 已依赖路径。
+- 已提交 auth-service 与 gateway 外部入口 OpenAPI 快照；当前检查仍为路径级，不替代 Web Zod 运行时校验或 schema 级漂移检查。
 
 ## 验收标准
 
@@ -123,6 +125,7 @@
 - 2026-06-07：`packages/shared` 建立轻量骨架，明确 `contracts/`、`constants/`、`generated/` 和 `tools/` 的候选职责与禁止内容；当前仍不创建可安装包。
 - 2026-06-07：调研 Web 手写契约面，确认当前 runtime、tools、auth token/session 的 schema 数量仍小；本阶段不引入 TypeScript 生成器，下一步优先设计 OpenAPI spec 快照与漂移检查。
 - 2026-06-07：新增 `scripts/openapi-contract-check.ps1` 与 `packages/shared/contracts/openapi/expected-paths.json`，先做无依赖路径级契约检查；真实 spec 快照和 schema 级漂移检查后续补齐。
+- 2026-06-07：`backend-gateway` 补充外部业务路径 OpenAPI customizer；auth-service 和 gateway OpenAPI 测试均输出 `target/openapi/*.json`，根仓库新增快照刷新脚本与 `packages/shared/contracts/openapi/snapshots/`，质量门禁默认运行 OpenAPI 路径级漂移检查。
 
 ## 验证结果
 
@@ -138,12 +141,15 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证 `packages/shared` 轻量骨架、架构文档和本计划更新后的 UTF-8 读取与空白检查。
 - 已使用 `rg` 和 `Get-Content` 调研 Web BFF 路由、Web Zod schema、后端 controller/DTO 与 `apps/web/package.json`；确认当前不需要新增生成器依赖即可继续推进契约漂移检查设计。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1`：通过，校验 OpenAPI 期望路径清单 JSON 格式、路径前缀和重复路径。
+- `mvn -pl :backend-auth-service,:backend-gateway -am test`：通过，覆盖 auth-service 14 个测试和 gateway 8 个测试；新增验证 auth-service 与 gateway `/v3/api-docs` 包含当前 Web/BFF 已依赖的外部路径，并生成 `target/openapi/*.json`。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-refresh-snapshots.ps1`：通过，从后端测试产物刷新 `packages/shared/contracts/openapi/snapshots/`。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1`：通过，默认读取 shared 快照并校验 auth-service 与 gateway 期望路径。
 
 ## 剩余风险
 
 - 当前已确认暂不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具和生成物提交策略。
-- 尚未建立 OpenAPI spec 快照、漂移检查脚本或 CI 入口；Web 手写 Zod schema 与后端 OpenAPI 仍需要人工同步。
-- 尚未建立真实 OpenAPI spec 快照、自动抓取流程、schema 级漂移检查或 CI 入口；当前脚本只是路径级最小检查。
+- 已建立 OpenAPI spec 快照与路径级漂移检查脚本，但尚未接入远端 CI；Web 手写 Zod schema 与后端 OpenAPI schema 仍需要人工同步。
+- 尚未建立 schema 级漂移检查、TypeScript 生成器评估或自动启动服务抓取流程；当前快照来源是后端测试输出。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
 - 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。

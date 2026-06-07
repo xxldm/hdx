@@ -51,7 +51,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 - 如果未创建本地计划，是否符合 `docs/plans/README.md` 的豁免条件，且最终回复是否说明变更范围、验证结果和剩余风险。
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。
 - 是否已运行与变更范围相称的 `scripts/quality-gate.ps1` 范围；如未运行，是否说明替代验证和剩余风险。
-- 如果改动 OpenAPI、后端公开路径、Web BFF 契约或 `packages/shared/contracts/openapi/expected-paths.json`，是否已运行 `scripts/openapi-contract-check.ps1`，或说明尚未具备 spec 快照的剩余风险。
+- 如果改动 OpenAPI、后端公开路径、Web BFF 契约、`packages/shared/contracts/openapi/expected-paths.json` 或 OpenAPI 快照，是否已运行 `scripts/openapi-contract-check.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-refresh-snapshots.ps1` 并提交快照。
 
 ## 测试策略
 

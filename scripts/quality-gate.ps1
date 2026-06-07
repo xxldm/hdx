@@ -182,6 +182,18 @@ function Invoke-DocChecks {
         -WorkingDirectory $RepoRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
+
+    Invoke-Step `
+        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u5951\u7ea6\u68c0\u67e5') `
+        -WorkingDirectory $RepoRoot `
+        -Command 'powershell' `
+        -Arguments @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/openapi-contract-check.ps1')
+        )
 }
 
 function Invoke-BackendChecks {

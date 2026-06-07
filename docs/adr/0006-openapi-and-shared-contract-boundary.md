@@ -45,6 +45,10 @@ HDX 后端已经形成 `backend-auth-service`、`backend-gateway`、`backend-cor
 - 文档验证：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
 - 后续如果引入生成器，需要新增生成命令、漂移检查和 Web 契约测试。
 
+## 后续补充
+
+- 2026-06-07：`backend-gateway` 通过 OpenAPI customizer 显式声明当前对外代理的 `/api/v1/auth/current`、`/api/v1/runtime` 和 `/api/v1/tools` 业务路径；根仓库提交 `packages/shared/contracts/openapi/snapshots/` 作为外部入口 spec 快照，并通过 `scripts/openapi-contract-check.ps1` 做路径级漂移检查。
+
 ## 回滚条件
 
 - springdoc 在 `backend-auth-service` 中导致无法接受的启动、AOT 或 native-image 问题，且无法通过 Spring AOT、RuntimeHints 或最小配置修复。

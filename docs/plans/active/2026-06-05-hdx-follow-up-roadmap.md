@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 5 步 OpenAPI 与 shared 层已开始，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`。
+- 当前状态：第 5 步 OpenAPI 与 shared 层已开始；已确认下一阶段只评估 OpenAPI TypeScript 类型生成，不生成完整 API client，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-07
@@ -113,7 +113,7 @@
 - 第 2 步已完成：`services/backend` 已新增 Flyway ADR、`V1__create_tool_definition.sql`、运行时 `ddl-auto: validate` 配置、测试 Flyway 集成和 README 说明。
 - 用户临时要求先推进环境配置与 Nacos 分层；该切片已完成，详细记录见 `docs/plans/completed/2026-06-05-environment-nacos-config-layering.md`。这不表示第 9 步“部署、发布与环境管理”已经完整完成。
 - 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
-- 第 5 步 OpenAPI 与 shared 层已开始，当前先确认契约事实源、生成范围和 shared 首批职责。
+- 第 5 步 OpenAPI 与 shared 层已开始，已确认契约事实源、生成范围和 shared 首批职责；下一阶段只评估 OpenAPI TypeScript 类型生成工具和漂移检查，不生成完整 API client。
 
 ## 验收标准
 
@@ -143,6 +143,7 @@
 - 2026-06-07：用户确认进入第 4 步自动化质量门禁；创建本地计划，范围为最小 PowerShell 本地脚本、质量文档和入口说明。
 - 2026-06-07：完成第 4 步自动化质量门禁最小本地脚本入口：新增 `scripts/quality-gate.ps1`，更新 `docs/QUALITY.md` 和根 README，并将本地计划移动到 `docs/plans/completed/`。
 - 2026-06-07：用户确认进入第 5 步 OpenAPI 与 shared 层；创建本地计划，当前先确认契约事实源、生成范围和 shared 首批职责。
+- 2026-06-07：第 5 步新增 ADR 0007，确认 OpenAPI TypeScript 类型生成策略为第一阶段只生成类型，不生成完整 API client，不升级根 pnpm workspace。
 
 ## 验证结果
 
@@ -157,7 +158,7 @@
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
-- 第 5 步 OpenAPI 与 shared 层刚开始，尚未确认是否引入 OpenAPI 生成器、生成物提交策略或 `packages/shared` 包结构。
+- 第 5 步 OpenAPI 与 shared 层已确认只评估 TypeScript 类型生成；尚未选择具体生成器、生成脚本、生成物提交策略或 `packages/shared` 可安装包结构。
 
 ## 相关 commit
 

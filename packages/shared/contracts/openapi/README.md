@@ -8,6 +8,8 @@
 
 当前检查重点是避免已被 Web 使用的后端路径和关键字段从 OpenAPI 中消失，并让快照漂移在提交前可见。
 
+这些快照也是后续 OpenAPI TypeScript 类型生成的首选输入。生成策略见 `docs/adr/0007-openapi-typescript-generation-strategy.md`；第一阶段只允许生成类型，不生成完整 API client。
+
 ## 刷新流程
 
 先运行后端 OpenAPI 测试生成真实 spec：

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已创建计划并完成现状调研，等待确认 OpenAPI 生成策略与 `packages/shared` 首批职责。
+- 当前状态：已接受 OpenAPI/shared 契约边界 ADR；`backend-auth-service` 已补齐 OpenAPI 暴露与最小文档测试，下一步确认生成 TypeScript 类型和 `packages/shared` 首批目录结构。
 - 计划来源：HDX 后续事项总纲第 5 步
 - 创建时间：2026-06-07
 - 最后更新：2026-06-07
@@ -64,11 +64,11 @@
 - [x] 读取约束、架构、质量、Git 和 ADR 入口文档。
 - [x] 调研后端 OpenAPI 暴露方式、Java DTO 分布、Web 手写 schema 和 `packages/shared` 现状。
 - [x] 创建本计划并记录当前事实、推荐方向、待确认事项和验证入口。
-- [ ] 确认 OpenAPI 契约事实源：core-service、gateway 聚合、auth-service 分开暴露，还是按外部入口拆分多个 spec。
-- [ ] 确认生成范围：只生成 TypeScript 类型、生成 Nuxt server client，或暂缓生成只加强契约测试。
-- [ ] 确认生成工具和包管理边界；如新增依赖或根 workspace，先新增或更新 ADR。
-- [ ] 确认 `packages/shared` 首批目录结构、职责清单和禁止内容。
-- [ ] 实施确认后的最小切片，并更新架构文档、README、质量门禁和相关计划。
+- [x] 确认 OpenAPI 契约事实源：按外部入口拆分 `backend-auth-service` 与 `backend-gateway`，core-service/all-in-one 文档只作调试和本机集成参考。
+- [x] 确认本轮生成范围：暂不引入 TypeScript 生成器，不生成浏览器直连后端 client，先补齐 auth-service OpenAPI。
+- [x] 确认生成工具和包管理边界：本轮不引入生成器、不创建根 pnpm workspace；后续如新增生成器需补充 ADR 或更新本 ADR。
+- [x] 确认 `packages/shared` 首批职责边界：仅放端无关、运行时无关的稳定协议资产，禁止放端侧状态、UI、HTTP token/session 和后端内部模型。
+- [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [ ] 完成验证、提交并记录 commit。
 
 ## 待确认问题
@@ -78,6 +78,14 @@
 - Web 生成物是否只允许服务端使用，防止浏览器绕过 Nuxt BFF 直连后端？
 - `packages/shared` 当前是否保持轻量源码包，还是等 App/Desktop 技术栈确认后再引入包管理和构建？
 - 生成产物是否提交到仓库，还是由脚本在验证阶段生成并做漂移检查？
+
+已确认答案：
+
+- OpenAPI spec 按外部入口拆分，认证中心和业务入口不强行聚合。
+- `backend-auth-service` 需要补 springdoc，并暴露 `/v3/api-docs/**` 和 Swagger UI。
+- Web 生成物后续默认只允许在 Nuxt server BFF 边界使用，浏览器不得绕过 BFF 直连后端。
+- `packages/shared` 当前不升级为根 workspace 包；先保留轻量边界，只在后续确认首批协议资产后实施。
+- 本轮不生成产物；后续如选择提交生成产物，必须有可复现命令和漂移检查。
 
 ## 验收标准
 
@@ -103,20 +111,30 @@
 ## 状态记录
 
 - 2026-06-07：用户确认进入第 5 步；已创建本地计划并完成现状调研，等待确认 OpenAPI 生成策略与 shared 首批职责。
+- 2026-06-07：新增 ADR 0006，确认 OpenAPI 按外部入口拆分；本轮暂不引入 TypeScript 生成器或根 pnpm workspace。
+- 2026-06-07：`backend-auth-service` 补齐 springdoc OpenAPI 暴露，并新增测试验证 `/v3/api-docs` 包含登录、刷新和登出接口。
 
 ## 验证结果
 
 - 已使用 `Get-Content -Encoding UTF8` 读取约束、架构、质量、Git、ADR 和计划模板文档。
 - 已使用 `rg` 调研后端 springdoc、OpenAPI、Web schema 和 `packages/shared` 现状。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过；关键文档 UTF-8 读取和根仓库空白检查均通过。
-- `git status --short --branch`：确认本轮只修改根仓库计划文档，未修改子模块内容。
+- `git status --short --branch`：确认本轮包含根仓库文档变更和 `services/backend` 子模块变更，未修改 Web 或 desktop 子模块。
+- 本轮首次执行 `mvn -pl :backend-auth-service -am test` 失败，原因是测试使用了 Spring Boot 4 当前不可用的旧 `TestRestTemplate` 包；已改为 `MockMvc`。
+- `mvn -pl :backend-auth-service -am test`：通过，覆盖 14 个测试，新增验证 auth-service `/v3/api-docs` 包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`。
+- `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 auth-service 增加 springdoc 后的 Spring AOT 入口。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，验证根仓库关键文档 UTF-8 读取和空白检查。
+- `mvn test`：通过，覆盖后端 7 个 Maven 模块、32 个测试，确认 auth-service OpenAPI 依赖未破坏 core、gateway 和 all-in-one 既有测试。
 
 ## 剩余风险
 
 - 尚未确认是否引入 OpenAPI 生成器，因此不能开始修改 Web 契约来源。
-- 尚未确认 `packages/shared` 是否创建可安装包，因此不能开始调整依赖方向检查。
+- 当前已确认本轮不引入 OpenAPI 生成器；后续仍需评估 TypeScript 类型生成工具、生成物提交策略和漂移检查。
+- 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认最小目录结构和第一批协议资产。
 - 当前 Web 仍维护手写 Zod schema；在生成策略落地前，Web/后端契约仍存在人工同步成本。
+- auth-service 已补 OpenAPI 与 Spring AOT 验证，但本轮未运行完整 native-image 编译和真实 service profile OpenAPI 端点手工访问。
 
 ## 相关 commit
 
-- 待记录。
+- `fed17f9 功能：补齐认证服务 OpenAPI 文档`（`services/backend`）
+- 根仓库 ADR、架构文档、计划和子模块指针提交待记录。

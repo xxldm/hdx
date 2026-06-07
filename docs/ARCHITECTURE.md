@@ -48,6 +48,8 @@ HDX 暂定由以下部分组成：
 - 跨端共享的错误码、协议字段、权限枚举和基础类型应归入共享层。
 - 端侧私有展示模型不得污染后台领域模型。
 
+OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-boundary.md`。当前阶段 OpenAPI spec 按外部入口拆分：`backend-auth-service` 暴露认证中心契约，`backend-gateway` 暴露服务端业务入口契约；`backend-core-service` 和 `backend-all-in-one` 的 `/v3/api-docs` 只作为调试和本机集成参考。当前不引入 TypeScript 生成器，不创建根 pnpm workspace；Web 仍通过 Nuxt server BFF 调用后端，浏览器不得使用生成 client 直连后端。
+
 ## Web 第一阶段架构
 
 Web 工程位于 `apps/web/`，当前不把仓库根目录升级为 pnpm workspace。

@@ -1,7 +1,7 @@
 # Web 端 Nuxt 架构 v1 实施计划
 
 - 创建日期：2026-05-26
-- 当前状态：已完成 Web Nuxt v1 骨架、文档、自动化验证和浏览器检查
+- 当前状态：已完成并归档。Web Nuxt v1 骨架、文档、自动化验证和浏览器检查已完成
 - 计划来源：用户确认的“Web 端 Nuxt 架构决策计划”
 - 文档语言：中文
 
@@ -21,7 +21,7 @@
 
 | 编号 | 状态 | 项目 | 验收标准 |
 | --- | --- | --- | --- |
-| 0 | 已完成 | 持久化本实施计划 | 本文件存在于 `docs/plans/active/`，并作为后续状态源。 |
+| 0 | 已完成 | 持久化本实施计划 | 本文件已归档到 `docs/plans/completed/`，并保留为后续状态源。 |
 | 1 | 已完成 | 新增 Web 架构 ADR | `docs/adr/0003-web-nuxt-architecture.md` 记录背景、决策、备选方案、影响范围、验证方式、回滚条件。 |
 | 2 | 已完成 | 更新架构事实源 | `docs/ARCHITECTURE.md` 已记录 Web 第一阶段 Nuxt 架构、依赖方向和 BFF/proxy 边界。 |
 | 3 | 已完成 | 创建 Nuxt 4 工程骨架 | `apps/web/` 包含 `package.json`、Nuxt 配置、应用入口、样式入口、页面、Pinia store、i18n 资源和测试配置。 |
@@ -55,3 +55,4 @@
 - 2026-05-26：浏览器打开 `http://127.0.0.1:3000/` 验证通过；后端未启动时显示可理解提示，切换 English 后 URL 仍为 `/`，刷新后语言偏好和 dark 主题保留，当前浏览器窗口无水平溢出。
 - 2026-05-26：浏览器检查过程中发现 store 内存在中文硬编码错误文案，已改为 i18n key 并复跑 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm build` 通过。
 - 2026-05-26：预览服务日志曾放在 `.output/preview-err.log`，导致后续 build 清理 `.output` 时 Windows 文件锁报错；已停止预览进程并改用 `.nuxt-preview/` 作为临时预览日志目录。
+- 2026-06-07：复核本计划实施状态、Web 工程目录和后续架构事实源后，确认 Web Nuxt v1 计划已完成并移动到 `docs/plans/completed/`。

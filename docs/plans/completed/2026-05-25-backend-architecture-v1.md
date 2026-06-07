@@ -1,7 +1,7 @@
 ﻿# 后端总体架构方案 v1 实施计划
 
 - 创建日期：2026-05-25
-- 当前状态：后端 v1 骨架、正式 Java 25、Spring AOT 与三模块 Native Image 健康检查已完成
+- 当前状态：已完成并归档。后端 v1 骨架、正式 Java 25、Spring AOT 与三模块 Native Image 健康检查已完成
 - 计划来源：用户确认的“后端总体架构方案 v1”
 - 文档语言：中文
 
@@ -21,7 +21,7 @@
 
 | 编号 | 状态 | 项目 | 验收标准 |
 | --- | --- | --- | --- |
-| 0 | 已完成 | 持久化本实施计划 | 本文件存在于 `docs/plans/active/`，并作为后续状态源。 |
+| 0 | 已完成 | 持久化本实施计划 | 本文件已归档到 `docs/plans/completed/`，并保留为后续状态源。 |
 | 1 | 已完成 | 确认官方版本与本机环境 | 采用 Spring Boot `4.0.0`、Spring Cloud `2025.1.0`、Spring Cloud Alibaba `2025.1.0.0`、springdoc `3.0.3`、Native Build Tools `0.11.5`；本机 Maven、GraalVM JDK 25、`native-image`、VS C++ 工具链和 Windows SDK 已确认可用。 |
 | 2 | 已完成 | 创建 Maven 多模块骨架 | `services/backend/` 下已创建 Maven 聚合工程，模块覆盖 `backend-contract`、`backend-core`、`backend-core-service`、`backend-gateway`、`backend-all-in-one`。 |
 | 3 | 已完成 | 实现 core 核心能力与核心微服务启动器 | 已提供最小 REST API、JPA/H2 测试支撑、PostgreSQL 服务端配置入口和 OpenAPI/Actuator 能力；正式 Java 25 `mvn test`、AOT、`backend-core-service` native 编译与 `/actuator/health` 均已通过；`backend-core` 已启用 Hibernate 构建期实体字节码增强。 |
@@ -75,3 +75,4 @@
 - 2026-05-26：`backend-gateway` 使用 `mvn -Pnative package` clean 构建通过，native `/actuator/health` 返回 `UP`，`/gateway/runtime` 返回 `nativeImage=true`。
 - 2026-05-26：`backend-all-in-one` 使用 `mvn -Pnative package` clean 构建通过，native `/actuator/health` 返回 `UP`，`/local/session` 返回 `X-HDX-Local-Token` 与 64 位随机令牌；未带令牌访问业务 API 返回 `403`，带令牌返回 `200`。
 - 2026-05-26：`backend-all-in-one` 排除 Spring Security 默认 `UserDetailsServiceAutoConfiguration`，避免生成默认开发密码，保持 all-in-one 安全边界只使用本机令牌。
+- 2026-06-07：复核本计划实施状态、后端模块目录和后续架构事实源后，确认后端 v1 架构计划已完成并移动到 `docs/plans/completed/`。

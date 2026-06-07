@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成
+- 当前状态：已完成并归档
 - 计划来源：HDX 后续事项总纲第 2 步
 - 创建时间：2026-06-05
 - 最后更新：2026-06-05
@@ -33,6 +33,7 @@
 - `services/backend/README.md`
 - `docs/ARCHITECTURE.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
+- `docs/plans/completed/2026-06-05-database-migration-strategy.md`
 
 ## 本地任务清单
 
@@ -71,6 +72,7 @@
 - 2026-06-05：已新增后端 Flyway ADR、V1 迁移脚本，并将运行时和测试配置改为 Flyway 建表 + Hibernate validate；等待 Maven 验证。
 - 2026-06-05：`mvn validate`、`mvn test` 和 native profile 轻量包构建已通过；等待提交、推送和最终状态收口。
 - 2026-06-05：已在 `services/backend` 创建提交 `9090455 功能：引入 Flyway 数据库迁移`；等待根仓库提交子模块指针和计划更新。
+- 2026-06-07：复核本计划任务清单、验证结果、后端迁移脚本和总纲状态后，确认数据库迁移策略已完成并移动到 `docs/plans/completed/`。
 
 ## 验证结果
 

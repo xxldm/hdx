@@ -134,7 +134,7 @@
 
 - 2026-06-05：创建后续事项总纲，当前状态为“等待进入第 1 步前单独确认”。
 - 2026-06-05：完成第 1 步 Git 状态收口，已先推送 `services/backend`，再推送根仓库；当前等待进入第 2 步前单独确认。
-- 2026-06-05：开始第 2 步数据库迁移策略，已确认 Flyway/PostgreSQL/H2 范围，详细计划见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
+- 2026-06-05：开始第 2 步数据库迁移策略，已确认 Flyway/PostgreSQL/H2 范围，详细计划见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 2026-06-05：完成第 2 步数据库迁移策略；当前等待进入第 3 步认证与权限边界前单独确认。
 - 2026-06-05：按用户临时要求完成环境配置与 Nacos 分层切片；完整第 9 步仍未展开，当前仍等待进入第 3 步前单独确认。
 - 2026-06-06：开始第 3 步认证与权限边界；用户确认使用自建认证中心，且认证中心按独立 `backend-auth-service` 模块设计；详细计划见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
@@ -147,6 +147,7 @@
 - 2026-06-07：第 5 步新增无外部依赖 TypeScript 类型生成原型，从 OpenAPI 快照生成 `packages/shared/generated/openapi/`，并接入质量门禁漂移检查。
 - 2026-06-07：第 5 步新增 Web 只读类型对齐检查，验证 Web Zod 推导类型与 OpenAPI 生成类型兼容。
 - 2026-06-07：完成第 5 步 OpenAPI 与 shared 层收口，计划移动到 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`；当前等待进入第 6 步 Desktop 集成设计前单独确认。
+- 2026-06-07：复核 active 目录中已标记完成的历史计划，将后端 v1、Web Nuxt v1 和数据库迁移策略计划移动到 `docs/plans/completed/`，保留总纲与认证权限边界计划在 `active/`。
 
 ## 验证结果
 
@@ -156,11 +157,12 @@
 - 已使用 `git -C services/backend push origin main` 推送子模块 `main`。
 - 已使用 `git push origin main` 推送根仓库 `main`。
 - 第 2 步已执行 `mvn validate`、`mvn test` 和 `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`，均通过。
+- 计划归档审计已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认文档 UTF-8、根仓库空白检查、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 
 ## 剩余风险
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
-- 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
+- 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 
 ## 相关 commit

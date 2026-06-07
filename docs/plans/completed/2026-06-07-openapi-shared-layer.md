@@ -64,7 +64,7 @@
 
 - [x] 读取约束、架构、质量、Git 和 ADR 入口文档。
 - [x] 调研后端 OpenAPI 暴露方式、Java DTO 分布、Web 手写 schema 和 `packages/shared` 现状。
-- [x] 创建本计划并记录当前事实、推荐方向、待确认事项和验证入口。
+- [x] 创建本计划并记录当前事实、推荐方向、确认事项和验证入口。
 - [x] 确认 OpenAPI 契约事实源：按外部入口拆分 `backend-auth-service` 与 `backend-gateway`，core-service/all-in-one 文档只作调试和本机集成参考。
 - [x] 确认本轮生成范围：暂不引入 TypeScript 生成器，不生成浏览器直连后端 client，先补齐 auth-service OpenAPI。
 - [x] 确认生成工具和包管理边界：本轮不引入生成器、不创建根 pnpm workspace；后续如新增生成器需补充 ADR 或更新本 ADR。
@@ -80,7 +80,7 @@
 - [x] 实施确认后的最小切片，并更新架构文档、README 和相关计划。
 - [x] 完成验证、提交并记录 commit。
 
-## 待确认问题
+## 已确认问题与答案
 
 - OpenAPI spec 是否应按外部入口拆分为 `auth-service` 与 `gateway/core` 两份，避免认证中心和业务网关的安全边界混在一起？
 - `backend-auth-service` 是否需要补 springdoc，让账号密码登录、refresh 和 logout 也进入 OpenAPI 契约？
@@ -107,7 +107,7 @@
 ## 验收标准
 
 - 本计划能让后续智能体从仓库恢复 OpenAPI/shared 的推进状态。
-- 计划明确当前事实、非目标、待确认问题、推荐方向和验证入口。
+- 计划明确当前事实、非目标、已确认问题、推荐方向和验证入口。
 - 总纲第 5 步状态已同步为已完成，并链接到本计划归档位置。
 - 未在没有 ADR 的情况下引入新技术栈、包管理器、生成器或根 workspace。
 
@@ -122,12 +122,12 @@
 
 - 如果直接生成浏览器 client，可能绕过现有 Nuxt BFF、HttpOnly session 和 CSRF 边界。
 - 如果过早把 `packages/shared` 做成工作区包，可能迫使根仓库提前绑定包管理器，违反当前 Web 只在 `apps/web/` 使用 pnpm 的约束。
-- 如果不把 auth-service 纳入 OpenAPI，Web 登录契约仍会继续手写并存在漂移风险。
+- auth-service 已纳入 OpenAPI，登录、refresh 和 logout 已进入外部入口契约；Web 登录契约仍保留 Zod 运行时校验，并通过只读类型对齐检查降低漂移风险。
 - 如果只依赖 OpenAPI 静态类型而取消 Web Zod 运行时校验，会削弱跨边界数据解析约束。
 
 ## 状态记录
 
-- 2026-06-07：用户确认进入第 5 步；已创建本地计划并完成现状调研，等待确认 OpenAPI 生成策略与 shared 首批职责。
+- 2026-06-07：用户确认进入第 5 步；已创建本地计划并完成现状调研，随后确认 OpenAPI 生成策略与 shared 首批职责。
 - 2026-06-07：新增 ADR 0006，确认 OpenAPI 按外部入口拆分；本轮暂不引入 TypeScript 生成器或根 pnpm workspace。
 - 2026-06-07：`backend-auth-service` 补齐 springdoc OpenAPI 暴露，并新增测试验证 `/v3/api-docs` 包含登录、刷新和登出接口。
 - 2026-06-07：`packages/shared` 建立轻量骨架，明确 `contracts/`、`constants/`、`generated/` 和 `tools/` 的候选职责与禁止内容；当前仍不创建可安装包。
@@ -168,7 +168,7 @@
 - 已落地无外部依赖的 TypeScript 类型生成原型，但尚未评估正式生成器或是否继续长期维护 PowerShell 生成器。
 - 已建立 OpenAPI spec 快照与路径级漂移检查脚本，但尚未接入远端 CI；Web 手写 Zod schema 与后端 OpenAPI schema 仍需要人工同步。
 - 已建立关键字段级 schema 漂移检查，但尚未接入远端 CI；Web 手写 Zod schema 与 `expected-schemas.json` 仍需要人工同步。
-- 尚未建立请求/响应示例验证、Web 消费验证或自动启动服务抓取流程；当前快照来源是后端测试输出。
+- 已建立 Web 只读类型对齐检查，但尚未建立请求/响应示例验证或自动启动服务抓取流程；当前快照来源仍是后端测试输出。
 - 当前已确认 `packages/shared` 暂不创建根 workspace 包；后续仍需确认第一批真实协议资产和消费者。
 - 当前 Web 运行时代码仍维护手写 Zod schema，尚未正式导入生成类型；`expected-schemas.json` 与 Web Zod schema 仍需要人工同步。
 - 调研时发现部分 Web 端中文错误提示在源码中已呈现乱码，应另行作为 Web 文案编码缺陷处理；本轮不顺手修改 Web 运行时代码。

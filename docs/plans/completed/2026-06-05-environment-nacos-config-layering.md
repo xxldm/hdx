@@ -77,8 +77,8 @@
 
 ## 剩余风险
 
-- 本轮未连接真实 Nacos，不能证明目标环境已创建 Data ID；部署前仍需在 Nacos 中按 `docs/config/nacos/` 建配置。
-- service profile 改为要求 Nacos Data ID 和 `HDX_POSTGRES_PASSWORD` 存在，缺失时会快速失败。
+- 本轮未连接真实 Nacos；后续认证与公共数据库配置联调已验证本机真实 Nacos 下 core/auth/gateway 可读取 Data ID 并启动。新部署环境仍需按 `docs/config/nacos/` 创建或同步配置。
+- service profile 要求 Nacos Data ID 和必要 Secret 存在，缺失时会快速失败；这仍是预期部署前置条件。
 - JDK 未来兼容 warning 未在本轮处理，不影响当前测试通过。
 
 ## 相关 commit

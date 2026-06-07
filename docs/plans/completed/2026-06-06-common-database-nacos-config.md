@@ -40,7 +40,7 @@
 - [x] 执行真实 Nacos service profile 联调。
 - [x] 提交后端子模块改动。
 - [x] 提交根仓库文档。
-- [ ] 提交根仓库子模块指针。
+- [x] 提交根仓库子模块指针。
 
 ## 状态记录
 
@@ -48,6 +48,7 @@
 - 2026-06-06：完成配置与文档改动，后端 `mvn test` 通过。
 - 2026-06-06：后端子模块提交 `fe98dbb`；因为直接推送 `origin/main` 需要用户再次明确授权，当前根仓库暂不提交子模块指针。
 - 2026-06-06：用户已在 Nacos 新建 `hdx-database.yml`；使用 service profile 临时随机端口启动 core/auth，均成功读取公共数据库 Data ID 并连通 PostgreSQL。
+- 2026-06-07：后续已推送 `services/backend` 并由根仓库提交子模块指针；当前 `fe98dbb` 已包含在 backend `main` 历史中。
 
 ## 验证结果
 
@@ -57,9 +58,10 @@
 
 ## 剩余风险
 
-- 当前真实 Nacos 中 `hdx-auth-service.yml` 为空；认证服务仍可依赖公共数据库配置启动，但认证 issuer、固定端口等认证服务模块配置还未从模块 Data ID 生效。
-- `services/backend` 子模块新 commit 尚未推送，根仓库暂不能提交子模块指针；用户明确允许推送后，应先推送子模块，再提交根仓库指针。
+- 后续认证切片已补充认证服务配置模板，并通过 issuer discovery 与 service profile 联调验证认证模块配置路径；新环境仍需按 `docs/config/nacos/` 同步真实 Nacos 值。
+- `services/backend` 子模块提交 `fe98dbb` 后续已推送并进入 backend `main` 历史，根仓库子模块指针已在后续提交中同步。
 
 ## 相关 commit
 
-- `fe98dbb 杂项：增加公共数据库配置入口`（`services/backend`，尚未推送）
+- `fe98dbb 杂项：增加公共数据库配置入口`（`services/backend`）
+- `5f7d86f 杂项：记录公共数据库配置联调结果`（根仓库）

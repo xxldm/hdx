@@ -62,12 +62,12 @@
 - `git check-ignore -v .env.symphony.local`：确认由 `.gitignore` 的 `.env.*` 忽略。
 - `git check-ignore -v .env.symphony.example`：确认由 `.gitignore` 例外允许提交。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-symphony.local.ps1 -ValidateOnly`：通过，输出已读取 Symphony 本地环境变量名。
-- `git diff --check`：待提交前最终复跑。
+- `git diff --check`：已在提交前验证流程中通过。
 
 ## 剩余风险
 
-- 本轮没有运行后端服务连接真实数据库；配置注入只验证到 Symphony 启动脚本进程环境层。
+- 本轮没有运行后端服务连接真实数据库；后续认证与 Nacos 联调已验证 `.env.local` 结合真实 Nacos/PostgreSQL/Redis 可启动后端链路。`.env.symphony.local` 仍只验证到 Symphony 启动脚本进程环境层。
 
 ## 相关 commit
 
-- 待记录。
+- `6b52844 杂项：添加 Symphony 本地环境示例`（根仓库）

@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 4 步自动化质量门禁最小本地脚本入口已完成；下一步可进入第 5 步 OpenAPI 与 shared 层前确认。
+- 当前状态：第 5 步 OpenAPI 与 shared 层已开始，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
-- 最后更新：2026-06-05
+- 最后更新：2026-06-07
 
 ## 目标
 
@@ -31,7 +31,7 @@
 - [x] 2. 数据库迁移策略
 - [ ] 3. 认证与权限边界（进行中，详见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`）
 - [x] 4. 自动化质量门禁（最小本地脚本入口已完成，详见 `docs/plans/completed/2026-06-07-automated-quality-gate.md`）
-- [ ] 5. OpenAPI 与 shared 层
+- [ ] 5. OpenAPI 与 shared 层（进行中，详见 `docs/plans/active/2026-06-07-openapi-shared-layer.md`）
 - [ ] 6. Desktop 集成设计
 - [ ] 7. App 技术栈
 - [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
@@ -112,7 +112,8 @@
 - 第 2 步已确认使用 Flyway，不支持 MySQL；PostgreSQL 为服务端事实源，H2 用于 desktop all-in-one/local/test；早期本地数据可清空重建。
 - 第 2 步已完成：`services/backend` 已新增 Flyway ADR、`V1__create_tool_definition.sql`、运行时 `ddl-auto: validate` 配置、测试 Flyway 集成和 README 说明。
 - 用户临时要求先推进环境配置与 Nacos 分层；该切片已完成，详细记录见 `docs/plans/completed/2026-06-05-environment-nacos-config-layering.md`。这不表示第 9 步“部署、发布与环境管理”已经完整完成。
-- 后续进入第 3 步前，需要单独确认认证与权限边界的需求、取舍、范围和验证方式。
+- 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
+- 第 5 步 OpenAPI 与 shared 层已开始，当前先确认契约事实源、生成范围和 shared 首批职责。
 
 ## 验收标准
 
@@ -141,11 +142,12 @@
 - 2026-06-06：因登出即时生效需求，提前确认 Redis 用于 JWT `sid` 会话撤销/黑名单；该决策记录在 `docs/adr/0005-auth-revocation-redis.md`，不代表对象存储或队列已决策。
 - 2026-06-07：用户确认进入第 4 步自动化质量门禁；创建本地计划，范围为最小 PowerShell 本地脚本、质量文档和入口说明。
 - 2026-06-07：完成第 4 步自动化质量门禁最小本地脚本入口：新增 `scripts/quality-gate.ps1`，更新 `docs/QUALITY.md` 和根 README，并将本地计划移动到 `docs/plans/completed/`。
+- 2026-06-07：用户确认进入第 5 步 OpenAPI 与 shared 层；创建本地计划，当前先确认契约事实源、生成范围和 shared 首批职责。
 
 ## 验证结果
 
 - 已使用 `Get-Content -Encoding UTF8 -Path docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md` 验证中文内容读取正常。
-- 已使用 `git status --short --branch` 验证本轮根仓库新增文件为 `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`。
+- 已使用 `git status --short --branch` 验证本轮根仓库变更范围。
 - 已使用 `git -C services/backend status --short --branch` 确认 `services/backend` 仍为 `main...origin/main [ahead 1]`，本轮未修改子模块内部文件。
 - 已使用 `git -C services/backend push origin main` 推送子模块 `main`。
 - 已使用 `git push origin main` 推送根仓库 `main`。
@@ -153,8 +155,9 @@
 
 ## 剩余风险
 
-- 第 3 步认证与权限边界已开始，但尚未确认服务端认证中心数据库/Schema 边界、本机管理员身份模型、JWT issuer 细节、权限模型、Web 登录态或 desktop token 交互。
+- 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步尚未运行真实 PostgreSQL 服务端 profile 启动和完整 native-image 编译；详细风险见 `docs/plans/active/2026-06-05-database-migration-strategy.md`。
+- 第 5 步 OpenAPI 与 shared 层刚开始，尚未确认是否引入 OpenAPI 生成器、生成物提交策略或 `packages/shared` 包结构。
 
 ## 相关 commit
 

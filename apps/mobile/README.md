@@ -1,6 +1,12 @@
-﻿# App 端占位
+# App 端
 
-本目录用于未来 App 端实现。技术栈、平台范围和发布方式尚未决定。
+本目录用于未来 App 端实现。第一阶段技术路线已由根仓库 `docs/adr/0009-mobile-native-online-first.md` 记录：
 
-引入任何具体技术栈前，请先新增 `docs/adr/` 决策记录，并同步更新 `docs/ARCHITECTURE.md`。
+- Android 采用 Kotlin + Jetpack Compose，后续工程位于 `apps/mobile/android/`。
+- HarmonyOS NEXT 采用 ArkTS + ArkUI，后续工程位于 `apps/mobile/harmony/`，并面向 PC、平板、手机等多设备形态适配。
+- App 不复用 Desktop Tauri shell，不混入 Desktop Online。
+- App 首版只做 Online only，连接远端 `backend-auth-service` 与 `backend-gateway`。
+- 第二阶段只规划离线缓存和离线草稿，联网后同步提交。
+- 不规划移动端 `backend-all-in-one`、本机 HTTP 后端服务或完整离线业务引擎。
 
+创建 Android 或 HarmonyOS NEXT 工程骨架前，需要单独计划并同步质量门禁入口。

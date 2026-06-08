@@ -6,11 +6,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-function U {
-    param([Parameter(Mandatory = $true)][string]$Escaped)
-    return [System.Text.RegularExpressions.Regex]::Unescape($Escaped)
-}
-
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 if ([string]::IsNullOrWhiteSpace($AuthGeneratedSpecPath)) {
@@ -32,14 +27,14 @@ function Assert-JsonFile {
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '缺少生成的 OpenAPI spec：')$ServiceName $Path$(U '。请先运行后端 OpenAPI 测试。')"
+        throw "缺少生成的 OpenAPI spec：$ServiceName $Path。请先运行后端 OpenAPI 测试。"
     }
 
     try {
         Get-Content -LiteralPath $Path -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
     }
     catch {
-        throw "$(U 'JSON 格式无效：')$ServiceName $Path"
+        throw "JSON 格式无效：$ServiceName $Path"
     }
 }
 
@@ -52,11 +47,11 @@ function Copy-Snapshot {
 
     Assert-JsonFile -ServiceName $ServiceName -Path $SourcePath
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
-    Write-Host "$(U '已刷新快照：')$ServiceName $DestinationPath"
+    Write-Host "已刷新快照：$ServiceName $DestinationPath"
 }
 
-Write-Host (U '刷新 OpenAPI 快照')
-Write-Host "$(U '快照目录：')$SnapshotsDir"
+Write-Host '刷新 OpenAPI 快照'
+Write-Host "快照目录：$SnapshotsDir"
 
 New-Item -ItemType Directory -Force -Path $SnapshotsDir | Out-Null
 
@@ -70,4 +65,4 @@ Copy-Snapshot `
     -SourcePath $GatewayGeneratedSpecPath `
     -DestinationPath (Join-Path $SnapshotsDir 'gateway.openapi.json')
 
-Write-Host (U 'OpenAPI 快照刷新完成。')
+Write-Host 'OpenAPI 快照刷新完成。'

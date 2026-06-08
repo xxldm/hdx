@@ -20,6 +20,7 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BackendRoot = Join-Path $RepoRoot 'services/backend'
 $WebRoot = Join-Path $RepoRoot 'apps/web'
 $DesktopRoot = Join-Path $RepoRoot 'apps/desktop'
+$SubmoduleStatusScript = Join-Path $RepoRoot 'scripts/git-submodule-status.ps1'
 
 function Write-Section {
     param([Parameter(Mandatory = $true)][string]$Title)
@@ -428,6 +429,22 @@ function Show-GitStatus {
     Write-Section (U '\u0047\u0069\u0074\u0020\u72b6\u6001')
     Write-Host (U '\u6839\u4ed3\u5e93\uff1a')
     Invoke-Git -WorkingDirectory $RepoRoot -Arguments @('status', '--short', '--branch') | ForEach-Object { Write-Host $_ }
+
+    if (Test-Path -LiteralPath $SubmoduleStatusScript) {
+        Invoke-Step `
+            -Title (U '\u0047\u0069\u0074\u0020\u5b50\u6a21\u5757\u72b6\u6001\u68c0\u67e5') `
+            -WorkingDirectory $RepoRoot `
+            -Command 'powershell' `
+            -Arguments @(
+                '-NoProfile',
+                '-ExecutionPolicy',
+                'Bypass',
+                '-File',
+                $SubmoduleStatusScript,
+                '-RepoRoot',
+                $RepoRoot
+            )
+    }
 
     if (Test-Path -LiteralPath $BackendRoot) {
         Write-Host 'services/backend:'

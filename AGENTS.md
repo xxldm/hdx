@@ -9,6 +9,7 @@
 - `docs/CONSTRAINTS.md`：项目硬约束与工程纪律。
 - `docs/ARCHITECTURE.md`：暂定架构边界与依赖方向。
 - `docs/QUALITY.md`：质量门禁、测试与验证要求。
+- `docs/AGENT_WORKFLOW.md`：智能体命令执行、权限失败、PowerShell 与本地环境纪律。
 - `docs/GIT.md`：Git 提交、推送与智能体提交纪律。
 - `docs/adr/0001-harness-engineering-constraints.md`：本轮约束的决策记录。
 

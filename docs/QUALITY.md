@@ -32,7 +32,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 仓库内 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文。
 - 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
 - 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
-- 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/GIT.md` 的权限失败重试规则处理。
+- 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/AGENT_WORKFLOW.md` 的权限失败重试规则处理。
 
 ## 提交前检查
 
@@ -46,7 +46,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 是否新增密钥、令牌、凭证、真实用户数据或敏感日志。
 - 新增或修改 UI、日志、错误提示、命令行输出、通知、占位符、帮助文本等面向人类的显示文案时，是否优先使用中文；保留非中文时是否属于协议字段、代码标识符、标准错误码、第三方固定输出、外部原文引用或国际化备用语言。
 - 是否遵守 `docs/GIT.md` 中的提交信息、原子提交、推送前检查和 Git 操作串行规则。
-- 是否遵守 `docs/GIT.md` 中的智能体权限失败重试规则，避免同类命令反复普通权限失败造成无效 token 消耗。
+- 是否遵守 `docs/AGENT_WORKFLOW.md` 中的智能体权限失败重试规则，避免同类命令反复普通权限失败造成无效 token 消耗。
 - 如果存在 Symphony、Linear 等外部任务，是否已在本地计划、ADR、提交说明或相关文档中记录链接/编号；没有外部编号时是否写明“无”或“不适用”。
 - 如果修改了 `docs/config/nacos/` 模板，是否已按模板层级和相邻位置同步真实 Nacos Data ID；新增项是否已通知用户确认真实值，修改或删除项是否已获得用户同意。
 - 如果修改了 `.env.example` 或 `.env.symphony.example`，是否已按模板分组和相邻位置同步对应 `.env.local` 或 `.env.symphony.local` 文件结构；新增项是否已提示用户填写真实值，修改或删除项是否已获得用户同意。

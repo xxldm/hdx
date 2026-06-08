@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$ReleaseContractsDir = '',
     [string]$BackendNativeManifestPath = '',
     [string]$ReleaseManifestPath = '',
@@ -28,16 +28,16 @@ $RequiredSchemas = [ordered]@{
 }
 
 $ForbiddenPathRules = @(
-    @{ Name = (U 'Java \u6e90\u7801'); Pattern = '(^|/)(src/main/java|src/test/java)/|\.java$' },
-    @{ Name = (U 'Kotlin \u6e90\u7801'); Pattern = '(^|/)(src/main/kotlin|src/test/kotlin)/|\.kt$' },
-    @{ Name = (U 'Groovy \u6e90\u7801'); Pattern = '(^|/)(src/main/groovy|src/test/groovy)/|\.groovy$' },
-    @{ Name = (U 'Scala \u6e90\u7801'); Pattern = '(^|/)(src/main/scala|src/test/scala)/|\.scala$' },
-    @{ Name = (U 'Maven \u6e90\u5de5\u7a0b\u6587\u4ef6'); Pattern = '(^|/)pom\.xml$|(^|/)\.mvn/|(^|/)mvnw(\.cmd)?$' },
-    @{ Name = (U 'JAR \u538b\u7f29\u5305'); Pattern = '\.jar$' },
-    @{ Name = (U 'WAR \u538b\u7f29\u5305'); Pattern = '\.war$' },
-    @{ Name = (U 'Java class \u6587\u4ef6'); Pattern = '\.class$' },
-    @{ Name = (U '\u7f16\u8bd1 classes \u76ee\u5f55'); Pattern = '(^|/)target/classes(/|$)|(^|/)build/classes(/|$)' },
-    @{ Name = (U '\u6784\u5efa\u4e2d\u95f4\u76ee\u5f55'); Pattern = '(^|/)target/(generated-sources|generated-test-sources|maven-status|surefire-reports|failsafe-reports|test-classes)(/|$)|(^|/)\.gradle(/|$)' }
+    @{ Name = (U 'Java 源码'); Pattern = '(^|/)(src/main/java|src/test/java)/|\.java$' },
+    @{ Name = (U 'Kotlin 源码'); Pattern = '(^|/)(src/main/kotlin|src/test/kotlin)/|\.kt$' },
+    @{ Name = (U 'Groovy 源码'); Pattern = '(^|/)(src/main/groovy|src/test/groovy)/|\.groovy$' },
+    @{ Name = (U 'Scala 源码'); Pattern = '(^|/)(src/main/scala|src/test/scala)/|\.scala$' },
+    @{ Name = (U 'Maven 源工程文件'); Pattern = '(^|/)pom\.xml$|(^|/)\.mvn/|(^|/)mvnw(\.cmd)?$' },
+    @{ Name = (U 'JAR 压缩包'); Pattern = '\.jar$' },
+    @{ Name = (U 'WAR 压缩包'); Pattern = '\.war$' },
+    @{ Name = (U 'Java class 文件'); Pattern = '\.class$' },
+    @{ Name = (U '编译 classes 目录'); Pattern = '(^|/)target/classes(/|$)|(^|/)build/classes(/|$)' },
+    @{ Name = (U '构建中间目录'); Pattern = '(^|/)target/(generated-sources|generated-test-sources|maven-status|surefire-reports|failsafe-reports|test-classes)(/|$)|(^|/)\.gradle(/|$)' }
 )
 
 function Write-Section {
@@ -50,14 +50,14 @@ function Read-JsonFile {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '\u7f3a\u5c11\u6587\u4ef6\uff1a')$Path"
+        throw "$(U '缺少文件：')$Path"
     }
 
     try {
         return Get-Content -LiteralPath $Path -Encoding UTF8 -Raw | ConvertFrom-Json
     }
     catch {
-        throw "$(U 'JSON \u89e3\u6790\u5931\u8d25\uff1a')$Path"
+        throw "$(U 'JSON 解析失败：')$Path"
     }
 }
 
@@ -99,7 +99,7 @@ function Assert-StringValue {
 
     $value = Get-JsonPropertyValue -Object $Object -Name $Name
     if ($value -isnot [string] -or [string]::IsNullOrWhiteSpace($value)) {
-        throw "$Context $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')$Name"
+        throw "$Context $(U '缺少必填字段：')$Name"
     }
     return [string]$value
 }
@@ -113,12 +113,12 @@ function Assert-ArrayValue {
 
     $value = Get-JsonPropertyValue -Object $Object -Name $Name
     if ($null -eq $value) {
-        throw "$Context $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')$Name"
+        throw "$Context $(U '缺少必填字段：')$Name"
     }
 
     $items = @($value)
     if ($items.Count -eq 0) {
-        throw "$Context $(U '\u5b57\u6bb5\u5fc5\u987b\u662f\u6570\u7ec4\uff1a')$Name"
+        throw "$Context $(U '字段必须是数组：')$Name"
     }
     return $items
 }
@@ -131,7 +131,7 @@ function Assert-Pattern {
     )
 
     if ($Value -notmatch $Pattern) {
-        throw "$Context $(U '\u5b57\u6bb5\u683c\u5f0f\u65e0\u6548\uff1a')$Value"
+        throw "$Context $(U '字段格式无效：')$Value"
     }
 }
 
@@ -142,7 +142,7 @@ function Assert-NotLatest {
     )
 
     if ($Value -match 'latest') {
-        throw "$Context $(U '\u5b57\u6bb5\u4e0d\u80fd\u4f7f\u7528 latest\uff1a')$Value"
+        throw "$Context $(U '字段不能使用 latest：')$Value"
     }
 }
 
@@ -178,7 +178,7 @@ function Assert-RootRef {
     )
 
     if ($null -eq $Root) {
-        throw "$Context $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')root"
+        throw "$Context $(U '缺少必填字段：')root"
     }
 
     [void](Assert-StringValue -Object $Root -Name 'repository' -Context "$Context.root")
@@ -197,12 +197,12 @@ function Assert-BaseManifest {
 
     $schemaVersion = Assert-StringValue -Object $Manifest -Name 'schemaVersion' -Context $Context
     if ($schemaVersion -ne '1.0') {
-        throw "$Context $(U 'schemaVersion \u5fc5\u987b\u662f 1.0\uff0c\u5b9e\u9645\uff1a')$schemaVersion"
+        throw "$Context $(U 'schemaVersion 必须是 1.0，实际：')$schemaVersion"
     }
 
     $manifestKind = Assert-StringValue -Object $Manifest -Name 'manifestKind' -Context $Context
     if ($manifestKind -ne $ExpectedKind) {
-        throw "$Context $(U 'manifestKind \u5fc5\u987b\u662f ')$ExpectedKind$(U '\uff0c\u5b9e\u9645\uff1a')$manifestKind"
+        throw "$Context $(U 'manifestKind 必须是 ')$ExpectedKind$(U '，实际：')$manifestKind"
     }
 
     $version = Assert-StringValue -Object $Manifest -Name 'version' -Context $Context
@@ -220,7 +220,7 @@ function Assert-OptionalManifestFile {
         return
     }
 
-    Write-Host "$(U '\u5df2\u6821\u9a8c manifest \u5b9e\u4f8b\uff1a')$Path"
+    Write-Host "$(U '已校验 manifest 实例：')$Path"
     $manifest = Read-JsonFile -Path $Path
     Assert-BaseManifest -Manifest $manifest -ExpectedKind $Kind -Context $Path
 
@@ -228,7 +228,7 @@ function Assert-OptionalManifestFile {
         'backend-native' {
             $backend = Get-JsonPropertyValue -Object $manifest -Name 'backend'
             if ($null -eq $backend) {
-                throw "$Path $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')backend"
+                throw "$Path $(U '缺少必填字段：')backend"
             }
             $backendCommit = Assert-StringValue -Object $backend -Name 'commit' -Context "$Path.backend"
             Assert-GitCommit -Value $backendCommit -Context "$Path.backend.commit"
@@ -245,7 +245,7 @@ function Assert-OptionalManifestFile {
         'release' {
             $backendNativeManifest = Get-JsonPropertyValue -Object $manifest -Name 'backendNativeManifest'
             if ($null -eq $backendNativeManifest) {
-                throw "$Path $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')backendNativeManifest"
+                throw "$Path $(U '缺少必填字段：')backendNativeManifest"
             }
             $backendCommit = Assert-StringValue -Object $backendNativeManifest -Name 'backendCommit' -Context "$Path.backendNativeManifest"
             Assert-GitCommit -Value $backendCommit -Context "$Path.backendNativeManifest.backendCommit"
@@ -258,7 +258,7 @@ function Assert-OptionalManifestFile {
                 Assert-Sha256 -Value $sha256 -Context "$Path.assets.sha256"
                 $source = Get-JsonPropertyValue -Object $asset -Name 'source'
                 if ($null -eq $source) {
-                    throw "$Path.assets $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')source"
+                    throw "$Path.assets $(U '缺少必填字段：')source"
                 }
                 $sourceCommit = Assert-StringValue -Object $source -Name 'commit' -Context "$Path.assets.source"
                 Assert-GitCommit -Value $sourceCommit -Context "$Path.assets.source.commit"
@@ -267,13 +267,13 @@ function Assert-OptionalManifestFile {
         'backend-build' {
             $desktop = Get-JsonPropertyValue -Object $manifest -Name 'desktop'
             if ($null -eq $desktop) {
-                throw "$Path $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')desktop"
+                throw "$Path $(U '缺少必填字段：')desktop"
             }
             $desktopCommit = Assert-StringValue -Object $desktop -Name 'commit' -Context "$Path.desktop"
             Assert-GitCommit -Value $desktopCommit -Context "$Path.desktop.commit"
             $backend = Get-JsonPropertyValue -Object $manifest -Name 'backend'
             if ($null -eq $backend) {
-                throw "$Path $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')backend"
+                throw "$Path $(U '缺少必填字段：')backend"
             }
             $backendCommit = Assert-StringValue -Object $backend -Name 'commit' -Context "$Path.backend"
             Assert-GitCommit -Value $backendCommit -Context "$Path.backend.commit"
@@ -287,7 +287,7 @@ function Assert-OptionalManifestFile {
         'backend-services' {
             $backend = Get-JsonPropertyValue -Object $manifest -Name 'backend'
             if ($null -eq $backend) {
-                throw "$Path $(U '\u7f3a\u5c11\u5fc5\u586b\u5b57\u6bb5\uff1a')backend"
+                throw "$Path $(U '缺少必填字段：')backend"
             }
             $backendCommit = Assert-StringValue -Object $backend -Name 'commit' -Context "$Path.backend"
             Assert-GitCommit -Value $backendCommit -Context "$Path.backend.commit"
@@ -316,7 +316,7 @@ function Test-ForbiddenEntryPath {
     $normalized = Normalize-EntryPath -Path $Path
     foreach ($rule in $ForbiddenPathRules) {
         if ($normalized -match $rule.Pattern) {
-            throw "$(U '\u7981\u6b62\u6587\u4ef6\u626b\u63cf\u5931\u8d25\uff1a')$Source$(U ' \u5305\u542b ')$Path$(U '\uff0c\u547d\u4e2d\u89c4\u5219\uff1a')$($rule.Name)"
+            throw "$(U '禁止文件扫描失败：')$Source$(U ' 包含 ')$Path$(U '，命中规则：')$($rule.Name)"
         }
     }
 }
@@ -339,13 +339,13 @@ function Get-TarEntries {
 
     $tar = Get-Command tar -ErrorAction SilentlyContinue
     if ($null -eq $tar) {
-        throw "$(U '\u65e0\u6cd5\u626b\u63cf tar/tar.gz\uff0c\u56e0\u4e3a\u672a\u627e\u5230 tar \u547d\u4ee4\u3002\u8def\u5f84\uff1a')$Path"
+        throw "$(U '无法扫描 tar/tar.gz，因为未找到 tar 命令。路径：')$Path"
     }
 
     $entries = & $tar.Source -tf $Path
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
     if ($exitCode -ne 0) {
-        throw "$(U 'tar \u5217\u8868\u5931\u8d25\uff0c\u9000\u51fa\u7801\uff1a')$exitCode$(U '\uff0c\u8def\u5f84\uff1a')$Path"
+        throw "$(U 'tar 列表失败，退出码：')$exitCode$(U '，路径：')$Path"
     }
     return @($entries)
 }
@@ -375,11 +375,11 @@ function Invoke-ForbiddenScan {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '\u626b\u63cf\u8def\u5f84\u4e0d\u5b58\u5728\uff1a')$Path"
+        throw "$(U '扫描路径不存在：')$Path"
     }
 
     $resolved = (Resolve-Path -LiteralPath $Path).Path
-    Write-Host "$(U '\u626b\u63cf\u7981\u6b62\u6587\u4ef6\uff1a')$resolved"
+    Write-Host "$(U '扫描禁止文件：')$resolved"
 
     if (Test-Path -LiteralPath $resolved -PathType Container) {
         foreach ($item in Get-ChildItem -LiteralPath $resolved -Recurse -Force) {
@@ -407,22 +407,22 @@ function Invoke-ForbiddenScan {
     Test-ForbiddenEntryPath -Path (Split-Path -Leaf $resolved) -Source $resolved
 }
 
-Write-Host (U 'Release manifest \u6821\u9a8c')
-Write-Host "$(U 'Release \u5951\u7ea6\u76ee\u5f55\uff1a')$ReleaseContractsDir"
+Write-Host (U 'Release manifest 校验')
+Write-Host "$(U 'Release 契约目录：')$ReleaseContractsDir"
 
-Write-Section (U 'Schema \u6587\u4ef6\u68c0\u67e5')
+Write-Section (U 'Schema 文件检查')
 foreach ($schemaName in $RequiredSchemas.Keys) {
     $schemaPath = Join-Path $ReleaseContractsDir $schemaName
     $schema = Read-JsonFile -Path $schemaPath
     $manifestKind = Get-JsonPropertyValue -Object (Get-JsonPropertyValue -Object $schema -Name 'properties') -Name 'manifestKind'
     $constValue = Get-JsonPropertyValue -Object $manifestKind -Name 'const'
     if ($constValue -ne $RequiredSchemas[$schemaName]) {
-        throw "$schemaName$(U ' manifestKind const \u5fc5\u987b\u662f ')$($RequiredSchemas[$schemaName])$(U '\uff0c\u5b9e\u9645\uff1a')$constValue"
+        throw "$schemaName$(U ' manifestKind const 必须是 ')$($RequiredSchemas[$schemaName])$(U '，实际：')$constValue"
     }
-    Write-Host "$(U '\u901a\u8fc7\uff1a')$schemaName"
+    Write-Host "$(U '通过：')$schemaName"
 }
 
-Write-Section (U 'Manifest \u5b9e\u4f8b\u68c0\u67e5')
+Write-Section (U 'Manifest 实例检查')
 $manifestInputs = @(
     @{ Path = $BackendNativeManifestPath; Kind = 'backend-native' },
     @{ Path = $ReleaseManifestPath; Kind = 'release' },
@@ -439,12 +439,12 @@ foreach ($input in $manifestInputs) {
 }
 
 if ($checkedManifestCount -eq 0) {
-    Write-Host (U '\u672a\u4f20\u5165 manifest \u5b9e\u4f8b\uff0c\u8df3\u8fc7\u5b9e\u4f8b\u5b57\u6bb5\u68c0\u67e5\u3002')
+    Write-Host (U '未传入 manifest 实例，跳过实例字段检查。')
 }
 
-Write-Section (U '\u7981\u6b62\u6587\u4ef6\u626b\u63cf')
+Write-Section (U '禁止文件扫描')
 if ($ScanPath.Count -eq 0) {
-    Write-Host (U '\u672a\u4f20\u5165\u626b\u63cf\u8def\u5f84\uff0c\u8df3\u8fc7\u7981\u6b62\u6587\u4ef6\u626b\u63cf\u3002')
+    Write-Host (U '未传入扫描路径，跳过禁止文件扫描。')
 }
 else {
     foreach ($path in $ScanPath) {
@@ -452,5 +452,5 @@ else {
     }
 }
 
-Write-Section (U 'Release manifest \u6821\u9a8c\u5b8c\u6210')
-Write-Host (U '\u5168\u90e8\u68c0\u67e5\u901a\u8fc7\u3002')
+Write-Section (U 'Release manifest 校验完成')
+Write-Host (U '全部检查通过。')

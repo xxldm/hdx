@@ -1,4 +1,4 @@
-param(
+﻿param(
     [ValidateSet('changed', 'all', 'backend', 'web', 'desktop', 'docs')]
     [string]$Scope = 'changed',
     [switch]$SkipBackend,
@@ -46,8 +46,8 @@ function Invoke-Step {
     )
 
     Write-Section $Title
-    Write-Host "$(U '\u76ee\u5f55\uff1a')$WorkingDirectory"
-    Write-Host "$(U '\u547d\u4ee4\uff1a')$(Format-CommandLine -Command $Command -Arguments $Arguments)"
+    Write-Host "$(U '目录：')$WorkingDirectory"
+    Write-Host "$(U '命令：')$(Format-CommandLine -Command $Command -Arguments $Arguments)"
 
     $previous = @{}
     foreach ($name in $Environment.Keys) {
@@ -61,7 +61,7 @@ function Invoke-Step {
         & $Command @Arguments
         $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
         if ($exitCode -ne 0) {
-            throw "$(U '\u547d\u4ee4\u5931\u8d25\uff0c\u9000\u51fa\u7801\uff1a')$exitCode"
+            throw "$(U '命令失败，退出码：')$exitCode"
         }
     }
     finally {
@@ -72,7 +72,7 @@ function Invoke-Step {
     }
 
     $elapsed = (Get-Date) - $startedAt
-    Write-Host ([string]::Format((U '\u901a\u8fc7\uff1a{0:N1}s'), $elapsed.TotalSeconds))
+    Write-Host ([string]::Format((U '通过：{0:N1}s'), $elapsed.TotalSeconds))
 }
 
 function Invoke-Git {
@@ -83,9 +83,40 @@ function Invoke-Git {
     $output = & git -C $WorkingDirectory @Arguments
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
     if ($exitCode -ne 0) {
-        throw "$(U '\u0047\u0069\u0074\u0020\u547d\u4ee4\u5931\u8d25\uff1a')git -C $WorkingDirectory $($Arguments -join ' ')"
+        throw "$(U 'Git 命令失败：')git -C $WorkingDirectory $($Arguments -join ' ')"
     }
     return @($output)
+}
+
+function Get-TrackedPowerShellScripts {
+    $relativePaths = Invoke-Git -WorkingDirectory $RepoRoot -Arguments @('ls-files', '--', '*.ps1', 'scripts/*.ps1')
+    return @($relativePaths | Where-Object { -not [string]::IsNullOrWhiteSpace($_) })
+}
+
+function Assert-PowerShellScriptEncoding {
+    Write-Section (U 'PowerShell 脚本编码检查')
+
+    $utf8Strict = [System.Text.UTF8Encoding]::new($false, $true)
+    $scripts = Get-TrackedPowerShellScripts
+    foreach ($relativePath in $scripts) {
+        $fullPath = Join-Path $RepoRoot $relativePath
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            throw "$(U '缺少 PowerShell 脚本：')$relativePath"
+        }
+
+        $bytes = [System.IO.File]::ReadAllBytes($fullPath)
+        $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+        if (-not $hasBom) {
+            throw "$(U 'PowerShell 脚本必须使用 UTF-8 with BOM：')$relativePath"
+        }
+
+        $content = [System.IO.File]::ReadAllText($fullPath, $utf8Strict)
+        if ($content -match '\\u[0-9a-fA-F]{4}') {
+            throw "$(U 'PowerShell 脚本不应保留 Unicode 转义中文：')$relativePath"
+        }
+    }
+
+    Write-Host (U '通过：PowerShell 脚本均为 UTF-8 with BOM，且未保留 Unicode 转义中文。')
 }
 
 function Get-GitStatusPaths {
@@ -140,30 +171,30 @@ function Get-PnpmCommand {
         return $pnpmCommand.Source
     }
 
-    throw (U '\u672a\u627e\u5230\u0020pnpm\u3002\u8bf7\u5148\u5b89\u88c5\u0020pnpm\uff0c\u6216\u786e\u8ba4\u0020apps/web\u0020\u6216\u0020apps/desktop\u0020\u7684\u672c\u5730\u0020Node\u0020\u73af\u5883\u53ef\u7528\u3002')
+    throw (U '未找到 pnpm。请先安装 pnpm，或确认 apps/web 或 apps/desktop 的本地 Node 环境可用。')
 }
 
 function Assert-Tooling {
     $javaPath = Join-Path $JavaHome 'bin/java.exe'
     if (-not (Test-Path -LiteralPath $javaPath)) {
-        throw "$(U '\u672a\u627e\u5230\u0020GraalVM JDK 25\uff1a')$JavaHome"
+        throw "$(U '未找到 GraalVM JDK 25：')$JavaHome"
     }
     if (-not (Test-Path -LiteralPath $MavenPath)) {
-        throw "$(U '\u672a\u627e\u5230\u0020Maven\uff1a')$MavenPath"
+        throw "$(U '未找到 Maven：')$MavenPath"
     }
     if (-not (Test-Path -LiteralPath $BackendRoot)) {
-        throw "$(U '\u672a\u627e\u5230\u540e\u7aef\u76ee\u5f55\uff1a')$BackendRoot"
+        throw "$(U '未找到后端目录：')$BackendRoot"
     }
     if (-not (Test-Path -LiteralPath $WebRoot)) {
-        throw "$(U '\u672a\u627e\u5230\u0020Web\u0020\u76ee\u5f55\uff1a')$WebRoot"
+        throw "$(U '未找到 Web 目录：')$WebRoot"
     }
     if (-not (Test-Path -LiteralPath $DesktopRoot)) {
-        throw "$(U '\u672a\u627e\u5230\u0020Desktop\u0020\u76ee\u5f55\uff1a')$DesktopRoot"
+        throw "$(U '未找到 Desktop 目录：')$DesktopRoot"
     }
 }
 
 function Invoke-DocChecks {
-    Write-Section (U '\u6587\u6863\u4e0e\u6839\u4ed3\u5e93\u68c0\u67e5')
+    Write-Section (U '文档与根仓库检查')
     $docFiles = @(
         'AGENTS.md',
         'README.md',
@@ -177,20 +208,22 @@ function Invoke-DocChecks {
     foreach ($relativePath in $docFiles) {
         $path = Join-Path $RepoRoot $relativePath
         if (-not (Test-Path -LiteralPath $path)) {
-            throw "$(U '\u7f3a\u5c11\u6587\u6863\uff1a')$relativePath"
+            throw "$(U '缺少文档：')$relativePath"
         }
         Get-Content -LiteralPath $path -Encoding UTF8 | Out-Null
     }
-    Write-Host (U '\u901a\u8fc7\uff1a\u5173\u952e\u6587\u6863\u53ef\u6309\u0020UTF-8\u0020\u8bfb\u53d6\u3002')
+    Write-Host (U '通过：关键文档可按 UTF-8 读取。')
+
+    Assert-PowerShellScriptEncoding
 
     Invoke-Step `
-        -Title (U '\u6839\u4ed3\u5e93\u7a7a\u767d\u68c0\u67e5') `
+        -Title (U '根仓库空白检查') `
         -WorkingDirectory $RepoRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
 
     Invoke-Step `
-        -Title (U '\u0052\u0065\u006c\u0065\u0061\u0073\u0065\u0020manifest\u0020\u6821\u9a8c') `
+        -Title (U 'Release manifest 校验') `
         -WorkingDirectory $RepoRoot `
         -Command 'powershell' `
         -Arguments @(
@@ -202,7 +235,7 @@ function Invoke-DocChecks {
         )
 
     Invoke-Step `
-        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u5951\u7ea6\u68c0\u67e5') `
+        -Title (U 'OpenAPI 契约检查') `
         -WorkingDirectory $RepoRoot `
         -Command 'powershell' `
         -Arguments @(
@@ -214,7 +247,7 @@ function Invoke-DocChecks {
         )
 
     Invoke-Step `
-        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u751f\u6210\u68c0\u67e5') `
+        -Title (U 'OpenAPI TypeScript 类型生成检查') `
         -WorkingDirectory $RepoRoot `
         -Command 'powershell' `
         -Arguments @(
@@ -227,7 +260,7 @@ function Invoke-DocChecks {
         )
 
     Invoke-Step `
-        -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u4e0e\u0020Web\u0020\u7c7b\u578b\u5bf9\u9f50\u68c0\u67e5') `
+        -Title (U 'OpenAPI 与 Web 类型对齐检查') `
         -WorkingDirectory $RepoRoot `
         -Command 'powershell' `
         -Arguments @(
@@ -241,7 +274,7 @@ function Invoke-DocChecks {
 
 function Invoke-BackendChecks {
     if ($SkipBackend) {
-        Write-Host (U '\u8df3\u8fc7\uff1a\u540e\u7aef\u68c0\u67e5\u5df2\u88ab\u0020-SkipBackend\u0020\u7981\u7528\u3002')
+        Write-Host (U '跳过：后端检查已被 -SkipBackend 禁用。')
         return
     }
 
@@ -251,14 +284,14 @@ function Invoke-BackendChecks {
     }
 
     Invoke-Step `
-        -Title (U '\u540e\u7aef\u7a7a\u767d\u68c0\u67e5') `
+        -Title (U '后端空白检查') `
         -WorkingDirectory $BackendRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
 
     if ($NoBuild) {
         Invoke-Step `
-            -Title (U '\u540e\u7aef\u0020Maven\u0020\u73af\u5883\u68c0\u67e5') `
+            -Title (U '后端 Maven 环境检查') `
             -WorkingDirectory $BackendRoot `
             -Command $MavenPath `
             -Arguments @('-version') `
@@ -267,7 +300,7 @@ function Invoke-BackendChecks {
     }
 
     Invoke-Step `
-        -Title (U '\u540e\u7aef\u6d4b\u8bd5') `
+        -Title (U '后端测试') `
         -WorkingDirectory $BackendRoot `
         -Command $MavenPath `
         -Arguments @('test') `
@@ -276,43 +309,43 @@ function Invoke-BackendChecks {
 
 function Invoke-WebChecks {
     if ($SkipWeb) {
-        Write-Host (U '\u8df3\u8fc7\uff1aWeb\u0020\u68c0\u67e5\u5df2\u88ab\u0020-SkipWeb\u0020\u7981\u7528\u3002')
+        Write-Host (U '跳过：Web 检查已被 -SkipWeb 禁用。')
         return
     }
 
     $pnpm = Get-PnpmCommand
 
     Invoke-Step `
-        -Title (U '\u0057\u0065\u0062\u0020\u7a7a\u767d\u68c0\u67e5') `
+        -Title (U 'Web 空白检查') `
         -WorkingDirectory $WebRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
 
     Invoke-Step `
-        -Title (U '\u0057\u0065\u0062\u0020\u5355\u5143\u6d4b\u8bd5') `
+        -Title (U 'Web 单元测试') `
         -WorkingDirectory $WebRoot `
         -Command $pnpm `
         -Arguments @('test')
 
     Invoke-Step `
-        -Title (U '\u0057\u0065\u0062\u0020\u7c7b\u578b\u68c0\u67e5') `
+        -Title (U 'Web 类型检查') `
         -WorkingDirectory $WebRoot `
         -Command $pnpm `
         -Arguments @('typecheck')
 
     Invoke-Step `
-        -Title (U '\u0057\u0065\u0062\u0020lint') `
+        -Title (U 'Web lint') `
         -WorkingDirectory $WebRoot `
         -Command $pnpm `
         -Arguments @('lint')
 
     if ($NoBuild) {
-        Write-Host (U '\u8df3\u8fc7\uff1a-NoBuild\u0020\u5df2\u8df3\u8fc7\u0020Web build\u3002')
+        Write-Host (U '跳过：-NoBuild 已跳过 Web build。')
         return
     }
 
     Invoke-Step `
-        -Title (U '\u0057\u0065\u0062\u0020build') `
+        -Title (U 'Web build') `
         -WorkingDirectory $WebRoot `
         -Command $pnpm `
         -Arguments @('build')
@@ -345,7 +378,7 @@ function Assert-DesktopStaticFiles {
     foreach ($relativePath in $requiredFiles) {
         $path = Join-Path $DesktopRoot $relativePath
         if (-not (Test-Path -LiteralPath $path)) {
-            throw "$(U '\u7f3a\u5c11\u0020Desktop\u0020\u9aa8\u67b6\u6587\u4ef6\uff1a')$relativePath"
+            throw "$(U '缺少 Desktop 骨架文件：')$relativePath"
         }
     }
 
@@ -366,85 +399,85 @@ function Assert-DesktopStaticFiles {
     $packageJson = Get-Content -LiteralPath $packageJsonPath -Encoding UTF8 -Raw | ConvertFrom-Json
     foreach ($scriptName in @('dev:local', 'dev:online', 'build:local', 'build:online', 'typecheck')) {
         if ($null -eq $packageJson.scripts.$scriptName) {
-            throw "$(U '\u7f3a\u5c11\u0020Desktop\u0020\u811a\u672c\uff1a')$scriptName"
+            throw "$(U '缺少 Desktop 脚本：')$scriptName"
         }
     }
 
     $cargoToml = Get-Content -LiteralPath (Join-Path $DesktopRoot 'src-tauri/Cargo.toml') -Encoding UTF8 -Raw
     foreach ($requiredText in @('flavor-local', 'flavor-online', 'tauri = { version = "2.11.2"')) {
         if (-not $cargoToml.Contains($requiredText)) {
-            throw "$(U '\u0020Desktop\u0020Cargo\u0020\u914d\u7f6e\u7f3a\u5c11\uff1a')$requiredText"
+            throw "$(U ' Desktop Cargo 配置缺少：')$requiredText"
         }
     }
 
-    Write-Host (U '\u901a\u8fc7\uff1aDesktop\u0020\u9aa8\u67b6\u6587\u4ef6\u548c\u914d\u7f6e\u53ef\u9759\u6001\u8bfb\u53d6\u3002')
+    Write-Host (U '通过：Desktop 骨架文件和配置可静态读取。')
 }
 
 function Invoke-DesktopChecks {
     if ($SkipDesktop) {
-        Write-Host (U '\u8df3\u8fc7\uff1aDesktop\u0020\u68c0\u67e5\u5df2\u88ab\u0020-SkipDesktop\u0020\u7981\u7528\u3002')
+        Write-Host (U '跳过：Desktop 检查已被 -SkipDesktop 禁用。')
         return
     }
 
-    Write-Section (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020\u9759\u6001\u9aa8\u67b6\u68c0\u67e5')
+    Write-Section (U 'Desktop 静态骨架检查')
     Assert-DesktopStaticFiles
 
     Invoke-Step `
-        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020\u7a7a\u767d\u68c0\u67e5') `
+        -Title (U 'Desktop 空白检查') `
         -WorkingDirectory $DesktopRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
 
     if ($NoBuild) {
         Invoke-Step `
-            -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Node\u0020\u73af\u5883\u68c0\u67e5') `
+            -Title (U 'Desktop Node 环境检查') `
             -WorkingDirectory $DesktopRoot `
             -Command 'node' `
             -Arguments @('--version')
 
         $cargo = Get-Command cargo -ErrorAction SilentlyContinue
         if ($null -eq $cargo) {
-            Write-Host (U '\u63d0\u793a\uff1a\u5f53\u524d\u73af\u5883\u672a\u627e\u5230\u0020cargo\uff0c-NoBuild\u0020\u5df2\u8df3\u8fc7\u0020Rust\u0020\u7f16\u8bd1\u68c0\u67e5\u3002')
+            Write-Host (U '提示：当前环境未找到 cargo，-NoBuild 已跳过 Rust 编译检查。')
         }
         else {
-            Write-Host "$(U '\u901a\u8fc7\uff1a\u5df2\u627e\u5230\u0020cargo\uff1a')$($cargo.Source)"
+            Write-Host "$(U '通过：已找到 cargo：')$($cargo.Source)"
         }
         return
     }
 
     $pnpm = Get-PnpmCommand
     Invoke-Step `
-        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020TypeScript\u0020\u68c0\u67e5') `
+        -Title (U 'Desktop TypeScript 检查') `
         -WorkingDirectory $DesktopRoot `
         -Command $pnpm `
         -Arguments @('run', 'typecheck')
 
     $cargo = Get-Command cargo -ErrorAction SilentlyContinue
     if ($null -eq $cargo) {
-        throw (U '\u672a\u627e\u5230\u0020cargo\u3002\u8bf7\u5148\u5b89\u88c5\u0020Rust\u0020\u5de5\u5177\u94fe\uff0c\u6216\u786e\u8ba4\u0020PATH\u0020\u5df2\u751f\u6548\u3002')
+        throw (U '未找到 cargo。请先安装 Rust 工具链，或确认 PATH 已生效。')
     }
 
     Invoke-Step `
-        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Rust\u0020Local\u0020flavor\u0020\u68c0\u67e5') `
+        -Title (U 'Desktop Rust Local flavor 检查') `
         -WorkingDirectory $DesktopRoot `
         -Command $cargo.Source `
         -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-local')
 
     Invoke-Step `
-        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Rust\u0020Online\u0020flavor\u0020\u68c0\u67e5') `
+        -Title (U 'Desktop Rust Online flavor 检查') `
         -WorkingDirectory $DesktopRoot `
         -Command $cargo.Source `
         -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-online')
 }
 
 function Show-GitStatus {
-    Write-Section (U '\u0047\u0069\u0074\u0020\u72b6\u6001')
-    Write-Host (U '\u6839\u4ed3\u5e93\uff1a')
+    Write-Section (U 'Git 状态')
+    Write-Host (U '根仓库：')
     Invoke-Git -WorkingDirectory $RepoRoot -Arguments @('status', '--short', '--branch') | ForEach-Object { Write-Host $_ }
 
     if (Test-Path -LiteralPath $SubmoduleStatusScript) {
         Invoke-Step `
-            -Title (U '\u0047\u0069\u0074\u0020\u5b50\u6a21\u5757\u72b6\u6001\u68c0\u67e5') `
+            -Title (U 'Git 子模块状态检查') `
             -WorkingDirectory $RepoRoot `
             -Command 'powershell' `
             -Arguments @(
@@ -521,11 +554,11 @@ switch ($Scope) {
 
 if (-not $backendChanged -and -not $webChanged -and -not $desktopChanged -and -not $docsChanged) {
     Write-Host ''
-    Write-Host (U 'changed\u0020\u8303\u56f4\u672a\u68c0\u6d4b\u5230\u9700\u8981\u8fd0\u884c\u7684\u6a21\u5757\u9a8c\u8bc1\uff1b\u5df2\u5b8c\u6210\u57fa\u7840\u0020Git\u0020\u72b6\u6001\u68c0\u67e5\u3002')
+    Write-Host (U 'changed 范围未检测到需要运行的模块验证；已完成基础 Git 状态检查。')
     exit 0
 }
 
-Write-Section (U '\u672c\u8f6e\u8d28\u91cf\u95e8\u7981\u8303\u56f4')
+Write-Section (U '本轮质量门禁范围')
 Write-Host "Scope: $Scope"
 Write-Host "Docs: $docsChanged"
 Write-Host "Backend: $backendChanged"
@@ -549,5 +582,5 @@ if ($desktopChanged) {
     Invoke-DesktopChecks
 }
 
-Write-Section (U '\u8d28\u91cf\u95e8\u7981\u5b8c\u6210')
-Write-Host (U '\u5168\u90e8\u68c0\u67e5\u901a\u8fc7\u3002')
+Write-Section (U '质量门禁完成')
+Write-Host (U '全部检查通过。')

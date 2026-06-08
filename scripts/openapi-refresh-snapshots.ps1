@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$AuthGeneratedSpecPath = '',
     [string]$GatewayGeneratedSpecPath = '',
     [string]$SnapshotsDir = ''
@@ -32,14 +32,14 @@ function Assert-JsonFile {
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '\u7f3a\u5c11\u751f\u6210\u7684\u0020OpenAPI\u0020spec\uff1a')$ServiceName $Path$(U '\u3002\u8bf7\u5148\u8fd0\u884c\u540e\u7aef\u0020OpenAPI\u0020\u6d4b\u8bd5\u3002')"
+        throw "$(U '缺少生成的 OpenAPI spec：')$ServiceName $Path$(U '。请先运行后端 OpenAPI 测试。')"
     }
 
     try {
         Get-Content -LiteralPath $Path -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
     }
     catch {
-        throw "$(U '\u004a\u0053\u004f\u004e\u0020\u683c\u5f0f\u65e0\u6548\uff1a')$ServiceName $Path"
+        throw "$(U 'JSON 格式无效：')$ServiceName $Path"
     }
 }
 
@@ -52,11 +52,11 @@ function Copy-Snapshot {
 
     Assert-JsonFile -ServiceName $ServiceName -Path $SourcePath
     Copy-Item -LiteralPath $SourcePath -Destination $DestinationPath -Force
-    Write-Host "$(U '\u5df2\u5237\u65b0\u5feb\u7167\uff1a')$ServiceName $DestinationPath"
+    Write-Host "$(U '已刷新快照：')$ServiceName $DestinationPath"
 }
 
-Write-Host (U '\u5237\u65b0\u0020OpenAPI\u0020\u5feb\u7167')
-Write-Host "$(U '\u5feb\u7167\u76ee\u5f55\uff1a')$SnapshotsDir"
+Write-Host (U '刷新 OpenAPI 快照')
+Write-Host "$(U '快照目录：')$SnapshotsDir"
 
 New-Item -ItemType Directory -Force -Path $SnapshotsDir | Out-Null
 
@@ -70,4 +70,4 @@ Copy-Snapshot `
     -SourcePath $GatewayGeneratedSpecPath `
     -DestinationPath (Join-Path $SnapshotsDir 'gateway.openapi.json')
 
-Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u5feb\u7167\u5237\u65b0\u5b8c\u6210\u3002')
+Write-Host (U 'OpenAPI 快照刷新完成。')

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string[]]$Path = @('.env.local'),
     [switch]$ValidateOnly
 )
@@ -46,7 +46,7 @@ function Import-DotEnvFile {
 
         $match = [System.Text.RegularExpressions.Regex]::Match($line, '^(?<name>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$')
         if (-not $match.Success) {
-            throw "$(U '\u672c\u5730\u73af\u5883\u6587\u4ef6\u683c\u5f0f\u65e0\u6548\uff1a')${DotEnvPath}:$($lineNumber + 1)"
+            throw "$(U '本地环境文件格式无效：')${DotEnvPath}:$($lineNumber + 1)"
         }
 
         $name = $match.Groups['name'].Value
@@ -91,9 +91,9 @@ foreach ($name in $derivedNames) {
 
 if ($ValidateOnly) {
     if ($loadedNames.Count -gt 0) {
-        Write-Host "$(U '\u5df2\u8bfb\u53d6\u672c\u5730\u73af\u5883\u53d8\u91cf\uff1a')$($loadedNames -join ', ')"
+        Write-Host "$(U '已读取本地环境变量：')$($loadedNames -join ', ')"
     }
     else {
-        Write-Host (U '\u672a\u8bfb\u53d6\u5230\u672c\u5730\u73af\u5883\u53d8\u91cf\u3002')
+        Write-Host (U '未读取到本地环境变量。')
     }
 }

@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 )
 
@@ -73,7 +73,7 @@ function Get-SubmodulePointerStatus {
         -WorkingDirectory $RepoRoot
 
     if ($lsFilesResult.ExitCode -ne 0) {
-        throw (U '\u65e0\u6cd5\u8bfb\u53d6\u0020Git\u0020\u7d22\u5f15\u4e2d\u7684\u5b50\u6a21\u5757\u6307\u9488\u3002')
+        throw (U '无法读取 Git 索引中的子模块指针。')
     }
 
     $submodules = @()

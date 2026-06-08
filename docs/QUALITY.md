@@ -13,7 +13,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 常用范围：
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
-- `-Scope docs`：只检查关键文档 UTF-8 读取和根仓库空白错误。
+- `-Scope docs`：检查关键文档 UTF-8 读取、根仓库空白错误、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
 - `-Scope backend`：检查后端子模块并运行 `mvn test`。
 - `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
@@ -56,7 +56,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 - 如果改动 OpenAPI、后端公开路径、Web BFF 契约、`packages/shared/contracts/openapi/expected-paths.json`、`expected-schemas.json` 或 OpenAPI 快照，是否已运行 `scripts/openapi-contract-check.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-refresh-snapshots.ps1` 并提交快照。
 - 如果改动 OpenAPI 快照、`scripts/openapi-generate-types.ps1` 或 `packages/shared/generated/openapi/`，是否已运行 `scripts/openapi-generate-types.ps1 -Check`；如果生成结果预期变化，是否先运行 `scripts/openapi-generate-types.ps1` 并提交生成物。
 - 如果改动 Web Zod schema、OpenAPI 生成类型或 `packages/shared/contracts/openapi/web-type-compatibility.ts`，是否已运行 `scripts/openapi-web-type-check.ps1`，确认 Web 手写类型和 OpenAPI 生成类型仍保持编译期兼容。
-- 如果改动 `packages/shared/contracts/release/*.schema.json`，是否已使用 PowerShell `ConvertFrom-Json` 或等价工具确认 schema 文件是合法 JSON，并检查 ADR 0012 和 release 契约说明仍一致。
+- 如果改动 `packages/shared/contracts/release/*.schema.json`、release manifest 示例或 release 校验脚本，是否已运行 `scripts/release-manifest-check.ps1`，并检查 ADR 0012 和 release 契约说明仍一致。
 
 ## 测试策略
 

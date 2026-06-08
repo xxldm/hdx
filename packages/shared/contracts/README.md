@@ -7,3 +7,4 @@
 ## 子目录
 
 - `openapi/`：OpenAPI 契约检查输入，当前记录 Web/BFF 已依赖的后端公开路径、关键 schema 字段清单和外部入口 spec 快照。
+- `release/`：GitHub Releases 与后端 native 交接使用的发布 manifest JSON Schema，覆盖 `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json`。

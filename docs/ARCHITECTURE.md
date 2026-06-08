@@ -53,7 +53,7 @@ HDX 暂定由以下部分组成：
 
 OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-boundary.md`，OpenAPI TypeScript 类型生成策略见 `docs/adr/0007-openapi-typescript-generation-strategy.md`。当前阶段 OpenAPI spec 按外部入口拆分：`backend-auth-service` 暴露认证中心契约，`backend-gateway` 暴露服务端业务入口契约；`backend-core-service` 和 `backend-all-in-one` 的 `/v3/api-docs` 只作为调试和本机集成参考。当前只从 OpenAPI 快照生成 TypeScript 类型原型，不生成完整 API client，不创建根 pnpm workspace；Web 仍通过 Nuxt server BFF 调用后端，浏览器不得使用生成物直连后端。
 
-`packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
+`packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；`contracts/release/` 已包含 GitHub Releases 产物和后端 native 交接使用的 manifest JSON Schema。这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
 
 Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`。当前 `apps/desktop/` 已进入最小 Tauri + Rust + Vite + TypeScript 骨架；第一阶段平台范围为 Windows + Linux 并列。`apps/desktop` 只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike，不要求 Linux 提供等价能力。
 
@@ -63,7 +63,7 @@ App 第一阶段技术栈与离线路线见 `docs/adr/0009-mobile-native-online-
 
 公开许可与后端私有边界见 `docs/adr/0011-public-license-and-backend-private-boundary.md`。公开主仓库采用 Apache-2.0；`services/backend` 后续维持私有仓库；公开主仓库禁止提交后端源码快照、后端 Spring Boot JAR/WAR、`.class` 文件和后端构建中间产物。后端 release 目标只允许 native executable archive，不发布 JAR/WAR。用户可见的本地完整模式后续统一称为 Full；当前内部模块名 `backend-all-in-one` 暂不在本轮重命名。
 
-GitHub Releases 产物边界见 `docs/adr/0012-github-releases-artifact-boundary.md`。公开主仓库 GitHub Releases 是唯一公开发布入口，但不负责自动部署。每次发布以主仓库 release tag 或 root commit 作为事实源，Web、Desktop、shared/OpenAPI 和后续 App 均使用根仓库锁定的提交或子模块指针，不拉取 `latest`。后端私有仓库 CI 先编译 `backend-full` 与 `backend-services` native archive，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库 release workflow 下载后校验 manifest、sha256、root ref、OpenAPI hash 和禁止文件，再构建 Web、Desktop Online、Desktop Full 和后续 App Online，并统一发布到主仓库 Release。主仓库 Release 可以公开后端 native archive；但主仓库 CI 不 checkout 后端私有源码，Release 不包含源码、JAR/WAR、`.class` 或后端构建中间产物。后端微服务按平台聚合为 `backend-services` 压缩包，微服务粒度保留在包内部；App 不内置后端，只发布 Online 客户端。
+GitHub Releases 产物边界见 `docs/adr/0012-github-releases-artifact-boundary.md`。公开主仓库 GitHub Releases 是唯一公开发布入口，但不负责自动部署。每次发布以主仓库 release tag 或 root commit 作为事实源，Web、Desktop、shared/OpenAPI 和后续 App 均使用根仓库锁定的提交或子模块指针，不拉取 `latest`。后端私有仓库 CI 先编译 `backend-full` 与 `backend-services` native archive，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库 release workflow 下载后校验 manifest、sha256、root ref、OpenAPI hash 和禁止文件，再构建 Web、Desktop Online、Desktop Full 和后续 App Online，并统一发布到主仓库 Release。主仓库 Release 可以公开后端 native archive；但主仓库 CI 不 checkout 后端私有源码，Release 不包含源码、JAR/WAR、`.class` 或后端构建中间产物。后端微服务按平台聚合为 `backend-services` 压缩包，微服务粒度保留在包内部；App 不内置后端，只发布 Online 客户端。`backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema 位于 `packages/shared/contracts/release/`。
 
 ## Web 第一阶段架构
 

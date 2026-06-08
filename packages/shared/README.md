@@ -5,7 +5,7 @@
 ## 当前状态
 
 - 目录已作为共享层事实源占位。
-- 当前包含 OpenAPI schema TypeScript 类型生成物原型，但不包含请求 client、运行时校验器或端侧适配代码。
+- 当前包含 OpenAPI schema TypeScript 类型生成物原型，以及 release manifest JSON Schema；但不包含请求 client、运行时校验器或端侧适配代码。
 - 当前不提供 `package.json`、TypeScript 配置或发布流程。
 
 ## 目录
@@ -35,5 +35,6 @@
 
 - 新增可导入代码前，必须先确认包管理、构建、测试和依赖方向。
 - 新增生成产物前，必须先遵守 `docs/adr/0007-openapi-typescript-generation-strategy.md`，并记录生成命令、输入 OpenAPI spec、提交策略和漂移检查。
+- 修改 `contracts/release/*.schema.json` 前，必须确认其仍符合 `docs/adr/0012-github-releases-artifact-boundary.md` 的发布边界，并至少验证 JSON 可解析。
 - 新增共享常量或类型时，必须说明至少一个真实消费者，以及为什么不留在端内。
 - 如果某项能力只服务单端，应留在对应端内，不进入 shared。

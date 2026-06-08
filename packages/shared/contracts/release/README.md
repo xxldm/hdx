@@ -4,6 +4,23 @@
 
 本目录只定义数据形状和字段语义，不实现 GitHub Actions workflow，也不引入 schema 校验依赖。
 
+本地校验入口：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1
+```
+
+默认只校验本目录下的 schema 文件存在、可解析且 `manifestKind` 与文件职责一致。后续有真实 manifest 或候选发布包时，可以传入参数做轻量字段校验和禁止文件扫描：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1 `
+  -BackendNativeManifestPath path/to/backend-native-manifest.json `
+  -ReleaseManifestPath path/to/release-manifest.json `
+  -BackendBuildPath path/to/backend-build.json `
+  -BackendServicesManifestPath path/to/backend-services-manifest.json `
+  -ScanPath path/to/backend-native-or-services-package
+```
+
 ## 文件职责
 
 - `backend-native-manifest.schema.json`：约束后端私有仓库 CI 上传到 GitHub Actions artifact 的 `backend-native-manifest.json`。
@@ -33,7 +50,7 @@
 
 ## 校验边界
 
-后续 workflow 实现时必须至少校验：
+当前 `scripts/release-manifest-check.ps1` 已覆盖 schema JSON 解析、manifest 核心字段轻量校验和禁止文件扫描原型。后续 workflow 实现时必须至少校验：
 
 - `backend-native-manifest.json` 的 `version`、`root.ref`、`root.commit`、`openapiSnapshotHash` 与主仓库发布上下文一致。
 - `release-manifest.json` 中所有 asset 的 sha256 与真实上传文件一致。
@@ -41,4 +58,4 @@
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制、配置示例和清单文件。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。
 
-本目录当前不包含样例 manifest。后续实现 workflow 或校验脚本时，应补充最小有效样例和无效样例。
+本目录当前不包含样例 manifest。后续实现完整 workflow 或正式 schema 校验时，应补充最小有效样例和无效样例。

@@ -190,6 +190,18 @@ function Invoke-DocChecks {
         -Arguments @('diff', '--check')
 
     Invoke-Step `
+        -Title (U '\u0052\u0065\u006c\u0065\u0061\u0073\u0065\u0020manifest\u0020\u6821\u9a8c') `
+        -WorkingDirectory $RepoRoot `
+        -Command 'powershell' `
+        -Arguments @(
+            '-NoProfile',
+            '-ExecutionPolicy',
+            'Bypass',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/release-manifest-check.ps1')
+        )
+
+    Invoke-Step `
         -Title (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u5951\u7ea6\u68c0\u67e5') `
         -WorkingDirectory $RepoRoot `
         -Command 'powershell' `

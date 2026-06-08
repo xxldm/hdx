@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计和本地 release 校验脚本原型；当前等待确认 GitHub Actions workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
+- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release 校验脚本原型，以及 PowerShell 脚本 UTF-8 with BOM 与中文可读性债务收口；当前等待确认 GitHub Actions workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -126,6 +126,7 @@
 - 第 9 步 GitHub Releases 产物边界已确认：主仓库是唯一公开发布入口；后端私有仓库先编译 native，并只通过 GitHub Actions artifact 临时交接；主仓库 Release 公开 Web、Desktop Online、Desktop Full、后端 `backend-full` 和 `backend-services` 平台聚合包，以及后续 App Online 包；App 不内置后端；发布流程不使用 `latest`。
 - 第 9 步 release manifest schema 已确认：`packages/shared/contracts/release/` 定义 `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema，后续 workflow 必须据此校验发布事实源、commit、OpenAPI hash 和 sha256。
 - 第 9 步本地 release 校验脚本原型已确认：`scripts/release-manifest-check.ps1` 默认校验 release schema 文件，并预留 manifest 实例轻量字段校验和禁止文件扫描参数；docs 质量门禁已接入默认检查。
+- PowerShell 脚本编码债务已收口：Git 跟踪的 `.ps1` 脚本统一使用 UTF-8 with BOM，脚本中的中文输出和错误提示应直接写为可读中文，不再用 `\uXXXX` 转义规避 Windows PowerShell 5.1 编码问题；该规则已纳入 docs 质量门禁。
 
 ## 验收标准
 
@@ -174,6 +175,7 @@
 - 2026-06-08：完成第 9 步 GitHub Releases 产物边界；新增 ADR 0012，记录后端 native 只通过 GitHub Actions artifact 临时交接、主仓库 Release 公开后端 native archive、App Online only 和后端微服务平台聚合压缩包策略。
 - 2026-06-08：完成第 9 步 release manifest schema 设计；新增 `packages/shared/contracts/release/`，记录 4 个发布 manifest 的 JSON Schema 与使用说明。
 - 2026-06-08：完成第 9 步本地 release 校验脚本原型；新增 `scripts/release-manifest-check.ps1` 并接入 docs 质量门禁。
+- 2026-06-08：完成 PowerShell 脚本 UTF-8 with BOM 与中文可读性债务收口；Git 跟踪 `.ps1` 已统一 BOM，`\uXXXX` 中文转义已清理，并纳入 docs 质量门禁。
 
 ## 验证结果
 
@@ -196,6 +198,7 @@
 - 第 9 步 GitHub Releases 产物边界已执行 `rg -n "GitHub Releases|Actions artifact|backend-services|backend-full|latest|App 不内置后端|后端源码" docs README.md`、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 第 9 步 release manifest schema 设计已执行 PowerShell `ConvertFrom-Json` 解析 4 个 schema 文件、`rg -n "backend-native-manifest|release-manifest|backend-build|backend-services-manifest|JSON Schema|latest" packages/shared/contracts/release docs README.md`、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 第 9 步本地 release 校验脚本原型已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1 -ScanPath packages/shared/contracts/release`、临时禁止文件扫描负例、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- PowerShell 编码债务收口已执行 BOM 检查、`\uXXXX` 转义扫描、PowerShell AST 解析检查、`scripts/release-manifest-check.ps1`、`scripts/release-manifest-check.ps1 -ScanPath packages/shared/contracts/release`、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
 ## 剩余风险
 

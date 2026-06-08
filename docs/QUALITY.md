@@ -13,7 +13,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 常用范围：
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
-- `-Scope docs`：检查关键文档 UTF-8 读取、根仓库空白错误、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
+- `-Scope docs`：检查关键文档 UTF-8 读取、PowerShell 脚本 UTF-8 with BOM 与中文可读性、根仓库空白错误、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
 - `-Scope backend`：检查后端子模块并运行 `mvn test`。
 - `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
@@ -29,6 +29,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 脚本约束：
 
 - 脚本只覆盖本地常用质量门禁，不替代远端 CI。
+- 仓库内 Git 跟踪的 `.ps1` 脚本必须使用 UTF-8 with BOM；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文，不使用 `\uXXXX` 形式规避编码问题。
 - 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
 - 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
 - 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/GIT.md` 的权限失败重试规则处理。
@@ -51,6 +52,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 - 如果修改了 `.env.example` 或 `.env.symphony.example`，是否已按模板分组和相邻位置同步对应 `.env.local` 或 `.env.symphony.local` 文件结构；新增项是否已提示用户填写真实值，修改或删除项是否已获得用户同意。
 - 如果存在本地 active 计划，当前状态、checkbox 或状态表、状态记录、验证结果和剩余风险是否已同步。
 - 如果未创建本地计划，是否符合 `docs/plans/README.md` 的豁免条件，且最终回复是否说明变更范围、验证结果和剩余风险。
+- 如果新增或修改 `.ps1` 脚本，是否已保存为 UTF-8 with BOM，且未新增 `\uXXXX` 中文转义。
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。
 - 是否已运行与变更范围相称的 `scripts/quality-gate.ps1` 范围；如未运行，是否说明替代验证和剩余风险。
 - 如果改动 OpenAPI、后端公开路径、Web BFF 契约、`packages/shared/contracts/openapi/expected-paths.json`、`expected-schemas.json` 或 OpenAPI 快照，是否已运行 `scripts/openapi-contract-check.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-refresh-snapshots.ps1` 并提交快照。

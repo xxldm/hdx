@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$WebRoot = '',
     [string]$CompatibilityFile = ''
 )
@@ -31,15 +31,15 @@ function Get-PnpmCommand {
         return $pnpmCommand.Source
     }
 
-    throw (U '\u672a\u627e\u5230\u0020pnpm\u3002\u8bf7\u5148\u5b89\u88c5\u0020pnpm\uff0c\u6216\u786e\u8ba4\u0020apps/web\u0020\u7684\u672c\u5730\u0020Node\u0020\u73af\u5883\u53ef\u7528\u3002')
+    throw (U '未找到 pnpm。请先安装 pnpm，或确认 apps/web 的本地 Node 环境可用。')
 }
 
 if (-not (Test-Path -LiteralPath $WebRoot)) {
-    throw "$(U '\u672a\u627e\u5230\u0020Web\u0020\u76ee\u5f55\uff1a')$WebRoot"
+    throw "$(U '未找到 Web 目录：')$WebRoot"
 }
 
 if (-not (Test-Path -LiteralPath $CompatibilityFile)) {
-    throw "$(U '\u7f3a\u5c11\u0020Web\u0020\u5951\u7ea6\u7c7b\u578b\u5bf9\u9f50\u6587\u4ef6\uff1a')$CompatibilityFile"
+    throw "$(U '缺少 Web 契约类型对齐文件：')$CompatibilityFile"
 }
 
 Push-Location $WebRoot
@@ -51,9 +51,9 @@ finally {
 }
 $pnpm = Get-PnpmCommand
 
-Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u4e0e\u0020Web\u0020\u7c7b\u578b\u5bf9\u9f50\u68c0\u67e5')
-Write-Host "$(U '\u0057\u0065\u0062\u0020\u76ee\u5f55\uff1a')$WebRoot"
-Write-Host "$(U '\u5bf9\u9f50\u6587\u4ef6\uff1a')$CompatibilityFile"
+Write-Host (U 'OpenAPI 与 Web 类型对齐检查')
+Write-Host "$(U 'Web 目录：')$WebRoot"
+Write-Host "$(U '对齐文件：')$CompatibilityFile"
 
 Push-Location $WebRoot
 try {
@@ -68,11 +68,11 @@ try {
         $relativeCompatibilityFile
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
     if ($exitCode -ne 0) {
-        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u4e0e\u0020Web\u0020\u7c7b\u578b\u5bf9\u9f50\u68c0\u67e5\u5931\u8d25\uff0c\u9000\u51fa\u7801\uff1a')$exitCode"
+        throw "$(U 'OpenAPI 与 Web 类型对齐检查失败，退出码：')$exitCode"
     }
 }
 finally {
     Pop-Location
 }
 
-Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u4e0e\u0020Web\u0020\u7c7b\u578b\u5bf9\u9f50\u68c0\u67e5\u901a\u8fc7\u3002')
+Write-Host (U 'OpenAPI 与 Web 类型对齐检查通过。')

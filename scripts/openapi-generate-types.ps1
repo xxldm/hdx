@@ -1,4 +1,4 @@
-param(
+﻿param(
     [string]$SnapshotsDir = '',
     [string]$OutputDir = '',
     [string]$AuthSpecPath = '',
@@ -35,14 +35,14 @@ function Read-JsonFile {
     param([Parameter(Mandatory = $true)][string]$Path)
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '\u7f3a\u5c11\u6587\u4ef6\uff1a')$Path"
+        throw "$(U '缺少文件：')$Path"
     }
 
     try {
         return Get-Content -LiteralPath $Path -Encoding UTF8 -Raw | ConvertFrom-Json
     }
     catch {
-        throw "$(U '\u004a\u0053\u004f\u004e\u0020\u683c\u5f0f\u65e0\u6548\uff1a')$Path"
+        throw "$(U 'JSON 格式无效：')$Path"
     }
 }
 
@@ -82,7 +82,7 @@ function Assert-TsIdentifier {
     param([Parameter(Mandatory = $true)][string]$Name)
 
     if ($Name -notmatch '^[A-Za-z_$][0-9A-Za-z_$]*$') {
-        throw "$(U '\u4e0d\u652f\u6301\u7684\u0020TypeScript\u0020\u6807\u8bc6\u7b26\uff1a')$Name"
+        throw "$(U '不支持的 TypeScript 标识符：')$Name"
     }
 }
 
@@ -101,7 +101,7 @@ function Get-SchemaNameFromRef {
 
     $prefix = '#/components/schemas/'
     if (-not $Ref.StartsWith($prefix)) {
-        throw "$(U '\u4e0d\u652f\u6301\u7684\u0020OpenAPI\u0020ref\uff1a')$Ref"
+        throw "$(U '不支持的 OpenAPI ref：')$Ref"
     }
 
     $schemaName = $Ref.Substring($prefix.Length)
@@ -173,7 +173,7 @@ function Convert-EnumToTsType {
             $values.Add(([string]$item))
         }
         else {
-            throw "$(U '\u4e0d\u652f\u6301\u7684\u0020OpenAPI\u0020enum\u0020\u503c\uff1a')$Context"
+            throw "$(U '不支持的 OpenAPI enum 值：')$Context"
         }
     }
 
@@ -330,7 +330,7 @@ function New-ServiceTypesContent {
 
     $spec = Read-JsonFile -Path $SpecPath
     if ($null -eq $spec.components -or $null -eq $spec.components.schemas) {
-        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020\u6587\u6863\u7f3a\u5c11\u0020components.schemas\uff1a')$SpecPath"
+        throw "$(U 'OpenAPI 文档缺少 components.schemas：')$SpecPath"
     }
 
     $lines = [System.Collections.Generic.List[string]]::new()
@@ -386,12 +386,12 @@ function Assert-GeneratedFileMatches {
     )
 
     if (-not (Test-Path -LiteralPath $Path)) {
-        throw "$(U '\u7f3a\u5c11\u751f\u6210\u7684\u0020TypeScript\u0020\u7c7b\u578b\u6587\u4ef6\uff1a')$Path"
+        throw "$(U '缺少生成的 TypeScript 类型文件：')$Path"
     }
 
     $actual = Read-TextFile -Path $Path
     if ((Normalize-NewLines -Text $actual) -ne (Normalize-NewLines -Text $Expected)) {
-        throw "$(U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u5df2\u6f02\u79fb\uff1a')$Path$(U '\u3002\u8bf7\u8fd0\u884c\u0020scripts/openapi-generate-types.ps1\u0020\u5e76\u63d0\u4ea4\u751f\u6210\u7269\u3002')"
+        throw "$(U 'OpenAPI TypeScript 类型已漂移：')$Path$(U '。请运行 scripts/openapi-generate-types.ps1 并提交生成物。')"
     }
 }
 
@@ -406,9 +406,9 @@ $specInputs = [ordered]@{
     }
 }
 
-Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u751f\u6210')
-Write-Host "$(U '\u5feb\u7167\u76ee\u5f55\uff1a')$SnapshotsDir"
-Write-Host "$(U '\u8f93\u51fa\u76ee\u5f55\uff1a')$OutputDir"
+Write-Host (U 'OpenAPI TypeScript 类型生成')
+Write-Host "$(U '快照目录：')$SnapshotsDir"
+Write-Host "$(U '输出目录：')$OutputDir"
 
 $generatedFiles = [ordered]@{}
 foreach ($serviceName in $specInputs.Keys) {
@@ -419,7 +419,7 @@ $generatedFiles['index.ts'] = New-IndexTypesContent
 
 if ($Check) {
     if (-not (Test-Path -LiteralPath $OutputDir)) {
-        throw "$(U '\u7f3a\u5c11\u751f\u6210\u7c7b\u578b\u76ee\u5f55\uff1a')$OutputDir"
+        throw "$(U '缺少生成类型目录：')$OutputDir"
     }
 
     $expectedNames = [System.Collections.Generic.HashSet[string]]::new()
@@ -430,11 +430,11 @@ if ($Check) {
 
     foreach ($existingFile in @(Get-ChildItem -LiteralPath $OutputDir -Filter '*.ts' -File)) {
         if (-not $expectedNames.Contains($existingFile.Name)) {
-            throw "$(U '\u68c0\u6d4b\u5230\u672a\u9884\u671f\u7684\u751f\u6210\u7c7b\u578b\u6587\u4ef6\uff1a')$($existingFile.FullName)"
+            throw "$(U '检测到未预期的生成类型文件：')$($existingFile.FullName)"
         }
     }
 
-    Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u751f\u6210\u68c0\u67e5\u901a\u8fc7\u3002')
+    Write-Host (U 'OpenAPI TypeScript 类型生成检查通过。')
     exit 0
 }
 
@@ -445,7 +445,7 @@ if (-not (Test-Path -LiteralPath $OutputDir)) {
 foreach ($fileName in $generatedFiles.Keys) {
     $path = Join-Path $OutputDir $fileName
     Write-TextFile -Path $path -Content $generatedFiles[$fileName]
-    Write-Host "$(U '\u5df2\u751f\u6210\uff1a')$path"
+    Write-Host "$(U '已生成：')$path"
 }
 
-Write-Host (U '\u004f\u0070\u0065\u006e\u0041\u0050\u0049\u0020TypeScript\u0020\u7c7b\u578b\u751f\u6210\u5b8c\u6210\u3002')
+Write-Host (U 'OpenAPI TypeScript 类型生成完成。')

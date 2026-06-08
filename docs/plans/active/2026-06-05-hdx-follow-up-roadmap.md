@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 8 步缓存、对象存储与队列基础设施边界已完成；当前等待确认第 9 步部署、发布与环境管理或其他后续小步。
+- 当前状态：第 9 步发布与环境管理的第一小步“公开许可与后端私有边界”已完成；当前等待确认 GitHub Releases CI、native 发布包或其他后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -121,6 +121,7 @@
 - 第 8 步基础设施边界已确认：对象存储使用 S3-compatible 核心子集，默认本地/私有化候选 RustFS，后续可切云端 OSS/COS/OBS/S3。
 - 第 8 步基础设施边界已确认：服务端/云端队列默认 RabbitMQ；业务代码通过端口、transactional outbox、消息 envelope 和幂等 consumer 隔离。
 - 第 8 步基础设施边界已确认：Redis 是服务端基础设施；Desktop all-in-one 不内置 Redis/RabbitMQ，服务端反滥用能力默认禁用或 no-op，本地异步任务使用 H2 outbox + local worker。
+- 第 9 步发布与环境管理的第一小步已确认：公开主仓库采用 Apache-2.0；后端仓库维持私有；公开主仓库禁止提交后端源码、JAR/WAR 和 `.class` 构建产物；后端 release 目标为 native executable archive。
 
 ## 验收标准
 
@@ -164,6 +165,7 @@
 - 2026-06-08：完成第 7 步 App 技术栈；新增 ADR 0009，并归档 `docs/plans/completed/2026-06-08-app-technology-stack.md`，记录 Android 原生、HarmonyOS NEXT 原生、Online only first 和离线缓存/草稿两阶段。
 - 2026-06-08：按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；ADR 0008 文件名和正文修订为 Windows/Linux 双平台 Local/Online 安装包，Windows-only wallpaper mode 边界不变。
 - 2026-06-08：完成第 8 步缓存、对象存储与队列基础设施边界；新增 ADR 0010，记录 RustFS/S3-compatible、RabbitMQ、Redis 服务端用途和 all-in-one H2 outbox + local worker 降级策略。
+- 2026-06-08：完成第 9 步第一小步“公开许可与后端私有边界”；新增 ADR 0011，记录公开主仓库 Apache-2.0、后端私有、后端不发布 JAR/WAR、用户可见本地完整模式后续称 Full。
 
 ## 验证结果
 
@@ -181,6 +183,7 @@
 - 第 6 步 Desktop Tauri 骨架已执行 `pnpm install`、`pnpm run typecheck`、`pnpm run build:web`、`pnpm exec tauri --version`、`pnpm exec tauri dev --help`、`pnpm exec tauri build --help`、`pnpm exec tauri info`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`git -C apps/desktop diff --check` 和 `git diff --check`：骨架静态与前端验证通过。
 - 第 6 步 Desktop Rust 验证已执行 `pnpm exec tauri info`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-local`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`、`pnpm exec tauri permission ls` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop`：均通过。
 - 第 8 步缓存、对象存储与队列基础设施边界已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- 第 9 步第一小步公开许可与后端私有边界已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
 ## 剩余风险
 

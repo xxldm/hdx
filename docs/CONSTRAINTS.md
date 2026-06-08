@@ -23,6 +23,7 @@
 - Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段，Local/Online 通过构建 flavor 和安装包内容区分；详见 `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`。
 - App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI，首版 Online only，第二阶段只规划离线缓存/离线草稿；详见 `docs/adr/0009-mobile-native-online-first.md`。
 - 缓存、对象存储与队列第一阶段已绑定边界：服务端使用 Redis、S3-compatible 对象存储和 RabbitMQ；对象存储默认本地候选 RustFS；Desktop all-in-one 不内置 Redis/RabbitMQ，通过 H2 outbox 和 local worker 降级；详见 `docs/adr/0010-cache-object-storage-queue-boundary.md`。
+- 公开许可与后端私有边界已绑定：公开主仓库采用 Apache-2.0；后端仓库维持私有；公开主仓库禁止提交后端源码、JAR/WAR 和 `.class` 构建产物；详见 `docs/adr/0011-public-license-and-backend-private-boundary.md`。
 - 引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - ADR 至少说明：背景、决策、备选方案、影响范围、验证方式、回滚条件。
 - 默认选择可读、稳定、生态成熟、容易被工具和智能体检查的技术。
@@ -75,6 +76,7 @@
 ## 7. 安全约束
 
 - 密钥、令牌、证书和真实用户数据不得提交到仓库。
+- 后端源码快照、后端 Spring Boot JAR/WAR、`.class` 文件和后端构建中间产物不得提交到公开主仓库。
 - 权限、认证、鉴权、支付、文件上传、远程执行等高风险能力必须先有设计文档。
 - 所有外部输入默认不可信。
 - 错误处理不得把内部堆栈、数据库结构或密钥上下文暴露给终端用户。

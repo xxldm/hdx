@@ -34,7 +34,7 @@
 - 支持显式范围：`all`、`backend`、`web`、`docs`、`changed`。
 - 后端验证入口使用 `services/backend/README.md` 记录的 Maven 路径和 GraalVM JDK 25 路径；当前 Codex shell 不可靠依赖全局 `PATH`。
 - Web 验证入口在 `apps/web/` 下执行 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm build`。
-- 子模块状态检查不依赖 `git submodule status`，因为当前 Git for Windows 环境中该命令曾因缺少 `basename`、`sed` 和 `git-sh-setup` 失败；改用 `git -C <submodule> status --short --branch`。
+- 子模块状态检查通过 `scripts/git-submodule-status.ps1` 包装：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境因缺少 `basename`、`sed` 或 `git-sh-setup` 失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；子仓库工作区状态仍用 `git -C <submodule> status --short --branch` 展示。
 - Git 写操作、Maven/Node 构建类命令仍遵守 `docs/GIT.md` 的权限失败重试规则。
 
 ## 本地任务清单
@@ -67,7 +67,8 @@
 
 - 2026-06-07：用户确认进入“自动化质量门禁”切片；创建本地计划，开始实现最小 PowerShell 脚本入口。
 - 2026-06-07：新增 `scripts/quality-gate.ps1`，首版脚本改为 ASCII 源码加运行时 Unicode 解码，避免 Windows PowerShell 5.1 在非 UTF-8 解析脚本中文字符串时出现 parser error。
-- 2026-06-07：`git submodule status` 在当前环境曾因缺少 Unix 辅助命令失败，本脚本已改为分别读取根仓库、`services/backend` 和 `apps/web` 的 `git status --short --branch`。
+- 2026-06-07：`git submodule status` 在当前环境曾因缺少 Unix 辅助命令失败，本脚本当时改为分别读取根仓库、`services/backend` 和 `apps/web` 的 `git status --short --branch`。
+- 2026-06-08：新增 `scripts/git-submodule-status.ps1`，让质量门禁可重新执行子模块状态检查；直接 `git submodule status` 失败时自动使用 Git Bash fallback 或 `git ls-files -s` 指针检查，避免检查误失败。
 - 2026-06-07：创建并推送根仓库提交 `3a18291 功能：添加本地质量门禁脚本`。
 
 ## 验证结果

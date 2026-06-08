@@ -1,8 +1,9 @@
 param(
-    [ValidateSet('changed', 'all', 'backend', 'web', 'docs')]
+    [ValidateSet('changed', 'all', 'backend', 'web', 'desktop', 'docs')]
     [string]$Scope = 'changed',
     [switch]$SkipBackend,
     [switch]$SkipWeb,
+    [switch]$SkipDesktop,
     [switch]$NoBuild,
     [string]$JavaHome = 'D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1',
     [string]$MavenPath = 'D:\JetBrains\.m2\apache-maven-3.8.8\bin\mvn.cmd'
@@ -18,6 +19,7 @@ function U {
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BackendRoot = Join-Path $RepoRoot 'services/backend'
 $WebRoot = Join-Path $RepoRoot 'apps/web'
+$DesktopRoot = Join-Path $RepoRoot 'apps/desktop'
 
 function Write-Section {
     param([Parameter(Mandatory = $true)][string]$Title)
@@ -137,7 +139,7 @@ function Get-PnpmCommand {
         return $pnpmCommand.Source
     }
 
-    throw (U '\u672a\u627e\u5230\u0020pnpm\u3002\u8bf7\u5148\u5b89\u88c5\u0020pnpm\uff0c\u6216\u786e\u8ba4\u0020apps/web\u0020\u7684\u672c\u5730\u0020Node\u0020\u73af\u5883\u53ef\u7528\u3002')
+    throw (U '\u672a\u627e\u5230\u0020pnpm\u3002\u8bf7\u5148\u5b89\u88c5\u0020pnpm\uff0c\u6216\u786e\u8ba4\u0020apps/web\u0020\u6216\u0020apps/desktop\u0020\u7684\u672c\u5730\u0020Node\u0020\u73af\u5883\u53ef\u7528\u3002')
 }
 
 function Assert-Tooling {
@@ -153,6 +155,9 @@ function Assert-Tooling {
     }
     if (-not (Test-Path -LiteralPath $WebRoot)) {
         throw "$(U '\u672a\u627e\u5230\u0020Web\u0020\u76ee\u5f55\uff1a')$WebRoot"
+    }
+    if (-not (Test-Path -LiteralPath $DesktopRoot)) {
+        throw "$(U '\u672a\u627e\u5230\u0020Desktop\u0020\u76ee\u5f55\uff1a')$DesktopRoot"
     }
 }
 
@@ -300,6 +305,123 @@ function Invoke-WebChecks {
         -Arguments @('build')
 }
 
+function Assert-DesktopStaticFiles {
+    $requiredFiles = @(
+        'package.json',
+        'tsconfig.json',
+        'vite.config.ts',
+        'index.html',
+        'src/main.ts',
+        'src/styles.css',
+        'src-tauri/Cargo.toml',
+        'src-tauri/build.rs',
+        'src-tauri/tauri.conf.json',
+        'src-tauri/tauri.local.conf.json',
+        'src-tauri/tauri.online.conf.json',
+        'src-tauri/capabilities/default.json',
+        'src-tauri/permissions/desktop-status.toml',
+        'src-tauri/src/main.rs',
+        'src-tauri/src/lib.rs',
+        'src-tauri/src/flavor.rs',
+        'src-tauri/src/capabilities.rs',
+        'src-tauri/src/commands.rs'
+    )
+
+    foreach ($relativePath in $requiredFiles) {
+        $path = Join-Path $DesktopRoot $relativePath
+        if (-not (Test-Path -LiteralPath $path)) {
+            throw "$(U '\u7f3a\u5c11\u0020Desktop\u0020\u9aa8\u67b6\u6587\u4ef6\uff1a')$relativePath"
+        }
+    }
+
+    $jsonFiles = @(
+        'package.json',
+        'tsconfig.json',
+        'src-tauri/tauri.conf.json',
+        'src-tauri/tauri.local.conf.json',
+        'src-tauri/tauri.online.conf.json',
+        'src-tauri/capabilities/default.json'
+    )
+    foreach ($relativePath in $jsonFiles) {
+        $path = Join-Path $DesktopRoot $relativePath
+        Get-Content -LiteralPath $path -Encoding UTF8 -Raw | ConvertFrom-Json | Out-Null
+    }
+
+    $packageJsonPath = Join-Path $DesktopRoot 'package.json'
+    $packageJson = Get-Content -LiteralPath $packageJsonPath -Encoding UTF8 -Raw | ConvertFrom-Json
+    foreach ($scriptName in @('dev:local', 'dev:online', 'build:local', 'build:online', 'typecheck')) {
+        if ($null -eq $packageJson.scripts.$scriptName) {
+            throw "$(U '\u7f3a\u5c11\u0020Desktop\u0020\u811a\u672c\uff1a')$scriptName"
+        }
+    }
+
+    $cargoToml = Get-Content -LiteralPath (Join-Path $DesktopRoot 'src-tauri/Cargo.toml') -Encoding UTF8 -Raw
+    foreach ($requiredText in @('flavor-local', 'flavor-online', 'tauri = { version = "2.11.2"')) {
+        if (-not $cargoToml.Contains($requiredText)) {
+            throw "$(U '\u0020Desktop\u0020Cargo\u0020\u914d\u7f6e\u7f3a\u5c11\uff1a')$requiredText"
+        }
+    }
+
+    Write-Host (U '\u901a\u8fc7\uff1aDesktop\u0020\u9aa8\u67b6\u6587\u4ef6\u548c\u914d\u7f6e\u53ef\u9759\u6001\u8bfb\u53d6\u3002')
+}
+
+function Invoke-DesktopChecks {
+    if ($SkipDesktop) {
+        Write-Host (U '\u8df3\u8fc7\uff1aDesktop\u0020\u68c0\u67e5\u5df2\u88ab\u0020-SkipDesktop\u0020\u7981\u7528\u3002')
+        return
+    }
+
+    Write-Section (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020\u9759\u6001\u9aa8\u67b6\u68c0\u67e5')
+    Assert-DesktopStaticFiles
+
+    Invoke-Step `
+        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020\u7a7a\u767d\u68c0\u67e5') `
+        -WorkingDirectory $DesktopRoot `
+        -Command 'git' `
+        -Arguments @('diff', '--check')
+
+    if ($NoBuild) {
+        Invoke-Step `
+            -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Node\u0020\u73af\u5883\u68c0\u67e5') `
+            -WorkingDirectory $DesktopRoot `
+            -Command 'node' `
+            -Arguments @('--version')
+
+        $cargo = Get-Command cargo -ErrorAction SilentlyContinue
+        if ($null -eq $cargo) {
+            Write-Host (U '\u63d0\u793a\uff1a\u5f53\u524d\u73af\u5883\u672a\u627e\u5230\u0020cargo\uff0c-NoBuild\u0020\u5df2\u8df3\u8fc7\u0020Rust\u0020\u7f16\u8bd1\u68c0\u67e5\u3002')
+        }
+        else {
+            Write-Host "$(U '\u901a\u8fc7\uff1a\u5df2\u627e\u5230\u0020cargo\uff1a')$($cargo.Source)"
+        }
+        return
+    }
+
+    $pnpm = Get-PnpmCommand
+    Invoke-Step `
+        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020TypeScript\u0020\u68c0\u67e5') `
+        -WorkingDirectory $DesktopRoot `
+        -Command $pnpm `
+        -Arguments @('run', 'typecheck')
+
+    $cargo = Get-Command cargo -ErrorAction SilentlyContinue
+    if ($null -eq $cargo) {
+        throw (U '\u672a\u627e\u5230\u0020cargo\u3002\u8bf7\u5148\u5b89\u88c5\u0020Rust\u0020\u5de5\u5177\u94fe\uff0c\u6216\u786e\u8ba4\u0020PATH\u0020\u5df2\u751f\u6548\u3002')
+    }
+
+    Invoke-Step `
+        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Rust\u0020Local\u0020flavor\u0020\u68c0\u67e5') `
+        -WorkingDirectory $DesktopRoot `
+        -Command $cargo.Source `
+        -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-local')
+
+    Invoke-Step `
+        -Title (U '\u0044\u0065\u0073\u006b\u0074\u006f\u0070\u0020Rust\u0020Online\u0020flavor\u0020\u68c0\u67e5') `
+        -WorkingDirectory $DesktopRoot `
+        -Command $cargo.Source `
+        -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-online')
+}
+
 function Show-GitStatus {
     Write-Section (U '\u0047\u0069\u0074\u0020\u72b6\u6001')
     Write-Host (U '\u6839\u4ed3\u5e93\uff1a')
@@ -314,6 +436,11 @@ function Show-GitStatus {
         Write-Host 'apps/web:'
         Invoke-Git -WorkingDirectory $WebRoot -Arguments @('status', '--short', '--branch') | ForEach-Object { Write-Host $_ }
     }
+
+    if (Test-Path -LiteralPath $DesktopRoot) {
+        Write-Host 'apps/desktop:'
+        Invoke-Git -WorkingDirectory $DesktopRoot -Arguments @('status', '--short', '--branch') | ForEach-Object { Write-Host $_ }
+    }
 }
 
 Assert-Tooling
@@ -322,12 +449,14 @@ Show-GitStatus
 $rootPaths = Get-GitStatusPaths -WorkingDirectory $RepoRoot
 $backendChanged = $false
 $webChanged = $false
+$desktopChanged = $false
 $docsChanged = $false
 
 switch ($Scope) {
     'all' {
         $backendChanged = $true
         $webChanged = $true
+        $desktopChanged = $true
         $docsChanged = $true
     }
     'backend' {
@@ -336,12 +465,16 @@ switch ($Scope) {
     'web' {
         $webChanged = $true
     }
+    'desktop' {
+        $desktopChanged = $true
+    }
     'docs' {
         $docsChanged = $true
     }
     'changed' {
         $backendChanged = (Test-PathChanged -Paths $rootPaths -Prefixes @('services/backend')) -or (Test-HasGitChanges -WorkingDirectory $BackendRoot)
         $webChanged = (Test-PathChanged -Paths $rootPaths -Prefixes @('apps/web')) -or (Test-HasGitChanges -WorkingDirectory $WebRoot)
+        $desktopChanged = (Test-PathChanged -Paths $rootPaths -Prefixes @('apps/desktop')) -or (Test-HasGitChanges -WorkingDirectory $DesktopRoot)
         $docsChanged = Test-PathChanged -Paths $rootPaths -Prefixes @(
             'docs',
             'packages/shared',
@@ -355,7 +488,7 @@ switch ($Scope) {
     }
 }
 
-if (-not $backendChanged -and -not $webChanged -and -not $docsChanged) {
+if (-not $backendChanged -and -not $webChanged -and -not $desktopChanged -and -not $docsChanged) {
     Write-Host ''
     Write-Host (U 'changed\u0020\u8303\u56f4\u672a\u68c0\u6d4b\u5230\u9700\u8981\u8fd0\u884c\u7684\u6a21\u5757\u9a8c\u8bc1\uff1b\u5df2\u5b8c\u6210\u57fa\u7840\u0020Git\u0020\u72b6\u6001\u68c0\u67e5\u3002')
     exit 0
@@ -366,6 +499,7 @@ Write-Host "Scope: $Scope"
 Write-Host "Docs: $docsChanged"
 Write-Host "Backend: $backendChanged"
 Write-Host "Web: $webChanged"
+Write-Host "Desktop: $desktopChanged"
 Write-Host "NoBuild: $NoBuild"
 
 if ($docsChanged) {
@@ -378,6 +512,10 @@ if ($backendChanged) {
 
 if ($webChanged) {
     Invoke-WebChecks
+}
+
+if ($desktopChanged) {
+    Invoke-DesktopChecks
 }
 
 Write-Section (U '\u8d28\u91cf\u95e8\u7981\u5b8c\u6210')

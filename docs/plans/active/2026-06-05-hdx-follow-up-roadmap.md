@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理的第一小步“公开许可与后端私有边界”已完成；当前等待确认 GitHub Releases CI、native 发布包或其他后续小步。
+- 当前状态：第 9 步发布与环境管理的第一小步“公开许可与后端私有边界”已完成；公开 Web/Desktop 子仓库 Apache-2.0 许可已同步；当前等待确认 GitHub Releases CI、native 发布包或其他后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -122,6 +122,7 @@
 - 第 8 步基础设施边界已确认：服务端/云端队列默认 RabbitMQ；业务代码通过端口、transactional outbox、消息 envelope 和幂等 consumer 隔离。
 - 第 8 步基础设施边界已确认：Redis 是服务端基础设施；Desktop all-in-one 不内置 Redis/RabbitMQ，服务端反滥用能力默认禁用或 no-op，本地异步任务使用 H2 outbox + local worker。
 - 第 9 步发布与环境管理的第一小步已确认：公开主仓库采用 Apache-2.0；后端仓库维持私有；公开主仓库禁止提交后端源码、JAR/WAR 和 `.class` 构建产物；后端 release 目标为 native executable archive。
+- 第 9 步许可边界补充确认：除后端外，后续公开仓库统一 Apache-2.0；`apps/web` 与 `apps/desktop` 已在各自子仓库补齐 `LICENSE`、`NOTICE` 和 package `license` 字段；`apps/mobile` 当前仍为根仓库占位目录，后续拆为独立仓库时再补自身许可文件。
 
 ## 验收标准
 
@@ -166,6 +167,7 @@
 - 2026-06-08：按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；ADR 0008 文件名和正文修订为 Windows/Linux 双平台 Local/Online 安装包，Windows-only wallpaper mode 边界不变。
 - 2026-06-08：完成第 8 步缓存、对象存储与队列基础设施边界；新增 ADR 0010，记录 RustFS/S3-compatible、RabbitMQ、Redis 服务端用途和 all-in-one H2 outbox + local worker 降级策略。
 - 2026-06-08：完成第 9 步第一小步“公开许可与后端私有边界”；新增 ADR 0011，记录公开主仓库 Apache-2.0、后端私有、后端不发布 JAR/WAR、用户可见本地完整模式后续称 Full。
+- 2026-06-08：按用户确认补齐公开子仓库许可边界；`apps/web` 与 `apps/desktop` 统一 Apache-2.0，后端仓库继续保持私有且不随公开许可授权。
 
 ## 验证结果
 
@@ -184,6 +186,7 @@
 - 第 6 步 Desktop Rust 验证已执行 `pnpm exec tauri info`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-local`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`、`pnpm exec tauri permission ls` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop`：均通过。
 - 第 8 步缓存、对象存储与队列基础设施边界已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 第 9 步第一小步公开许可与后端私有边界已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- 公开子仓库 Apache-2.0 许可同步已执行 `rg -n "Apache-2.0|Apache License|backend|后端|license" apps/web apps/desktop docs/adr/0011-public-license-and-backend-private-boundary.md`、`git -C apps/web diff --check`、`git -C apps/desktop diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过；`diff --check` 仅提示 package.json 后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 
 ## 剩余风险
 
@@ -191,6 +194,7 @@
 - 第 2 步真实 PostgreSQL 服务端 profile 启动已由后续认证/Nacos 联调覆盖；尚未单独运行完整 native-image 编译，详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
+- `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
 
 ## 相关 commit
 

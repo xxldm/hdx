@@ -47,6 +47,8 @@ pwsh -NoLogo -NoProfile -Command "$PSVersionTable.PSVersion; $PSVersionTable.PSE
 - 同一命令在同一工作目录下因 `Permission denied`、`AccessDeniedException`、`EPERM`、`spawn EPERM`、`.git/*.lock`、`.git/FETCH_HEAD`、Maven/Node 缓存写入、`target` 写入、`node_modules/.cache` 写入、沙盒网络限制或 Codex sandbox 启动失败时，只允许普通权限失败一次。
 - 首次普通权限失败必须记录到本地计划、提交说明、最终回复或其他 repo-local 交接位置。
 - 后续遇到同类命令时，直接使用审批/提权路径，不再为了复现而普通权限试跑。
+- 如果 `pnpm` 在 Codex Windows sandbox 普通权限下出现 `EPERM: operation not permitted, lstat 'C:\Users\<user>'`，先判断是否真的需要运行 `pnpm`。仅为调用已安装的本地包命令时，优先直接调用对应项目的 `node_modules/.bin/<tool>`，避免把包管理器启动行为混入质量门禁；确需 `pnpm install`、`pnpm add`、`pnpm update`、`pnpm test`、`pnpm build` 等包管理、测试或构建命令时，按本节权限失败规则记录并走审批/提权路径。
+- 不在质量门禁脚本中通过长期或隐式修改 `HOME`、`USERPROFILE`、`TEMP`、`TMP`、pnpm store/cache 等环境变量来绕过 `pnpm` 的本地环境问题；这类改动可能改变工具读取用户配置、临时文件、缓存或依赖仓库的行为，导致验证结果被环境差异污染。
 - 已知需要直接走审批/提权路径的命令类别：
   - Git 写操作：`git add`、`git commit`、`git rebase`、`git merge`、`git checkout`、`git stash` 等会写 `.git` 的命令。
   - Git 网络操作：`git push`、`git fetch`、`git pull`、`git ls-remote`，以及依赖 GitHub 网络或凭据的 `gh` 命令。

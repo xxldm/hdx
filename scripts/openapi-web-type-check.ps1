@@ -15,18 +15,28 @@ if ([string]::IsNullOrWhiteSpace($CompatibilityFile)) {
     $CompatibilityFile = Join-Path $RepoRoot 'packages/shared/contracts/openapi/web-type-compatibility.ts'
 }
 
-function Get-PnpmCommand {
-    $pnpmCommand = Get-Command pnpm.cmd -ErrorAction SilentlyContinue
-    if ($null -ne $pnpmCommand) {
-        return $pnpmCommand.Source
+function Get-LocalVueTscCommand {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string]$WebRoot
+    )
+
+    $binRoot = Join-Path $WebRoot 'node_modules/.bin'
+    $candidates = if ($IsWindows) {
+        @('vue-tsc.cmd', 'vue-tsc')
+    }
+    else {
+        @('vue-tsc', 'vue-tsc.cmd')
     }
 
-    $pnpmCommand = Get-Command pnpm -ErrorAction SilentlyContinue
-    if ($null -ne $pnpmCommand) {
-        return $pnpmCommand.Source
+    foreach ($candidate in $candidates) {
+        $candidatePath = Join-Path $binRoot $candidate
+        if (Test-Path -LiteralPath $candidatePath -PathType Leaf) {
+            return (Resolve-Path -LiteralPath $candidatePath).Path
+        }
     }
 
-    throw '未找到 pnpm。请先安装 pnpm，或确认 apps/web 的本地 Node 环境可用。'
+    throw "未找到 Web 本地 vue-tsc：$binRoot。请先在 apps/web 安装依赖后再运行本检查。"
 }
 
 if (-not (Test-Path -LiteralPath $WebRoot)) {
@@ -44,7 +54,7 @@ try {
 finally {
     Pop-Location
 }
-$pnpm = Get-PnpmCommand
+$vueTsc = Get-LocalVueTscCommand -WebRoot $WebRoot
 
 Write-Host 'OpenAPI 与 Web 类型对齐检查'
 Write-Host "Web 目录：$WebRoot"
@@ -52,7 +62,7 @@ Write-Host "对齐文件：$CompatibilityFile"
 
 Push-Location $WebRoot
 try {
-    & $pnpm exec vue-tsc `
+    & $vueTsc `
         --noEmit `
         --strict `
         --skipLibCheck `

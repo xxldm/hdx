@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 7 步 App 技术栈已完成；当前等待确认第 8 步缓存/对象存储/队列或其他后续小步。
+- 当前状态：第 8 步缓存、对象存储与队列基础设施边界已完成；当前等待确认第 9 步部署、发布与环境管理或其他后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -34,7 +34,7 @@
 - [x] 5. OpenAPI 与 shared 层（已完成，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`）
 - [x] 6. Desktop 集成设计与骨架（已完成，设计见 `docs/plans/completed/2026-06-08-desktop-integration-design.md`，骨架见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`，Rust 验证见 `docs/plans/completed/2026-06-08-desktop-rust-verification.md`）
 - [x] 7. App 技术栈（已完成，详见 `docs/plans/completed/2026-06-08-app-technology-stack.md`）
-- [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
+- [x] 8. 缓存、对象存储、队列（已完成基础设施边界决策，见 `docs/adr/0010-cache-object-storage-queue-boundary.md`；Redis 认证撤销见 `docs/adr/0005-auth-revocation-redis.md`）
 - [ ] 9. 部署、发布与环境管理
 
 ## 步骤目标
@@ -118,6 +118,9 @@
 - 第 6 步 Desktop 已创建最小 Tauri/Vite/Rust 骨架；Local/Online 通过同一代码库内的构建脚本、Tauri 配置变体和 Rust feature 区分。
 - 第 6 步 Desktop Rust 编译验证已补齐：当前环境可运行 `rustc`、`cargo` 与 `rustup`，Local/Online flavor `cargo check`、Tauri permission 列举和完整 Desktop 质量门禁均已通过。
 - 第 7 步 App 技术栈已确认：Android 采用 Kotlin + Jetpack Compose；HarmonyOS NEXT 采用 ArkTS + ArkUI；App 不复用 Desktop Tauri shell；首版 Online only，第二阶段只做离线缓存/离线草稿，不规划移动端 all-in-one 或完整离线业务引擎。
+- 第 8 步基础设施边界已确认：对象存储使用 S3-compatible 核心子集，默认本地/私有化候选 RustFS，后续可切云端 OSS/COS/OBS/S3。
+- 第 8 步基础设施边界已确认：服务端/云端队列默认 RabbitMQ；业务代码通过端口、transactional outbox、消息 envelope 和幂等 consumer 隔离。
+- 第 8 步基础设施边界已确认：Redis 是服务端基础设施；Desktop all-in-one 不内置 Redis/RabbitMQ，服务端反滥用能力默认禁用或 no-op，本地异步任务使用 H2 outbox + local worker。
 
 ## 验收标准
 
@@ -143,7 +146,7 @@
 - 2026-06-05：按用户临时要求完成环境配置与 Nacos 分层切片；完整第 9 步仍未展开，当前仍等待进入第 3 步前单独确认。
 - 2026-06-06：开始第 3 步认证与权限边界；用户确认使用自建认证中心，且认证中心按独立 `backend-auth-service` 模块设计；详细计划见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
 - 2026-06-06：确认认证授权持久化只面向服务端 PostgreSQL；all-in-one/H2 不运行认证中心、不迁移认证表，默认使用固定本机管理员身份；Desktop 连接外部服务端时走服务端认证中心。
-- 2026-06-06：因登出即时生效需求，提前确认 Redis 用于 JWT `sid` 会话撤销/黑名单；该决策记录在 `docs/adr/0005-auth-revocation-redis.md`，不代表对象存储或队列已决策。
+- 2026-06-06：因登出即时生效需求，提前确认 Redis 用于 JWT `sid` 会话撤销/黑名单；该决策记录在 `docs/adr/0005-auth-revocation-redis.md`，当时不代表对象存储或队列已决策；后续第 8 步已由 ADR 0010 补齐基础设施边界。
 - 2026-06-07：用户确认进入第 4 步自动化质量门禁；创建本地计划，范围为最小 PowerShell 本地脚本、质量文档和入口说明。
 - 2026-06-07：完成第 4 步自动化质量门禁最小本地脚本入口：新增 `scripts/quality-gate.ps1`，更新 `docs/QUALITY.md` 和根 README，并将本地计划移动到 `docs/plans/completed/`。
 - 2026-06-07：用户确认进入第 5 步 OpenAPI 与 shared 层；创建本地计划，当前先确认契约事实源、生成范围和 shared 首批职责。
@@ -160,6 +163,7 @@
 - 2026-06-08：补齐 Desktop Rust 编译验证，归档 `docs/plans/completed/2026-06-08-desktop-rust-verification.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
 - 2026-06-08：完成第 7 步 App 技术栈；新增 ADR 0009，并归档 `docs/plans/completed/2026-06-08-app-technology-stack.md`，记录 Android 原生、HarmonyOS NEXT 原生、Online only first 和离线缓存/草稿两阶段。
 - 2026-06-08：按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；ADR 0008 文件名和正文修订为 Windows/Linux 双平台 Local/Online 安装包，Windows-only wallpaper mode 边界不变。
+- 2026-06-08：完成第 8 步缓存、对象存储与队列基础设施边界；新增 ADR 0010，记录 RustFS/S3-compatible、RabbitMQ、Redis 服务端用途和 all-in-one H2 outbox + local worker 降级策略。
 
 ## 验证结果
 
@@ -176,6 +180,7 @@
 - 第 6 步 Desktop 集成设计已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 第 6 步 Desktop Tauri 骨架已执行 `pnpm install`、`pnpm run typecheck`、`pnpm run build:web`、`pnpm exec tauri --version`、`pnpm exec tauri dev --help`、`pnpm exec tauri build --help`、`pnpm exec tauri info`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`git -C apps/desktop diff --check` 和 `git diff --check`：骨架静态与前端验证通过。
 - 第 6 步 Desktop Rust 验证已执行 `pnpm exec tauri info`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-local`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`、`pnpm exec tauri permission ls` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop`：均通过。
+- 第 8 步缓存、对象存储与队列基础设施边界已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
 ## 剩余风险
 

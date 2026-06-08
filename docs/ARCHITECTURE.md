@@ -63,6 +63,8 @@ App 第一阶段技术栈与离线路线见 `docs/adr/0009-mobile-native-online-
 
 公开许可与后端私有边界见 `docs/adr/0011-public-license-and-backend-private-boundary.md`。公开主仓库采用 Apache-2.0；`services/backend` 后续维持私有仓库；公开主仓库禁止提交后端源码快照、后端 Spring Boot JAR/WAR、`.class` 文件和后端构建中间产物。后端 release 目标只允许 native executable archive，不发布 JAR/WAR。用户可见的本地完整模式后续统一称为 Full；当前内部模块名 `backend-all-in-one` 暂不在本轮重命名。
 
+GitHub Releases 产物边界见 `docs/adr/0012-github-releases-artifact-boundary.md`。公开主仓库 GitHub Releases 是唯一公开发布入口，但不负责自动部署。每次发布以主仓库 release tag 或 root commit 作为事实源，Web、Desktop、shared/OpenAPI 和后续 App 均使用根仓库锁定的提交或子模块指针，不拉取 `latest`。后端私有仓库 CI 先编译 `backend-full` 与 `backend-services` native archive，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库 release workflow 下载后校验 manifest、sha256、root ref、OpenAPI hash 和禁止文件，再构建 Web、Desktop Online、Desktop Full 和后续 App Online，并统一发布到主仓库 Release。主仓库 Release 可以公开后端 native archive；但主仓库 CI 不 checkout 后端私有源码，Release 不包含源码、JAR/WAR、`.class` 或后端构建中间产物。后端微服务按平台聚合为 `backend-services` 压缩包，微服务粒度保留在包内部；App 不内置后端，只发布 Online 客户端。
+
 ## Web 第一阶段架构
 
 Web 工程位于 `apps/web/`，当前不把仓库根目录升级为 pnpm workspace。
@@ -84,9 +86,9 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 以下事项尚未决策，不能在没有 ADR 的情况下擅自固定：
 
 - 对象存储上传下载业务接口、文件生命周期、消息 topic、consumer 拓扑和具体业务接入点。
-- 部署、CI、发布和环境管理方式。
-- 后端 private release、公开 GitHub Releases、Desktop Full 是否公开分发后端 native 包的边界。
-- Desktop 安装器签名、自动更新、发布渠道和 Local/Online 数据导入导出格式。
+- 具体 GitHub Actions workflow、跨仓库触发方式、artifact 下载权限、Release 上传脚本和失败重试策略。
+- Release notes 和版本号策略。
+- Desktop 安装器签名、公证、自动更新、发布渠道和 Local/Online 数据导入导出格式。
 - App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的存储、同步队列、冲突处理和加密策略。
 
 ## 后端第一阶段架构

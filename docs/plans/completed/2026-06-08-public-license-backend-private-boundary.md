@@ -59,7 +59,7 @@
 
 - Apache-2.0 不禁止商用或转售；本轮通过后端私有、native-only、品牌保留和官方来源提示降低盗卖便利性，而不是建立复杂法律授权体系。
 - `apps/web`、`apps/desktop`、`apps/mobile` 是独立子仓库，后续公开前也需要各自补齐许可证和 NOTICE。
-- 后端私有仓库、后端 native release 和 Desktop Full 是否公开分发仍需第 9 步发布设计继续确认。
+- 后端私有仓库边界保持不变；后端 native release 和 Desktop Full 是否公开分发已由 `docs/adr/0012-github-releases-artifact-boundary.md` 确认，主仓库 Release 公开后端 native archive 和 Desktop Full 包。
 
 ## 状态记录
 
@@ -79,7 +79,7 @@
 
 - Apache-2.0 不禁止商用或转售；本轮选择简单许可，并用后端私有、native-only、品牌保留和官方来源提示降低盗卖便利性。
 - `apps/web`、`apps/desktop`、`apps/mobile` 是独立子仓库，后续公开前仍需分别补齐许可证和 NOTICE。
-- 后端 private release、后端 native 包是否进入公开 GitHub Releases、Desktop Full 是否公开分发后端 native 包，仍需第 9 步发布设计继续确认。
+- 后端 native 包是否进入公开 GitHub Releases、Desktop Full 是否公开分发后端 native 包已由 `docs/adr/0012-github-releases-artifact-boundary.md` 确认：主仓库 Release 公开后端 native archive；后端 private release 不作为 native 交接或公开入口。
 - 现有代码模块名 `backend-all-in-one` 暂未重命名；后续如要改为 Full，需要单独计划并覆盖后端、Desktop sidecar、文档和质量门禁。
 
 ## 相关 commit

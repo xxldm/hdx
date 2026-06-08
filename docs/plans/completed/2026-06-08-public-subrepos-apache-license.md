@@ -81,7 +81,7 @@
 
 - Apache-2.0 不禁止商用或转售；当前防盗卖主要依赖后端私有、native-only 发布边界、品牌保留和官方来源提示。
 - `apps/mobile` 当前不是独立子仓库；后续如果拆成 Android/HarmonyOS 或其他独立公开仓库，需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 后端 native archive 是否进入公开 GitHub Releases 仍需在后续发布/CI 设计中单独确认。
+- 后端 native archive 是否进入公开 GitHub Releases 已由 `docs/adr/0012-github-releases-artifact-boundary.md` 确认：主仓库 Release 公开后端 native archive，但不公开后端源码、JAR/WAR、`.class` 或构建中间产物。
 
 ## 相关 commit
 

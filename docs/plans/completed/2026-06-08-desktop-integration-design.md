@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成并归档；后续实施见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`。
+- 当前状态：已完成并归档；后续实施见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`。平台范围已在后续修订为 Windows + Linux 并列一阶段。
 - 计划来源：HDX 后续事项总纲第 6 步
 - 创建时间：2026-06-08
 - 最后更新：2026-06-08
@@ -23,7 +23,7 @@
 
 ## repo 内范围
 
-- `docs/adr/0008-desktop-tauri-windows-flavors.md`
+- `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`
 - `docs/ARCHITECTURE.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
 - `docs/plans/completed/2026-06-08-desktop-integration-design.md`
@@ -35,13 +35,13 @@
 - 后端已存在 `backend-all-in-one`，用于 desktop 本机集成，绑定 `127.0.0.1`，使用 H2，并通过随机本机 token 保护 HTTP 请求。
 - Web 已支持 all-in-one 模式：通过私有 `NUXT_BACKEND_LOCAL_TOKEN_HEADER` 与 `NUXT_BACKEND_LOCAL_TOKEN` 进入固定本机 public session。
 - 认证边界已确认：Desktop 内置本地服务时不登录，使用 `LOCAL_ADMIN:local-admin`；Desktop 连接外部服务端时走服务端认证中心。
-- 用户已确认首版可以 Windows only，但自启动、通知、deep link 等通用能力需要保留后续 macOS/Linux 实现空间。
+- 本轮设计时用户确认首版可以 Windows only，但自启动、通知、deep link 等通用能力需要保留后续 macOS/Linux 实现空间；后续已按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列。
 - 用户需要调用 Win32 API，并需要类似壁纸软件的桌面嵌入窗口能力。
 - 用户确认 Local/Online 通过两个不同安装包区分，不在一个运行时内随时切换；切换时通过重新安装和手动导入导出数据完成。
 
 ## 已确认设计
 
-- Desktop 第一阶段采用 Tauri + Rust，首版 Windows first。
+- Desktop 第一阶段采用 Tauri + Rust；本轮设计时为 Windows first，后续已修订为 Windows + Linux 并列一阶段。
 - `apps/desktop` 只维护一套代码，不拆成 `desktop-local` 和 `desktop-online` 两个项目。
 - Local/Online 仅作为构建 flavor、Tauri 配置变体和安装包内容差异存在。
 - `HDX Desktop Local`：
@@ -75,7 +75,7 @@
 ## 验收标准
 
 - 后续智能体能从 ADR 和本计划恢复 Desktop 集成设计。
-- 文档明确 Tauri + Rust + Windows first 的决策。
+- 文档明确 Tauri + Rust 的决策；平台范围已由后续修订更新为 Windows + Linux 并列一阶段。
 - 文档明确 Local/Online 是两个安装包和构建 flavor，不是两套代码。
 - 文档明确本机 token 不得暴露给 WebView。
 - 文档明确通用能力保留跨平台实现空间，wallpaper mode 是 Windows-only。
@@ -83,7 +83,7 @@
 
 ## 验证方式
 
-- `Get-Content -Encoding UTF8 docs/adr/0008-desktop-tauri-windows-flavors.md`
+- `Get-Content -Encoding UTF8 docs/adr/0008-desktop-tauri-windows-linux-flavors.md`
 - `Get-Content -Encoding UTF8 docs/plans/completed/2026-06-08-desktop-integration-design.md`
 - `Get-Content -Encoding UTF8 docs/ARCHITECTURE.md`
 - `Get-Content -Encoding UTF8 apps/desktop/README.md`
@@ -104,7 +104,8 @@
 - 2026-06-08：确认首版 Windows first，自启动、通知和 deep link 等通用能力保留后续 macOS/Linux 实现空间，桌面嵌入窗口作为 Windows-only 能力。
 - 2026-06-08：确认 Local/Online 用两个安装包区分：Local 包包含 all-in-one 且仅离线本地；Online 包不包含 all-in-one 且仅在线远程。
 - 2026-06-08：确认 Local/Online 是一套代码的两个构建 flavor，不复制两套 desktop 项目。
-- 2026-06-08：新增 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包和 Win32 wallpaper mode 边界。
+- 2026-06-08：新增 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包和 Win32 wallpaper mode 边界；后续 ADR 0008 已修订为 Windows + Linux 并列一阶段。
+- 2026-06-08：按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；Windows-only wallpaper mode 边界不变，不要求 Linux 等价实现。
 - 2026-06-08：设计计划已归档；Tauri 骨架实施见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`。
 
 ## 验证结果
@@ -119,6 +120,7 @@
 - Tauri 工程骨架与 Local/Online 构建 flavor 边界已由 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md` 记录。
 - 自启动、通知、deep link 尚未接入插件。
 - Windows-only wallpaper mode 尚未做 Win32 spike。
+- Linux 真实编译、打包、安装器和通用 capability 平台适配尚未验证。
 - `backend-all-in-one` sidecar 启动、健康检查、`/local/session` 获取和本机 token 注入链路尚未实现。
 - 导入导出格式、校验摘要、schema 版本和手动迁移 UX 尚未设计。
 

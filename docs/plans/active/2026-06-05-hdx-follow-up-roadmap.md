@@ -114,7 +114,7 @@
 - 用户临时要求先推进环境配置与 Nacos 分层；该切片已完成，详细记录见 `docs/plans/completed/2026-06-05-environment-nacos-config-layering.md`。这不表示第 9 步“部署、发布与环境管理”已经完整完成。
 - 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
 - 第 5 步 OpenAPI 与 shared 层已完成，已确认契约事实源、生成范围和 shared 首批职责；当前已建立 OpenAPI TypeScript 类型生成原型、漂移检查和 Web 只读类型对齐检查，不生成完整 API client。
-- 第 6 步 Desktop 集成设计已确认首版采用 Tauri + Rust、Windows first、一套代码双安装包；Local 包包含 all-in-one 且仅离线本地，Online 包不包含 all-in-one 且仅在线远程。
+- 第 6 步 Desktop 集成设计已确认采用 Tauri + Rust、Windows + Linux 并列一阶段、一套代码双安装包；Local 包包含 all-in-one 且仅离线本地，Online 包不包含 all-in-one 且仅在线远程。
 - 第 6 步 Desktop 已创建最小 Tauri/Vite/Rust 骨架；Local/Online 通过同一代码库内的构建脚本、Tauri 配置变体和 Rust feature 区分。
 - 第 6 步 Desktop Rust 编译验证已补齐：当前环境可运行 `rustc`、`cargo` 与 `rustup`，Local/Online flavor `cargo check`、Tauri permission 列举和完整 Desktop 质量门禁均已通过。
 - 第 7 步 App 技术栈已确认：Android 采用 Kotlin + Jetpack Compose；HarmonyOS NEXT 采用 ArkTS + ArkUI；App 不复用 Desktop Tauri shell；首版 Online only，第二阶段只做离线缓存/离线草稿，不规划移动端 all-in-one 或完整离线业务引擎。
@@ -154,11 +154,12 @@
 - 2026-06-07：复核 active 目录中已标记完成的历史计划，将后端 v1、Web Nuxt v1 和数据库迁移策略计划移动到 `docs/plans/completed/`，保留总纲与认证权限边界计划在 `active/`。
 - 2026-06-07：复核 `docs/plans/completed/` 中的剩余风险和提交状态，将已由后续认证、Nacos、公共数据库、OpenAPI 和 Git 收口解决的历史风险更新为当前状态；仍保留 native-image、远端 CI、Desktop/App、正式生成器和运行时消费生成类型等未解决风险。
 - 2026-06-08：收口 3 个小项：修正总纲第 2 步过期风险描述；复核 Web 中文文案源码未再发现 mojibake 乱码；修复并验证 `backend-auth-service` service profile 下 `/v3/api-docs` 无尾斜杠访问。
-- 2026-06-08：开始第 6 步 Desktop 集成设计；新增 `docs/plans/active/2026-06-08-desktop-integration-design.md` 和 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包、一套代码和 Win32 wallpaper mode 边界。
+- 2026-06-08：开始第 6 步 Desktop 集成设计；新增 `docs/plans/active/2026-06-08-desktop-integration-design.md` 和 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包、一套代码和 Win32 wallpaper mode 边界；后续已修订为 Windows + Linux 并列一阶段。
 - 2026-06-08：归档 Desktop 集成设计计划，进入 `docs/plans/active/2026-06-08-desktop-tauri-skeleton.md`，开始创建最小 Tauri 骨架和 Desktop 质量门禁入口。
 - 2026-06-08：完成第 6 步 Desktop 最小 Tauri 骨架，归档 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
 - 2026-06-08：补齐 Desktop Rust 编译验证，归档 `docs/plans/completed/2026-06-08-desktop-rust-verification.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
 - 2026-06-08：完成第 7 步 App 技术栈；新增 ADR 0009，并归档 `docs/plans/completed/2026-06-08-app-technology-stack.md`，记录 Android 原生、HarmonyOS NEXT 原生、Online only first 和离线缓存/草稿两阶段。
+- 2026-06-08：按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；ADR 0008 文件名和正文修订为 Windows/Linux 双平台 Local/Online 安装包，Windows-only wallpaper mode 边界不变。
 
 ## 验证结果
 

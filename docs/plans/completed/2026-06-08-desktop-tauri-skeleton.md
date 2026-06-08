@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成并归档；Rust 编译验证已在后续 `docs/plans/completed/2026-06-08-desktop-rust-verification.md` 中补齐。
+- 当前状态：已完成并归档；Rust 编译验证已在后续 `docs/plans/completed/2026-06-08-desktop-rust-verification.md` 中补齐。平台范围已在后续修订为 Windows + Linux 并列一阶段。
 - 计划来源：用户确认进入 Desktop 实施第一小步
 - 创建时间：2026-06-08
 - 最后更新：2026-06-08
@@ -77,6 +77,7 @@
 - 2026-06-08：已在根仓库质量门禁中新增 `-Scope desktop` 和 `-SkipDesktop`。
 - 2026-06-08：已完成相称验证；Rust `cargo check` 与 Tauri permission 生成验证当时留到后续补齐。
 - 2026-06-08：后续已在 `docs/plans/completed/2026-06-08-desktop-rust-verification.md` 中补齐 Rust 工具链、Local/Online flavor 编译、Tauri permission 列举和 Desktop 完整质量门禁验证。
+- 2026-06-08：后续已按用户要求将 Linux 纳入 Desktop 第一阶段，与 Windows 并列；当前 Rust 平台层已能识别 Linux，但 Linux 真实编译和打包仍需在 Linux 环境验证。
 
 ## 验证结果
 
@@ -102,6 +103,7 @@
 - Local flavor 尚未打包或启动 `backend-all-in-one`，也尚未实现 `/local/session` 获取和本机 token 注入。
 - Online flavor 尚未实现远端地址填写、持久化和连接校验。
 - 自启动、通知、deep link、托盘、配置目录、导入导出和 Windows-only wallpaper mode 均仍是 capability 空壳。
+- Linux 通用 capability 和 Local/Online flavor 的真实打包仍需后续在 Linux 环境验证；Windows-only wallpaper mode 不要求 Linux 等价实现。
 
 ## 相关 commit
 

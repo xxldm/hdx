@@ -43,4 +43,4 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Sc
 
 ## 当前状态
 
-后端、Web 和 Desktop 的第一阶段技术方向已由 ADR 记录；App、部署方式和部分基础设施仍待决策。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。
+后端、Web、Desktop 和 App 的第一阶段技术方向已由 ADR 记录；部署方式和部分基础设施仍待决策。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。

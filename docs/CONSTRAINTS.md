@@ -20,6 +20,7 @@
 
 - 后端第一阶段已绑定 Java 25（GraalVM）、Maven 3.8.8、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x，详见 `docs/adr/0002-backend-java-spring-cloud-alibaba-architecture.md`。
 - Web 第一阶段已绑定 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm，详见 `docs/adr/0003-web-nuxt-architecture.md`。
+- Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段，Local/Online 通过构建 flavor 和安装包内容区分；详见 `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`。
 - App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI，首版 Online only，第二阶段只规划离线缓存/离线草稿；详见 `docs/adr/0009-mobile-native-online-first.md`。
 - 引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - ADR 至少说明：背景、决策、备选方案、影响范围、验证方式、回滚条件。

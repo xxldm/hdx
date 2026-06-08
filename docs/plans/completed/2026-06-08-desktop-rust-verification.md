@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成并归档
+- 当前状态：已完成并归档；平台范围已在后续修订为 Windows + Linux 并列一阶段。
 - 计划来源：用户要求补 Desktop Rust 工具链与编译验证
 - 创建时间：2026-06-08
 - 最后更新：2026-06-08
@@ -67,6 +67,7 @@
 - 2026-06-08：已将 Desktop 完整质量门禁扩展为静态检查 `Cargo.lock` 与 `icon.ico`。
 - 2026-06-08：Local/Online Rust 编译、Tauri permission 列举和 Desktop 完整质量门禁均已通过；当前状态改为“已完成并归档”。
 - 2026-06-08：用户指定 `D:\SynologyDrive\主题\图标\icon\favicon3.ico` 作为 Desktop 图标，已复制覆盖 `src-tauri/icons/icon.ico` 并重新通过 Desktop 完整质量门禁。
+- 2026-06-08：后续已按用户要求将 Linux 纳入 Desktop 第一阶段；本计划中的 Rust 编译验证仍是在当前 Windows 环境完成，Linux 真实编译和打包需后续在 Linux 环境验证。
 
 ## 验证结果
 
@@ -83,6 +84,7 @@
 - Local flavor 尚未打包或启动 `backend-all-in-one`，也尚未实现 `/local/session` 获取和本机 token 注入。
 - Online flavor 尚未实现远端地址填写、持久化和连接校验。
 - 自启动、通知、deep link、托盘、配置目录、导入导出和 Windows-only wallpaper mode 均仍是 capability 空壳。
+- Linux 通用 capability 和 Local/Online flavor 的真实打包仍需后续在 Linux 环境验证；Windows-only wallpaper mode 不要求 Linux 等价实现。
 
 ## 相关 commit
 

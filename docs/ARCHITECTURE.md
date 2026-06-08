@@ -8,7 +8,7 @@ HDX 暂定由以下部分组成：
 
 - `services/backend/`：后台服务端 Maven 多模块工程，采用 Java 25（GraalVM）、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x。
 - `apps/web/`：Web 端 Nuxt 应用，采用 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm。
-- `apps/desktop/`：Desktop 端 Tauri 应用，采用 Tauri + Rust + Vite + TypeScript，首版 Windows first。
+- `apps/desktop/`：Desktop 端 Tauri 应用，采用 Tauri + Rust + Vite + TypeScript，第一阶段 Windows + Linux 并列。
 - `apps/mobile/`：App 端原生工程容器，第一阶段包含 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI。
 - `packages/shared/`：跨端共享契约、类型、工具和协议占位。
 - `docs/`：项目事实源、计划、约束和决策记录。
@@ -55,7 +55,7 @@ OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-bound
 
 `packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
 
-Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-flavors.md`。当前 `apps/desktop/` 已进入最小 Tauri + Rust + Vite + TypeScript 骨架；只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为可跨平台 capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike。
+Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`。当前 `apps/desktop/` 已进入最小 Tauri + Rust + Vite + TypeScript 骨架；第一阶段平台范围为 Windows + Linux 并列。`apps/desktop` 只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike，不要求 Linux 提供等价能力。
 
 App 第一阶段技术栈与离线路线见 `docs/adr/0009-mobile-native-online-first.md`。`apps/mobile/android/` 后续采用 Kotlin + Jetpack Compose；`apps/mobile/harmony/` 后续采用 ArkTS + ArkUI，并面向 HarmonyOS NEXT 的 PC、平板、手机等多设备形态适配。App 不复用 Desktop Tauri shell，不混入 Desktop Online，也不规划移动端 `backend-all-in-one` 或本机 HTTP 后端服务。App 首版只做 Online only，连接远端 `backend-auth-service` 与 `backend-gateway`；第二阶段只规划离线缓存和离线草稿，联网后同步提交。
 

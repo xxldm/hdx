@@ -4,6 +4,9 @@ build/
 dist/
 out/
 .cache/
+*.class
+*.jar
+*.war
 
 # IDE 与系统文件
 .idea/

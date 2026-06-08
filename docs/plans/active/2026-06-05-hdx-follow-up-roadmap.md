@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 6 步 Desktop 集成设计、最小 Tauri 骨架与 Rust 编译验证已完成；后续等待确认 sidecar、本机 token、系统 capability 或 Win32 spike 的下一小步。
+- 当前状态：第 7 步 App 技术栈已完成；当前等待确认第 8 步缓存/对象存储/队列或其他后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -33,7 +33,7 @@
 - [x] 4. 自动化质量门禁（最小本地脚本入口已完成，详见 `docs/plans/completed/2026-06-07-automated-quality-gate.md`）
 - [x] 5. OpenAPI 与 shared 层（已完成，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`）
 - [x] 6. Desktop 集成设计与骨架（已完成，设计见 `docs/plans/completed/2026-06-08-desktop-integration-design.md`，骨架见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`，Rust 验证见 `docs/plans/completed/2026-06-08-desktop-rust-verification.md`）
-- [ ] 7. App 技术栈
+- [x] 7. App 技术栈（已完成，详见 `docs/plans/completed/2026-06-08-app-technology-stack.md`）
 - [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
 - [ ] 9. 部署、发布与环境管理
 
@@ -117,6 +117,7 @@
 - 第 6 步 Desktop 集成设计已确认首版采用 Tauri + Rust、Windows first、一套代码双安装包；Local 包包含 all-in-one 且仅离线本地，Online 包不包含 all-in-one 且仅在线远程。
 - 第 6 步 Desktop 已创建最小 Tauri/Vite/Rust 骨架；Local/Online 通过同一代码库内的构建脚本、Tauri 配置变体和 Rust feature 区分。
 - 第 6 步 Desktop Rust 编译验证已补齐：当前环境可运行 `rustc`、`cargo` 与 `rustup`，Local/Online flavor `cargo check`、Tauri permission 列举和完整 Desktop 质量门禁均已通过。
+- 第 7 步 App 技术栈已确认：Android 采用 Kotlin + Jetpack Compose；HarmonyOS NEXT 采用 ArkTS + ArkUI；App 不复用 Desktop Tauri shell；首版 Online only，第二阶段只做离线缓存/离线草稿，不规划移动端 all-in-one 或完整离线业务引擎。
 
 ## 验收标准
 
@@ -157,6 +158,7 @@
 - 2026-06-08：归档 Desktop 集成设计计划，进入 `docs/plans/active/2026-06-08-desktop-tauri-skeleton.md`，开始创建最小 Tauri 骨架和 Desktop 质量门禁入口。
 - 2026-06-08：完成第 6 步 Desktop 最小 Tauri 骨架，归档 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
 - 2026-06-08：补齐 Desktop Rust 编译验证，归档 `docs/plans/completed/2026-06-08-desktop-rust-verification.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
+- 2026-06-08：完成第 7 步 App 技术栈；新增 ADR 0009，并归档 `docs/plans/completed/2026-06-08-app-technology-stack.md`，记录 Android 原生、HarmonyOS NEXT 原生、Online only first 和离线缓存/草稿两阶段。
 
 ## 验证结果
 

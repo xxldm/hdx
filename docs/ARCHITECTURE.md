@@ -52,6 +52,8 @@ OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-bound
 
 `packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
 
+Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-flavors.md`。当前决策为 Tauri + Rust，首版 Windows first；`apps/desktop/` 只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为可跨平台 capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike。
+
 ## Web 第一阶段架构
 
 Web 工程位于 `apps/web/`，当前不把仓库根目录升级为 pnpm workspace。
@@ -75,6 +77,7 @@ Web 浏览器代码不直接访问后端地址。浏览器调用 Nuxt server 暴
 - App 技术栈。
 - 对象存储和队列。
 - 部署、CI、发布和环境管理方式。
+- Desktop 安装器签名、自动更新、发布渠道和 Local/Online 数据导入导出格式。
 
 ## 后端第一阶段架构
 

@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 5 步 OpenAPI 与 shared 层已完成；已落地 OpenAPI TypeScript 类型生成原型和 Web 只读类型对齐检查，不生成完整 API client，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`。下一步等待进入第 6 步 Desktop 集成设计前单独确认。
+- 当前状态：第 6 步 Desktop 集成设计已开始；已确认 Tauri + Rust、Windows first、一套代码双安装包和 Windows-only wallpaper mode 方向，详见 `docs/plans/active/2026-06-08-desktop-integration-design.md`。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
-- 最后更新：2026-06-07
+- 最后更新：2026-06-08
 
 ## 目标
 
@@ -32,7 +32,7 @@
 - [ ] 3. 认证与权限边界（进行中，详见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`）
 - [x] 4. 自动化质量门禁（最小本地脚本入口已完成，详见 `docs/plans/completed/2026-06-07-automated-quality-gate.md`）
 - [x] 5. OpenAPI 与 shared 层（已完成，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`）
-- [ ] 6. Desktop 集成设计
+- [ ] 6. Desktop 集成设计（进行中，详见 `docs/plans/active/2026-06-08-desktop-integration-design.md`）
 - [ ] 7. App 技术栈
 - [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
 - [ ] 9. 部署、发布与环境管理
@@ -114,6 +114,7 @@
 - 用户临时要求先推进环境配置与 Nacos 分层；该切片已完成，详细记录见 `docs/plans/completed/2026-06-05-environment-nacos-config-layering.md`。这不表示第 9 步“部署、发布与环境管理”已经完整完成。
 - 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
 - 第 5 步 OpenAPI 与 shared 层已完成，已确认契约事实源、生成范围和 shared 首批职责；当前已建立 OpenAPI TypeScript 类型生成原型、漂移检查和 Web 只读类型对齐检查，不生成完整 API client。
+- 第 6 步 Desktop 集成设计已确认首版采用 Tauri + Rust、Windows first、一套代码双安装包；Local 包包含 all-in-one 且仅离线本地，Online 包不包含 all-in-one 且仅在线远程。
 
 ## 验收标准
 
@@ -150,6 +151,7 @@
 - 2026-06-07：复核 active 目录中已标记完成的历史计划，将后端 v1、Web Nuxt v1 和数据库迁移策略计划移动到 `docs/plans/completed/`，保留总纲与认证权限边界计划在 `active/`。
 - 2026-06-07：复核 `docs/plans/completed/` 中的剩余风险和提交状态，将已由后续认证、Nacos、公共数据库、OpenAPI 和 Git 收口解决的历史风险更新为当前状态；仍保留 native-image、远端 CI、Desktop/App、正式生成器和运行时消费生成类型等未解决风险。
 - 2026-06-08：收口 3 个小项：修正总纲第 2 步过期风险描述；复核 Web 中文文案源码未再发现 mojibake 乱码；修复并验证 `backend-auth-service` service profile 下 `/v3/api-docs` 无尾斜杠访问。
+- 2026-06-08：开始第 6 步 Desktop 集成设计；新增 `docs/plans/active/2026-06-08-desktop-integration-design.md` 和 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包、一套代码和 Win32 wallpaper mode 边界。
 
 ## 验证结果
 
@@ -163,12 +165,14 @@
 - completed 计划风险复核已执行 stale 状态词扫描，确认不再保留“待提交”“尚未推送”“等待提交”“当前真实 Nacos 中”等已过期状态描述；并执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 3 个小项收口中已执行 Web mojibake 字符扫描，覆盖 `apps/web` 下 `*.vue`、`*.ts`、`*.js`、`*.json` 和 `*.md`，未发现 `�`、`Ã`、`Â`、`æ`、`ç`、`è`、`é`、`ä`、`å`、`ï¼`、`ã€`、`ï¿½` 等乱码特征。
 - 3 个小项收口中已执行 `backend-auth-service` 临时 19082 service profile 实例验证：`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200`，且 OpenAPI 内容包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
+- 第 6 步 Desktop 集成设计已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
 ## 剩余风险
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步真实 PostgreSQL 服务端 profile 启动已由后续认证/Nacos 联调覆盖；尚未单独运行完整 native-image 编译，详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
+- 第 6 步 Desktop 仍未创建 Tauri 工程；Local/Online 构建 flavor、all-in-one sidecar 启动、本机 token 注入、Win32 wallpaper mode spike 和导入导出格式均未实现。
 
 ## 相关 commit
 

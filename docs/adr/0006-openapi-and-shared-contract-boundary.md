@@ -42,7 +42,7 @@ HDX 后端已经形成 `backend-auth-service`、`backend-gateway`、`backend-cor
 ## 验证方式
 
 - 后端验证：`mvn -pl :backend-auth-service -am test`，覆盖 auth-service OpenAPI 文档包含第一方登录、刷新和登出接口。
-- 文档验证：`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
+- 文档验证：`pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
 - 后续如果引入生成器，需要新增生成命令、漂移检查和 Web 契约测试。
 
 ## 后续补充

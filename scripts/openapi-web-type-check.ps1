@@ -5,11 +5,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-function U {
-    param([Parameter(Mandatory = $true)][string]$Escaped)
-    return [System.Text.RegularExpressions.Regex]::Unescape($Escaped)
-}
-
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 
 if ([string]::IsNullOrWhiteSpace($WebRoot)) {
@@ -31,15 +26,15 @@ function Get-PnpmCommand {
         return $pnpmCommand.Source
     }
 
-    throw (U '未找到 pnpm。请先安装 pnpm，或确认 apps/web 的本地 Node 环境可用。')
+    throw '未找到 pnpm。请先安装 pnpm，或确认 apps/web 的本地 Node 环境可用。'
 }
 
 if (-not (Test-Path -LiteralPath $WebRoot)) {
-    throw "$(U '未找到 Web 目录：')$WebRoot"
+    throw "未找到 Web 目录：$WebRoot"
 }
 
 if (-not (Test-Path -LiteralPath $CompatibilityFile)) {
-    throw "$(U '缺少 Web 契约类型对齐文件：')$CompatibilityFile"
+    throw "缺少 Web 契约类型对齐文件：$CompatibilityFile"
 }
 
 Push-Location $WebRoot
@@ -51,9 +46,9 @@ finally {
 }
 $pnpm = Get-PnpmCommand
 
-Write-Host (U 'OpenAPI 与 Web 类型对齐检查')
-Write-Host "$(U 'Web 目录：')$WebRoot"
-Write-Host "$(U '对齐文件：')$CompatibilityFile"
+Write-Host 'OpenAPI 与 Web 类型对齐检查'
+Write-Host "Web 目录：$WebRoot"
+Write-Host "对齐文件：$CompatibilityFile"
 
 Push-Location $WebRoot
 try {
@@ -68,11 +63,11 @@ try {
         $relativeCompatibilityFile
     $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
     if ($exitCode -ne 0) {
-        throw "$(U 'OpenAPI 与 Web 类型对齐检查失败，退出码：')$exitCode"
+        throw "OpenAPI 与 Web 类型对齐检查失败，退出码：$exitCode"
     }
 }
 finally {
     Pop-Location
 }
 
-Write-Host (U 'OpenAPI 与 Web 类型对齐检查通过。')
+Write-Host 'OpenAPI 与 Web 类型对齐检查通过。'

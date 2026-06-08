@@ -4,11 +4,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-function U {
-    param([Parameter(Mandatory = $true)][string]$Escaped)
-    return [System.Text.RegularExpressions.Regex]::Unescape($Escaped)
-}
-
 function Invoke-ExternalCommand {
     param(
         [Parameter(Mandatory = $true)][string]$FilePath,
@@ -73,7 +68,7 @@ function Get-SubmodulePointerStatus {
         -WorkingDirectory $RepoRoot
 
     if ($lsFilesResult.ExitCode -ne 0) {
-        throw (U '无法读取 Git 索引中的子模块指针。')
+        throw '无法读取 Git 索引中的子模块指针。'
     }
 
     $submodules = @()

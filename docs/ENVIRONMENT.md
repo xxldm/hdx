@@ -190,10 +190,10 @@ Copy-Item .env.example .env.local
 .\scripts\load-env.ps1 -ValidateOnly
 ```
 
-如果当前 PowerShell 执行策略禁止运行本地脚本，可以只对本次命令使用 Bypass：
+非交互场景可以显式使用 PowerShell 7+ / `pwsh` 执行脚本：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\load-env.ps1 -Path .env.example -ValidateOnly
+pwsh -NoLogo -NoProfile -File .\scripts\load-env.ps1 -Path .env.example -ValidateOnly
 ```
 
 ## 约束

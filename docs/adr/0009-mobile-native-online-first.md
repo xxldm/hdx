@@ -49,9 +49,9 @@ App 第一阶段采用原生路线，不混入 Desktop Online，也不复用 Des
 
 本 ADR 只固定技术路线，不创建工程骨架。当前验证方式：
 
-- 使用 `Get-Content -Encoding UTF8` 读取 ADR、架构、约束和计划文档。
+- 使用 PowerShell 7+ / `pwsh` 读取 ADR、架构、约束和计划文档。
 - 使用 `rg` 确认不再保留 “App 当前阶段仍不绑定框架” 等旧状态。
-- 使用 `scripts/quality-gate.ps1 -Scope docs -NoBuild` 验证文档和根仓库质量门禁。
+- 使用 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 验证文档和根仓库质量门禁。
 
 后续创建工程骨架时，需要分别补充：
 

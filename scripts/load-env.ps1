@@ -5,11 +5,6 @@
 
 $ErrorActionPreference = 'Stop'
 
-function U {
-    param([Parameter(Mandatory = $true)][string]$Escaped)
-    return [System.Text.RegularExpressions.Regex]::Unescape($Escaped)
-}
-
 function Convert-DotEnvValue {
     param([Parameter(Mandatory = $true)][AllowEmptyString()][string]$Value)
 
@@ -46,7 +41,7 @@ function Import-DotEnvFile {
 
         $match = [System.Text.RegularExpressions.Regex]::Match($line, '^(?<name>[A-Za-z_][A-Za-z0-9_]*)=(?<value>.*)$')
         if (-not $match.Success) {
-            throw "$(U '本地环境文件格式无效：')${DotEnvPath}:$($lineNumber + 1)"
+            throw "本地环境文件格式无效：${DotEnvPath}:$($lineNumber + 1)"
         }
 
         $name = $match.Groups['name'].Value
@@ -91,9 +86,9 @@ foreach ($name in $derivedNames) {
 
 if ($ValidateOnly) {
     if ($loadedNames.Count -gt 0) {
-        Write-Host "$(U '已读取本地环境变量：')$($loadedNames -join ', ')"
+        Write-Host "已读取本地环境变量：$($loadedNames -join ', ')"
     }
     else {
-        Write-Host (U '未读取到本地环境变量。')
+        Write-Host '未读取到本地环境变量。'
     }
 }

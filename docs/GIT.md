@@ -33,7 +33,7 @@
   - 需要下载依赖或写外部缓存的命令，例如 Maven 首次解析新依赖、`pnpm install`。
   - 已知会写入或清理受限构建产物的命令，例如 Maven AOT/native/package、`pnpm test`、`pnpm build`。
 - 提权后仍失败时，必须记录 blocker、失败命令、失败摘要、影响判断和下一步 unblock 条件；禁止循环重复普通权限试跑。
-- 只读排查命令仍优先普通权限执行，例如 `git status`、`git diff`、`git log`、`git rev-parse`、`rg`、`Get-Content -Encoding UTF8`。
+- 只读排查命令仍优先普通权限执行，例如 `git status`、`git diff`、`git log`、`git rev-parse`、`rg`、`Get-Content`。
 
 ## 提交前验证
 

@@ -79,7 +79,7 @@ Local/Online 切换策略：
 
 本 ADR 阶段只固定设计，不引入 Tauri 代码。验证方式为：
 
-- 使用 `Get-Content -Encoding UTF8` 读取本文档、架构文档、计划和 desktop README。
+- 使用 PowerShell 7+ / `pwsh` 读取本文档、架构文档、计划和 desktop README。
 - 使用 `rg` 检查 Local/Online 一套代码约束、Windows-only wallpaper mode 和 Tauri 决策是否在相关文档中可发现。
 - 后续实施 Tauri 骨架时，必须补充：
   - Local flavor 不暴露本机 token 给 WebView 的验证。

@@ -380,7 +380,7 @@
 
 - 2026-06-07：早期 Codex shell 中 `mvn` 不在 `PATH`，首次后端后台启动未实际执行 Maven 命令；同日已将本机系统级 `JAVA_HOME`、`MAVEN_HOME` 和 `PATH` 修正为 GraalVM JDK 25 与 Maven 3.8.8，新开的 PowerShell / IDE 终端可直接使用 `java` 与 `mvn`。Codex Desktop、IDE 或长期运行的终端进程可能继承旧环境，需重启对应应用后自动生效。
 - 2026-06-07：当前 Codex shell 普通权限执行 `pnpm -v` 时因读取 `C:\Users\zengl` 触发 `EPERM`；后续 Web dev/test/build 命令按项目权限失败重试规则直接走审批/提权路径。
-- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 GraalVM JDK 25 与 Maven 3.8.8；本地环境加载使用 `scripts/load-env.ps1`，直接 dot-source 受 PowerShell 执行策略限制时使用 `-ExecutionPolicy Bypass`。
+- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 GraalVM JDK 25 与 Maven 3.8.8；本地环境加载使用 `scripts/load-env.ps1`，当前项目 PowerShell 脚本入口要求 PowerShell 7+ / `pwsh`。
 - 2026-06-07：真实 gateway 业务请求首次失败于 `Unroutable protocol scheme: lb://hdx-core-service`；修复为 `lb://` 配置走 Spring Cloud Gateway Server Web MVC 的 `lb(serviceId)` filter，并补充 `spring-cloud-starter-loadbalancer` 依赖。
 - 2026-06-07：Web session API 首次失败于 `Web 服务配置无效。`；根因是 Nuxt runtimeConfig 将未设置的 `backendLocalTokenHeader` 与 `backendLocalToken` 表达为空字符串，而 Web schema 只允许缺省或非空字符串。已将空字符串预处理为未设置。
 
@@ -435,7 +435,7 @@
 
 ## 验证方式
 
-- 使用 `Get-Content -Encoding UTF8` 读取本文件，确认中文内容正常。
+- 使用 PowerShell 7+ / `pwsh` 读取本文件，确认中文内容正常。
 - 使用 `mvn -pl :backend-auth-service -am test` 验证账号密码登录服务逻辑。
 - 使用 `mvn test` 做后端全量回归。
 - 使用 `compile spring-boot:process-aot` 覆盖 auth-service/gateway 新增配置后的 AOT 入口。

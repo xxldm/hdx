@@ -35,7 +35,7 @@ HDX 是一个工具箱项目，当前暂定包含四个交付面：
 根仓库提供统一的本地质量门禁入口：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope changed
+pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 ```
 
 常用范围：

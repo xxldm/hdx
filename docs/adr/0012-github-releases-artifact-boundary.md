@@ -113,9 +113,9 @@ manifest/
 
 本轮文档决策验证：
 
-- 使用 `Get-Content -Encoding UTF8` 读取本 ADR、约束、架构、README 和计划。
+- 使用 PowerShell 7+ / `pwsh` 读取本 ADR、约束、架构、README 和计划。
 - 使用 `rg` 检查 GitHub Releases、Actions artifact、backend-services、backend-full、`latest`、App 不内置后端和后端源码禁止项是否可发现。
-- 执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
+- 执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
 
 当前根仓库已提供本地原型脚本 `scripts/release-manifest-check.ps1`，用于校验 release manifest schema、manifest 核心字段和禁止文件扫描。后续 workflow 实现时必须补齐：
 

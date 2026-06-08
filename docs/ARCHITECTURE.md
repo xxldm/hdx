@@ -8,6 +8,7 @@ HDX 暂定由以下部分组成：
 
 - `services/backend/`：后台服务端 Maven 多模块工程，采用 Java 25（GraalVM）、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x。
 - `apps/web/`：Web 端 Nuxt 应用，采用 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm。
+- `apps/desktop/`：Desktop 端 Tauri 应用，采用 Tauri + Rust + Vite + TypeScript，首版 Windows first。
 - `apps/mobile/`：App 端占位。
 - `packages/shared/`：跨端共享契约、类型、工具和协议占位。
 - `docs/`：项目事实源、计划、约束和决策记录。
@@ -17,6 +18,7 @@ HDX 暂定由以下部分组成：
 允许的默认依赖方向：
 
 - `apps/web/` 可以依赖 `packages/shared/`。
+- `apps/desktop/` 可以依赖 `packages/shared/`。
 - `apps/mobile/` 可以依赖 `packages/shared/`。
 - `services/backend/` 可以依赖 `packages/shared/`。
 - `packages/shared/` 不依赖任何具体端。
@@ -25,7 +27,8 @@ HDX 暂定由以下部分组成：
 禁止的默认依赖方向：
 
 - `services/backend/` 依赖 `apps/web/` 或 `apps/mobile/`。
-- `apps/web/` 与 `apps/mobile/` 互相依赖实现细节。
+- `services/backend/` 依赖 `apps/desktop/` 的实现细节。
+- `apps/web/`、`apps/desktop/` 与 `apps/mobile/` 互相依赖实现细节。
 - 任意模块绕过 `packages/shared/` 复制共享契约。
 
 ## 分层原则
@@ -52,7 +55,7 @@ OpenAPI 与 shared 层边界见 `docs/adr/0006-openapi-and-shared-contract-bound
 
 `packages/shared/` 当前保持轻量结构：`contracts/`、`constants/`、`generated/` 和 `tools/`。其中 `generated/openapi/` 已包含从 OpenAPI 快照生成的 TypeScript 类型原型；这不代表 shared 已成为可安装包，也不允许端侧或后端运行时逻辑提前进入 shared。
 
-Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-flavors.md`。当前决策为 Tauri + Rust，首版 Windows first；`apps/desktop/` 只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为可跨平台 capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike。
+Desktop 第一阶段技术与打包策略见 `docs/adr/0008-desktop-tauri-windows-flavors.md`。当前 `apps/desktop/` 已进入最小 Tauri + Rust + Vite + TypeScript 骨架；只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分，不拆成两套 desktop 项目。`HDX Desktop Local` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份；本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。`HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。自启动、通知、deep link、托盘、配置目录和导入导出应抽象为可跨平台 capability；类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike。
 
 ## Web 第一阶段架构
 

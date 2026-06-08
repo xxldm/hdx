@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：设计已确认，尚未实施 Tauri 代码。
+- 当前状态：已完成并归档；后续实施见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`。
 - 计划来源：HDX 后续事项总纲第 6 步
 - 创建时间：2026-06-08
 - 最后更新：2026-06-08
@@ -26,10 +26,10 @@
 - `docs/adr/0008-desktop-tauri-windows-flavors.md`
 - `docs/ARCHITECTURE.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
-- `docs/plans/active/2026-06-08-desktop-integration-design.md`
+- `docs/plans/completed/2026-06-08-desktop-integration-design.md`
 - `apps/desktop/README.md`
 
-## 当前事实
+## 设计阶段事实
 
 - `apps/desktop/` 当前只有占位 README，尚未绑定技术栈。
 - 后端已存在 `backend-all-in-one`，用于 desktop 本机集成，绑定 `127.0.0.1`，使用 H2，并通过随机本机 token 保护 HTTP 请求。
@@ -84,7 +84,7 @@
 ## 验证方式
 
 - `Get-Content -Encoding UTF8 docs/adr/0008-desktop-tauri-windows-flavors.md`
-- `Get-Content -Encoding UTF8 docs/plans/active/2026-06-08-desktop-integration-design.md`
+- `Get-Content -Encoding UTF8 docs/plans/completed/2026-06-08-desktop-integration-design.md`
 - `Get-Content -Encoding UTF8 docs/ARCHITECTURE.md`
 - `Get-Content -Encoding UTF8 apps/desktop/README.md`
 - `rg -n "Tauri|Local|Online|wallpaper|Win32|一套代码|两个安装包" docs apps/desktop`
@@ -105,6 +105,7 @@
 - 2026-06-08：确认 Local/Online 用两个安装包区分：Local 包包含 all-in-one 且仅离线本地；Online 包不包含 all-in-one 且仅在线远程。
 - 2026-06-08：确认 Local/Online 是一套代码的两个构建 flavor，不复制两套 desktop 项目。
 - 2026-06-08：新增 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包和 Win32 wallpaper mode 边界。
+- 2026-06-08：设计计划已归档；Tauri 骨架实施见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`。
 
 ## 验证结果
 
@@ -115,8 +116,7 @@
 
 ## 剩余风险
 
-- Tauri 工程尚未创建。
-- Local/Online 构建 flavor 尚未实现。
+- Tauri 工程骨架与 Local/Online 构建 flavor 边界已由 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md` 记录。
 - 自启动、通知、deep link 尚未接入插件。
 - Windows-only wallpaper mode 尚未做 Win32 spike。
 - `backend-all-in-one` sidecar 启动、健康检查、`/local/session` 获取和本机 token 注入链路尚未实现。

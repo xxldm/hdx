@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 6 步 Desktop 集成设计已开始；已确认 Tauri + Rust、Windows first、一套代码双安装包和 Windows-only wallpaper mode 方向，详见 `docs/plans/active/2026-06-08-desktop-integration-design.md`。
+- 当前状态：第 6 步 Desktop 集成设计与最小 Tauri 骨架已完成；后续等待确认 sidecar、本机 token、系统 capability 或 Win32 spike 的下一小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-08
@@ -32,7 +32,7 @@
 - [ ] 3. 认证与权限边界（进行中，详见 `docs/plans/active/2026-06-06-auth-permission-boundary.md`）
 - [x] 4. 自动化质量门禁（最小本地脚本入口已完成，详见 `docs/plans/completed/2026-06-07-automated-quality-gate.md`）
 - [x] 5. OpenAPI 与 shared 层（已完成，详见 `docs/plans/completed/2026-06-07-openapi-shared-layer.md`）
-- [ ] 6. Desktop 集成设计（进行中，详见 `docs/plans/active/2026-06-08-desktop-integration-design.md`）
+- [x] 6. Desktop 集成设计与骨架（已完成，设计见 `docs/plans/completed/2026-06-08-desktop-integration-design.md`，骨架见 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`）
 - [ ] 7. App 技术栈
 - [ ] 8. 缓存、对象存储、队列（Redis 已因认证撤销需求提前决策，见 `docs/adr/0005-auth-revocation-redis.md`）
 - [ ] 9. 部署、发布与环境管理
@@ -115,6 +115,7 @@
 - 第 3 步认证与权限边界已完成多个小切片：认证中心、Web BFF 登录态、Web 登录页和统一当前身份接口均已实现；仍保留 desktop 切换边界、持久 JWK、登录安全增强等后续风险。
 - 第 5 步 OpenAPI 与 shared 层已完成，已确认契约事实源、生成范围和 shared 首批职责；当前已建立 OpenAPI TypeScript 类型生成原型、漂移检查和 Web 只读类型对齐检查，不生成完整 API client。
 - 第 6 步 Desktop 集成设计已确认首版采用 Tauri + Rust、Windows first、一套代码双安装包；Local 包包含 all-in-one 且仅离线本地，Online 包不包含 all-in-one 且仅在线远程。
+- 第 6 步 Desktop 已创建最小 Tauri/Vite/Rust 骨架；Local/Online 通过同一代码库内的构建脚本、Tauri 配置变体和 Rust feature 区分。
 
 ## 验收标准
 
@@ -152,6 +153,8 @@
 - 2026-06-07：复核 `docs/plans/completed/` 中的剩余风险和提交状态，将已由后续认证、Nacos、公共数据库、OpenAPI 和 Git 收口解决的历史风险更新为当前状态；仍保留 native-image、远端 CI、Desktop/App、正式生成器和运行时消费生成类型等未解决风险。
 - 2026-06-08：收口 3 个小项：修正总纲第 2 步过期风险描述；复核 Web 中文文案源码未再发现 mojibake 乱码；修复并验证 `backend-auth-service` service profile 下 `/v3/api-docs` 无尾斜杠访问。
 - 2026-06-08：开始第 6 步 Desktop 集成设计；新增 `docs/plans/active/2026-06-08-desktop-integration-design.md` 和 ADR 0008，记录 Tauri、Windows first、Local/Online 双安装包、一套代码和 Win32 wallpaper mode 边界。
+- 2026-06-08：归档 Desktop 集成设计计划，进入 `docs/plans/active/2026-06-08-desktop-tauri-skeleton.md`，开始创建最小 Tauri 骨架和 Desktop 质量门禁入口。
+- 2026-06-08：完成第 6 步 Desktop 最小 Tauri 骨架，归档 `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`；当前等待确认第 7 步 App 技术栈或 Desktop 后续小步。
 
 ## 验证结果
 
@@ -166,13 +169,14 @@
 - 3 个小项收口中已执行 Web mojibake 字符扫描，覆盖 `apps/web` 下 `*.vue`、`*.ts`、`*.js`、`*.json` 和 `*.md`，未发现 `�`、`Ã`、`Â`、`æ`、`ç`、`è`、`é`、`ä`、`å`、`ï¼`、`ã€`、`ï¿½` 等乱码特征。
 - 3 个小项收口中已执行 `backend-auth-service` 临时 19082 service profile 实例验证：`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200`，且 OpenAPI 内容包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
 - 第 6 步 Desktop 集成设计已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- 第 6 步 Desktop Tauri 骨架已执行 `pnpm install`、`pnpm run typecheck`、`pnpm run build:web`、`pnpm exec tauri --version`、`pnpm exec tauri dev --help`、`pnpm exec tauri build --help`、`pnpm exec tauri info`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`git -C apps/desktop diff --check` 和 `git diff --check`：除 Rust 工具链缺失导致无法执行 cargo/Tauri Rust 构建外，其余通过。
 
 ## 剩余风险
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步真实 PostgreSQL 服务端 profile 启动已由后续认证/Nacos 联调覆盖；尚未单独运行完整 native-image 编译，详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
-- 第 6 步 Desktop 仍未创建 Tauri 工程；Local/Online 构建 flavor、all-in-one sidecar 启动、本机 token 注入、Win32 wallpaper mode spike 和导入导出格式均未实现。
+- 第 6 步 Desktop 已创建 Tauri 工程骨架；当前环境未安装 Rust/rustup/cargo，尚未执行 `cargo check` 或 Tauri Rust 构建；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 
 ## 相关 commit
 

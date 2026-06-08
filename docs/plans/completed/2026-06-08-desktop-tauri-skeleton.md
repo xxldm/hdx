@@ -1,0 +1,105 @@
+# Desktop Tauri 骨架
+
+- 外部任务系统：无
+- 外部任务链接/编号：不适用
+- 外部任务是否为主计划来源：否
+- 当前状态：已完成并归档；Rust 编译验证因当前环境缺少 Rust 工具链保留为剩余风险。
+- 计划来源：用户确认进入 Desktop 实施第一小步
+- 创建时间：2026-06-08
+- 最后更新：2026-06-08
+
+## 目标
+
+让 `apps/desktop` 从占位 README 进入可静态检查的最小 Tauri 工程状态，并先落好一套代码、Local/Online 构建 flavor、desktop capability 分层和 Windows-only 能力隔离位置。
+
+## 非目标
+
+- 本轮不实现 `backend-all-in-one` sidecar 启动、健康检查或 `/local/session` 获取。
+- 本轮不实现自启动、通知、deep link、托盘、导入导出或 wallpaper mode 的真实平台调用。
+- 本轮不实现 Windows `Progman`/`WorkerW` 嵌入窗口 spike。
+- 本轮不设计安装器签名、自动更新、发布渠道或数据迁移格式。
+- 本轮不把 Web Nuxt 应用嵌入 Desktop；先用原生 Vite 状态面板验证 Tauri IPC 与边界。
+
+## repo 内范围
+
+- `apps/desktop/`
+- `docs/ARCHITECTURE.md`
+- `docs/QUALITY.md`
+- `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
+- `docs/plans/completed/2026-06-08-desktop-tauri-skeleton.md`
+- `docs/plans/completed/2026-06-08-desktop-integration-design.md`
+- `scripts/quality-gate.ps1`
+
+## 本地任务清单
+
+- [x] 读取约束、架构、质量、Git、ADR 和计划规则。
+- [x] 复核 `apps/desktop` 当前只有 README 占位，根仓库与子模块均为干净状态。
+- [x] 创建最小 Tauri + Vite + TypeScript + Rust 工程骨架。
+- [x] 添加 Local/Online flavor 脚本、Tauri 配置变体和 Rust feature 边界。
+- [x] 添加 desktop capability 分层空壳，隔离跨平台能力与 Windows-only wallpaper mode。
+- [x] 更新 Desktop README、架构文档、质量门禁和总纲计划。
+- [x] 归档已完成的 Desktop 集成设计计划。
+- [x] 运行相称验证并记录验证缺口。
+- [x] 提交并推送 desktop 子模块与根仓库。
+
+## 验收标准
+
+- `apps/desktop` 存在可识别的 Tauri v2 工程结构。
+- Local/Online 是同一代码库的不同脚本、配置变体和 Rust feature，不出现两套 desktop 项目。
+- 前端只通过受控 Tauri command 读取状态，不直接持有本机 token。
+- Rust 层存在 capability 边界，Windows-only wallpaper mode 与通用能力分离。
+- 根仓库质量门禁能识别 `apps/desktop` 改动并提供 Desktop 检查入口。
+- 已完成设计计划不再停留在 `docs/plans/active/`。
+
+## 验证方式
+
+- `Get-Content -Encoding UTF8` 读取新增和更新的中文文档。
+- `git -C apps/desktop diff --check`
+- `git diff --check`
+- `npm install` 或 `pnpm install` 安装 desktop 前端依赖。
+- `npm run typecheck` 或等价 TypeScript 检查。
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`
+- 如本机 Rust 工具链可用，补充 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-local` 与 `--features flavor-online`。
+
+## 风险与阻塞
+
+- 当前 Codex 进程中 `pnpm --version` 因读取 `C:\Users\zengl` 触发 `EPERM`，后续 pnpm 命令需要走审批/提权路径或改用 npm 验证。
+- 当前 Codex 进程中 `rustc` 与 `cargo` 不在 `PATH`，本轮可能无法完成 Rust 编译验证。
+- Tauri 依赖需要联网下载；如网络或凭据受限，只能完成静态骨架验证。
+- Local flavor 暂不包含真实 all-in-one sidecar，后续需要补 sidecar 打包检查。
+
+## 状态记录
+
+- 2026-06-08：创建计划，当前状态为“实施中”。
+- 2026-06-08：已确认 `apps/desktop` 仅有 README，占位状态可以直接进入 Tauri 骨架创建。
+- 2026-06-08：本机普通权限执行 `pnpm --version` 失败于 `EPERM: operation not permitted, lstat 'C:\Users\zengl'`；`rustc` 与 `cargo` 不在当前 PATH。
+- 2026-06-08：已创建最小 Tauri/Vite/Rust 骨架；Local/Online 通过 `dev:local`、`dev:online`、`build:local`、`build:online` 脚本、Tauri 配置变体和 Rust feature 区分。
+- 2026-06-08：已添加 `desktop_status` 与 `capability_status` 只读 command；前端状态面板只通过 Tauri command 读取状态，不读取本机 token。
+- 2026-06-08：已在根仓库质量门禁中新增 `-Scope desktop` 和 `-SkipDesktop`。
+- 2026-06-08：已完成相称验证；因当前环境缺少 Rust 工具链，Rust `cargo check` 与 Tauri permission 生成验证留到后续补齐。
+
+## 验证结果
+
+- 已执行 `pnpm --version`：普通权限失败于 `EPERM: operation not permitted, lstat 'C:\Users\zengl'`，按权限规则改走提权路径后返回 `10.0.0`。
+- 已执行 `pnpm install`：通过，生成 `apps/desktop/pnpm-lock.yaml`；安装 `@tauri-apps/api 2.11.0`、`@tauri-apps/cli 2.11.2`、`typescript 5.9.3` 和 `vite 8.0.16`。
+- 已执行 `pnpm run typecheck`：首次失败于 `src/main.ts` 中挂载节点类型未收窄；修复后通过。
+- 已执行 `pnpm run build:web`：通过，Vite 成功生成 `dist/` 静态资源，产物已由 `.gitignore` 排除。
+- 已执行 `pnpm exec tauri --version`：通过，返回 `tauri-cli 2.11.2`。
+- 已执行 `pnpm exec tauri dev --help` 与 `pnpm exec tauri build --help`：通过，确认 `--config` 与 `--features` 支持当前 Local/Online flavor 脚本。
+- 已执行 `pnpm exec tauri info`：通过；确认 WebView2 与 MSVC 可用，`rustc`、`cargo`、`rustup` 未安装。
+- 已执行 `pnpm exec tauri permission ls`：失败于 `permission file not found, please build your application once first`；该命令需要先完成 Rust 构建生成权限文件，本轮因缺少 cargo 无法补齐。
+- 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`：通过，覆盖 Desktop 骨架文件静态读取、JSON 配置解析、脚本存在性、Cargo flavor 文本检查、子模块空白检查和 Node 环境检查；Rust 编译按 `-NoBuild` 跳过。
+- 已执行 `rg -n "flavor-local|flavor-online|desktop_status|capability_status|localTokenExposedToWebview|wallpaper|backend-all-in-one|WebView|Tauri" apps/desktop docs scripts`：通过，确认关键边界可检索。
+- 已执行 `git -C apps/desktop diff --check` 与 `git diff --check`：通过，仅保留 CRLF 换行提示。
+
+## 剩余风险
+
+- 当前环境未安装 Rust/rustup/cargo，尚未执行 `cargo check --features flavor-local`、`cargo check --features flavor-online`、Tauri Rust 构建或 Tauri permission 生成验证。
+- `desktop_status` 和 `capability_status` 仍是只读骨架 command，尚未接真实 sidecar、远端地址配置或系统 capability。
+- Local flavor 尚未打包或启动 `backend-all-in-one`，也尚未实现 `/local/session` 获取和本机 token 注入。
+- Online flavor 尚未实现远端地址填写、持久化和连接校验。
+- 自启动、通知、deep link、托盘、配置目录、导入导出和 Windows-only wallpaper mode 均仍是 capability 空壳。
+
+## 相关 commit
+
+- 本计划提交由 Git 历史体现，不在同一提交中回写自身 hash，避免递归提交。

@@ -179,7 +179,7 @@
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 2 步真实 PostgreSQL 服务端 profile 启动已由后续认证/Nacos 联调覆盖；尚未单独运行完整 native-image 编译，详细风险见 `docs/plans/completed/2026-06-05-database-migration-strategy.md`。
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
-- 第 6 步 Desktop 已创建 Tauri 工程骨架并补齐 Rust 编译验证；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike、导入导出格式和正式品牌图标均未实现。
+- 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 
 ## 相关 commit
 

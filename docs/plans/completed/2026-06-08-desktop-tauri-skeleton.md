@@ -97,7 +97,7 @@
 
 ## 剩余风险
 
-- `src-tauri/icons/icon.ico` 是后续为通过 Tauri Windows resource 构建补齐的占位图标，不是最终品牌图标；正式发布前需要替换。
+- `src-tauri/icons/icon.ico` 已在后续按用户指定的 `favicon3.ico` 覆盖；后续如品牌资产变化，再按同一路径替换并重新验证。
 - `desktop_status` 和 `capability_status` 仍是只读骨架 command，尚未接真实 sidecar、远端地址配置或系统 capability。
 - Local flavor 尚未打包或启动 `backend-all-in-one`，也尚未实现 `/local/session` 获取和本机 token 注入。
 - Online flavor 尚未实现远端地址填写、持久化和连接校验。

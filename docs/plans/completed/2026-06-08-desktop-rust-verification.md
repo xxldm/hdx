@@ -66,6 +66,7 @@
 - 2026-06-08：已为单 flavor 编译下的 `DesktopFlavor` 枚举补充 `dead_code` 豁免，避免 Local/Online 单独编译时出现预期 warning。
 - 2026-06-08：已将 Desktop 完整质量门禁扩展为静态检查 `Cargo.lock` 与 `icon.ico`。
 - 2026-06-08：Local/Online Rust 编译、Tauri permission 列举和 Desktop 完整质量门禁均已通过；当前状态改为“已完成并归档”。
+- 2026-06-08：用户指定 `D:\SynologyDrive\主题\图标\icon\favicon3.ico` 作为 Desktop 图标，已复制覆盖 `src-tauri/icons/icon.ico` 并重新通过 Desktop 完整质量门禁。
 
 ## 验证结果
 
@@ -77,7 +78,7 @@
 
 ## 剩余风险
 
-- `src-tauri/icons/icon.ico` 是构建占位图标，不是最终品牌图标；正式发布前需要替换。
+- 当前 `src-tauri/icons/icon.ico` 已由用户指定的 `favicon3.ico` 覆盖；后续如品牌资产变化，再按同一路径替换并重新验证。
 - `desktop_status` 和 `capability_status` 仍是只读骨架 command，尚未接真实 sidecar、远端地址配置或系统 capability。
 - Local flavor 尚未打包或启动 `backend-all-in-one`，也尚未实现 `/local/session` 获取和本机 token 注入。
 - Online flavor 尚未实现远端地址填写、持久化和连接校验。

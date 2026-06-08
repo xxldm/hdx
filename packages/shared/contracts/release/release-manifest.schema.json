@@ -1,0 +1,267 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://hdx.example/contracts/release/release-manifest.schema.json",
+  "title": "HDX Release Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "manifestKind",
+    "version",
+    "generatedAt",
+    "root",
+    "sources",
+    "openapiSnapshotHash",
+    "backendNativeManifest",
+    "assets"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": "1.0"
+    },
+    "manifestKind": {
+      "const": "release"
+    },
+    "version": {
+      "$ref": "#/$defs/releaseVersion"
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "root": {
+      "$ref": "#/$defs/rootRef"
+    },
+    "sources": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "backend"
+      ],
+      "properties": {
+        "web": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "desktop": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "android": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "harmonyos": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "backend": {
+          "$ref": "#/$defs/sourceRef"
+        }
+      }
+    },
+    "openapiSnapshotHash": {
+      "$ref": "#/$defs/sha256"
+    },
+    "backendNativeManifest": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "fileName",
+        "sha256",
+        "backendCommit",
+        "githubActions"
+      ],
+      "properties": {
+        "fileName": {
+          "const": "backend-native-manifest.json"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "backendCommit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "githubActions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "workflow",
+            "runId",
+            "runAttempt",
+            "artifactName"
+          ],
+          "properties": {
+            "workflow": {
+              "type": "string",
+              "minLength": 1
+            },
+            "runId": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "runAttempt": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "artifactName": {
+              "type": "string",
+              "minLength": 1
+            },
+            "artifactId": {
+              "type": "integer",
+              "minimum": 1
+            }
+          }
+        }
+      }
+    },
+    "assets": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/releaseAsset"
+      }
+    }
+  },
+  "$defs": {
+    "releaseVersion": {
+      "type": "string",
+      "pattern": "^v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "not": {
+        "pattern": "latest"
+      }
+    },
+    "gitCommit": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40}$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "rootRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "ref",
+        "commit"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "commit": {
+          "$ref": "#/$defs/gitCommit"
+        }
+      }
+    },
+    "sourceRef": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "commit"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "commit": {
+          "$ref": "#/$defs/gitCommit"
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "releaseAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "fileName",
+        "sha256",
+        "sizeBytes",
+        "source"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "web",
+            "desktop-online",
+            "desktop-full",
+            "backend-full",
+            "backend-services",
+            "android-online",
+            "harmonyos-online",
+            "metadata"
+          ]
+        },
+        "platform": {
+          "enum": [
+            "windows-x64",
+            "linux-x64",
+            "android",
+            "harmonyos"
+          ]
+        },
+        "fileName": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "contentType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "sizeBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "commit"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "root",
+                "web",
+                "desktop",
+                "backend",
+                "android",
+                "harmonyos",
+                "generated"
+              ]
+            },
+            "commit": {
+              "$ref": "#/$defs/gitCommit"
+            },
+            "manifestSha256": {
+              "$ref": "#/$defs/sha256"
+            },
+            "openapiSnapshotHash": {
+              "$ref": "#/$defs/sha256"
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -193,6 +193,7 @@
 - 2026-06-09：完成主仓库后端 artifact 下载校验；新增本地校验脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 校验通过，主仓库 GitHub-hosted run `27190000244` 已成功用 GitHub App token 下载并校验 artifact `7500484195`。
 - 2026-06-09：完成 draft Release 最小闭环；新增最小 Release 资产整理脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 生成并校验候选资产，主仓库 GitHub-hosted run `27191204936` 已成功创建测试 draft Release、上传资产并远端下载校验。
 - 2026-06-09：按用户确认删除测试 draft Release `v0.0.0-artifact-test.2`；`gh release view` 已确认 release not found，Git refs API 已确认对应 tag ref 404。
+- 2026-06-09：开始后端 native artifact 扩展切片，目标是补齐 `backend-services` 聚合包、默认 `backend-full-windows-x64` 和可选 `backend-services-windows-x64`；详细计划见 `docs/plans/active/2026-06-09-backend-native-artifact-expanded.md`。
 
 ## 验证结果
 
@@ -233,7 +234,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full-linux-x64` native artifact 最小 CI、主仓库后端 artifact 下载校验和 draft Release 最小闭环均已实跑通过；完整真实 GitHub Release workflow、`backend-services` 聚合包、Windows native artifact、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full-linux-x64` native artifact 最小 CI、主仓库后端 artifact 下载校验和 draft Release 最小闭环均已实跑通过；完整真实 GitHub Release workflow、`backend-services` 聚合包、默认 `backend-full-windows-x64`、可选 `backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

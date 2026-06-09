@@ -65,5 +65,5 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `backend-native-manifest.json` 的 `version`、`root.ref`、`root.commit`、`openapiSnapshotHash` 与主仓库发布上下文一致。
 - `release-manifest.json` 中所有 asset 的 sha256 与真实上传文件一致。
 - Desktop Full 内置 `backend-build.json` 中的 `archiveSha256` 与公开 Release 中对应 `backend-full` asset 的 sha256 一致。
-- `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制、配置示例和清单文件。
+- `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制和配置示例；`manifest/SHA256SUMS` 覆盖除自身外的包内文件。manifest 自身不写入 `files`，避免自引用 hash。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。

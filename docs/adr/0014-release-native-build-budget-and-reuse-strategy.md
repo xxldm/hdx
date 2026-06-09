@@ -115,3 +115,4 @@ backend native fingerprint 至少包含：
 - 2026-06-09：`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持 `backendNativeManifest.source.type` 显式来源、backend native asset 的 `historical-release-asset` 来源、历史构建上下文和 `backendNativeFingerprint` 校验。
 - 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口：从主仓库指定历史 Release 下载 manifest 和后端 native asset，校验后生成新的 `release-manifest.json`、重新上传到新 draft Release，并远端下载核对 size 与 sha256。完整真实 release workflow 仍待后续整合。
 - 2026-06-09：`scripts/release-draft-minimal-assets.ps1` 已为从后端 Actions artifact 整理出的后端 native asset 写入 `backendNativeFingerprint`，使该 draft Release 后续可作为历史 Release asset 复用来源。
+- 2026-06-09：GitHub-hosted run `27209181697` 已创建带 `backendNativeFingerprint` 的历史 draft Release `v0.0.0-services-parallel.2`；run `27209326174` 已成功复用该历史 Release asset 创建 draft Release `v0.0.0-services-parallel.3`，并完成远端资产 size/sha256 回读校验。

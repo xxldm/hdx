@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验 GitHub-hosted 实跑验证、draft Release 最小闭环 GitHub-hosted 实跑验证、后端 `backend-full` Linux/Windows 默认 artifact 与 `backend-services` Linux 聚合 artifact 扩展验证、后端 native 构建额度与历史 Release asset 复用策略、历史 Release asset 手动最小 draft 复用入口，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待真实完整 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
+- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验 GitHub-hosted 实跑验证、draft Release 最小闭环 GitHub-hosted 实跑验证、后端 `backend-full` Linux/Windows 默认 artifact 与 `backend-services` Linux 聚合 artifact 扩展验证、后端 native 构建额度与历史 Release asset 复用策略、历史 Release asset 手动最小 draft 复用入口 GitHub-hosted 实跑，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待真实完整 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-09
@@ -198,6 +198,7 @@
 - 2026-06-09：后端 `backend-services-linux-x64` 服务级并行验证已完成；`services/backend` GitHub-hosted run `27202869734` 成功按 `build_scope=services-linux-only` 跳过 full 与 Windows services，只运行 3 个 Linux service native matrix job 和最终聚合 job，最终 artifact `7506747699` 已下载到本地并通过 release manifest 校验。
 - 2026-06-09：release manifest 历史复用契约已补齐；`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持记录并校验历史主仓库 Release asset 来源、历史后端构建上下文和 backend native fingerprint。
 - 2026-06-09：新增历史 Release asset 手动最小 draft 复用入口；`scripts/release-draft-reuse-backend-assets.ps1` 可从历史主仓库 Release asset 生成新的历史复用 `release-manifest.json`，`.github/workflows/release-draft-reuse-backend.yml` 可下载历史资产、创建新 draft Release、上传资产并远端下载核对 size 与 sha256。完整真实 GitHub Release workflow 仍待后续整合。
+- 2026-06-09：历史 Release asset 手动最小 draft 复用入口已 GitHub-hosted 实跑通过；`release-draft-minimal.yml` run `27209181697` 创建历史 draft Release `v0.0.0-services-parallel.2`，`release-draft-reuse-backend.yml` run `27209326174` 复用该历史后端 asset 创建 draft Release `v0.0.0-services-parallel.3`。
 
 ## 验证结果
 
@@ -233,6 +234,7 @@
 - 第 9 步后端 native 构建额度与复用策略已执行 `services-linux-only` GitHub-hosted run `27202869734`，成功验证 Linux services matrix 并行构建、`actions/download-artifact@v7.0.0` 聚合下载和最终 `backend-services-linux-x64` artifact；本地已下载 artifact `7506747699` 并分别校验外层 `backend-native-manifest.json` 与包内 `backend-services-manifest.json`。
 - 第 9 步历史 Release asset 复用契约已执行 `scripts/release-manifest-check.ps1`、基于 run `27202869734` 下载产物的 `scripts/release-draft-minimal-assets.ps1` 生成验证、`git diff --check` 和 `scripts/quality-gate.ps1 -Scope docs -NoBuild`：均通过。
 - 第 9 步历史 Release asset 手动最小 draft 复用入口已执行 `scripts/release-draft-reuse-backend-assets.ps1` 本地 dry-run 和 `actionlint .github/workflows/release-draft-reuse-backend.yml`：均通过。
+- 第 9 步历史 Release asset 手动最小 draft 复用入口已执行 GitHub-hosted run `27209181697` 和 `27209326174`：均通过；复用 draft manifest 已确认记录 `historical-release-asset` 来源、历史 release tag、历史 asset sha256/size、历史构建 root commit 和 `backendNativeFingerprint`。
 
 ## 剩余风险
 
@@ -241,7 +243,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环、后端 native 构建额度/复用策略、历史 Release asset 复用契约和手动最小 draft 复用入口均已确认或验证通过；完整真实 GitHub Release workflow、历史复用入口 GitHub-hosted 实跑、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环、后端 native 构建额度/复用策略、历史 Release asset 复用契约和手动最小 draft 复用入口 GitHub-hosted 实跑均已确认或验证通过；完整真实 GitHub Release workflow、测试 draft Release 清理、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

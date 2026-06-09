@@ -216,7 +216,10 @@ $releaseManifest = [ordered]@{
         fileName = 'backend-native-manifest.json'
         sha256 = $backendNativeManifestSha256
         backendCommit = $BackendCommit
-        githubActions = $githubActions
+        source = [ordered]@{
+            type = 'github-actions-artifact'
+            githubActions = $githubActions
+        }
     }
     assets = $releaseAssets
 }

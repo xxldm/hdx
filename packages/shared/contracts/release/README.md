@@ -46,6 +46,9 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `root.commit`、子模块 commit 和后端 commit 均使用 40 位小写 Git SHA。
 - sha256 字段均使用 64 位小写十六进制。
 - `openapiSnapshotHash` 表示参与本次发布的 OpenAPI 快照集合 hash，后续 workflow 实现时必须由主仓库和后端 CI 使用同一算法生成。
+- `backendNativeManifest.source.type` 显式记录 `backend-native-manifest.json` 的来源：本次后端 Actions artifact 使用 `github-actions-artifact`，历史主仓库 Release asset 复用使用 `historical-release-asset`。
+- `assets[].source.type=historical-release-asset` 只允许用于 `backend-full` 或 `backend-services`，并必须记录历史 release tag、历史 asset 名称、sha256、size、历史 release manifest sha256、历史构建 root/backend/OpenAPI 上下文和 `backendNativeFingerprint`。
+- `backendNativeFingerprint.algorithm` 当前固定为 `hdx-backend-native-fingerprint-v1`；它记录后端 commit、artifact kind、platform、服务列表、OpenAPI hash、打包脚本版本、Java/GraalVM 版本、Maven native profile、native-image 参数、Spring AOT、RuntimeHints、reachability metadata 和 native metadata 输入。
 - `backend-full` 表示 Desktop Full 使用的本地完整后端 native archive。
 - `backend-services` 表示服务端微服务部署用平台聚合包；Release asset 不按微服务拆分，微服务粒度记录在 `backend-services-manifest.json` 的 `services` 字段中。
 
@@ -68,4 +71,4 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制和配置示例；`manifest/SHA256SUMS` 覆盖除自身外的包内文件。manifest 自身不写入 `files`，避免自引用 hash。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。
 
-ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。实现该分支前，必须扩展 `release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1`，记录历史 release tag、asset name、sha256、size、backend native fingerprint 和历史构建来源；校验逻辑必须区分当前发布事实源和历史后端 asset 的构建 `root.commit`。
+ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。当前 `release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已能记录并校验历史 release tag、asset name、sha256、size、backend native fingerprint 和历史构建来源；校验逻辑会区分当前发布事实源和历史后端 asset 的构建 `root.commit`。真实 release workflow 的复用执行分支仍需后续实现。

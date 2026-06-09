@@ -79,7 +79,7 @@ jobs:
           Write-Host "输入校验通过：version=$version root_ref=$rootRef dry_run=$dryRun"
 
       - name: Checkout 指定 root ref
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.3
         with:
           ref: ${{ inputs.root_ref }}
           fetch-depth: 0

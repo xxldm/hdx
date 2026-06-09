@@ -126,7 +126,7 @@ manifest/
 - 校验 `version`、`root.ref`、`root.commit`、OpenAPI/API contract hash、后端 commit、平台列表和主仓库 release workflow 上下文一致。
 - 校验 Desktop Full 内置 `backend-build.json` 与 Release 中对应 `backend-full` archive 的 sha256 一致。
 
-当前主仓库已提供 release dry-run workflow 骨架 `.github/workflows/release-dry-run.yml`。该 workflow 只用于演练输入校验、指定 root ref checkout、子模块指针记录、release manifest 校验和 dry-run 摘要输出。它必须保持以下限制，直到真实 release workflow 单独设计并确认：
+当前主仓库已提供 release dry-run workflow 骨架 `.github/workflows/debug-release-dry-run.yml`。该 workflow 只用于演练输入校验、指定 root ref checkout、子模块指针记录、release manifest 校验和 dry-run 摘要输出。它必须保持以下限制，直到真实 release workflow 单独设计并确认：
 
 - 不创建 GitHub Release。
 - 不上传 release asset。

@@ -14,7 +14,7 @@
 
 本轮完成后应具备：
 
-- `.github/workflows/release-backend-artifact-check.yml`
+- `.github/workflows/check-release-backend-artifact.yml`
 - `scripts/release-backend-artifact-check.ps1`
 - workflow 输入后端仓库、run id、artifact name、版本、root ref、root commit、后端 commit 和 OpenAPI snapshot hash。
 - workflow 使用 `HDX_RELEASE_APP_CLIENT_ID` 与 `HDX_RELEASE_APP_PRIVATE_KEY` 生成后端仓库 GitHub App token。
@@ -32,7 +32,7 @@
 
 ## repo 内范围
 
-- `.github/workflows/release-backend-artifact-check.yml`
+- `.github/workflows/check-release-backend-artifact.yml`
 - `scripts/release-backend-artifact-check.ps1`
 - `docs/plans/completed/2026-06-09-release-backend-artifact-check.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
@@ -58,10 +58,10 @@
 ## 验证方式
 
 - `pwsh -NoLogo -NoProfile -File scripts/release-backend-artifact-check.ps1 ...`
-- `actionlint .github/workflows/release-backend-artifact-check.yml`
+- `actionlint .github/workflows/check-release-backend-artifact.yml`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
-- `gh workflow run release-backend-artifact-check.yml --repo xxldm/hdx --ref main ...`
+- `gh workflow run check-release-backend-artifact.yml --repo xxldm/hdx --ref main ...`
 - `gh run watch <run_id> --repo xxldm/hdx --exit-status`
 
 ## 风险与阻塞
@@ -73,7 +73,7 @@
 
 - 2026-06-09：创建计划，开始新增主仓库后端 artifact 下载校验入口。
 - 2026-06-09：新增 `scripts/release-backend-artifact-check.ps1`，用于校验下载后的后端 artifact 目录、manifest 上下文、native archive sha256/size 和禁止文件扫描。
-- 2026-06-09：新增 `.github/workflows/release-backend-artifact-check.yml`，使用 GitHub App token 读取后端 run artifact 列表并下载指定 artifact；workflow 不 checkout 后端私有源码、不创建 Release、不上传 asset。
+- 2026-06-09：新增 `.github/workflows/check-release-backend-artifact.yml`，使用 GitHub App token 读取后端 run artifact 列表并下载指定 artifact；workflow 不 checkout 后端私有源码、不创建 Release、不上传 asset。
 - 2026-06-09：本地使用已下载的后端 artifact `target/backend-artifact-check/27188320676` 验证新脚本通过，随后提交推送并用 GitHub-hosted workflow 验证跨仓库下载链路。
 - 2026-06-09：主仓库提交 `f5fd55a` 已推送到 `origin/main`，触发 GitHub-hosted workflow run `27190000244`。
 - 2026-06-09：GitHub-hosted run `27190000244` 通过，job `80267675961` 在主仓库提交 `f5fd55a527e070a24c6108e8819110c43fdc44e3` 上完成；日志确认 artifact `7500484195` 定位、下载、解包和内容校验通过。
@@ -81,11 +81,11 @@
 ## 验证结果
 
 - `pwsh -NoLogo -NoProfile -File scripts/release-backend-artifact-check.ps1 -ArtifactRoot target\backend-artifact-check\27188320676 -ExpectedVersion v0.0.0-artifact-test.2 -ExpectedRootRepository xxldm/hdx -ExpectedRootRef refs/heads/main -ExpectedRootCommit fe497d1d17baafd4b0ab3f2942d6a0c8ad63a0b4 -ExpectedBackendRepository xxldm/hdx-backend -ExpectedBackendCommit 051760d590ac2a49ad7ecb4bf1cd643d74ab7b20 -ExpectedRunId 27188320676 -ExpectedRunAttempt 1 -ExpectedArtifactName hdx-backend-native-v0.0.0-artifact-test.2-linux-x64 -ExpectedOpenApiSnapshotHash 6f25f723550eecbeedbe2aca1f23070411a2d81be5127d8fc27643ffab91505c`：通过，确认本地下载 artifact 内容校验通过。
-- `actionlint .github/workflows/release-backend-artifact-check.yml`：通过。
+- `actionlint .github/workflows/check-release-backend-artifact.yml`：通过。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁、release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 - `git diff --check`：通过。
 - `git push origin main`：通过，主仓库 `main` 从 `6165661` 推进到 `f5fd55a`。
-- `gh workflow run release-backend-artifact-check.yml --repo xxldm/hdx --ref main ...`：通过，触发 run `27190000244`。
+- `gh workflow run check-release-backend-artifact.yml --repo xxldm/hdx --ref main ...`：通过，触发 run `27190000244`。
 - `gh run watch 27190000244 --repo xxldm/hdx --exit-status`：通过，workflow conclusion 为 `success`。
 - `gh run view 27190000244 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，`headSha=f5fd55a527e070a24c6108e8819110c43fdc44e3`，job `80267675961` 成功。
 - `gh run view 27190000244 --repo xxldm/hdx --log | Select-String ...`：通过，关键日志包含 `artifact 定位通过`、`Release manifest 校验完成` 和 `后端 Actions artifact 下载内容校验通过`。

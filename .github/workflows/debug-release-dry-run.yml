@@ -1,4 +1,4 @@
-name: Release Dry Run
+name: Debug Release Dry Run
 
 on:
   workflow_dispatch:
@@ -21,12 +21,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-dry-run-${{ inputs.version }}-${{ inputs.root_ref }}
+  group: debug-release-dry-run-${{ inputs.version }}-${{ inputs.root_ref }}
   cancel-in-progress: false
 
 jobs:
-  release-dry-run:
-    name: Release dry run
+  debug-release-dry-run:
+    name: Debug release dry run
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -47,7 +47,7 @@ jobs:
           $dryRun = $env:HDX_DRY_RUN
 
           if ($dryRun -ne 'true') {
-            throw 'release-dry-run.yml 只允许 dry_run=true；真实发布 workflow 尚未实现。'
+            throw 'debug-release-dry-run.yml 只允许 dry_run=true；真实发布 workflow 尚未实现。'
           }
 
           if ([string]::IsNullOrWhiteSpace($version)) {
@@ -171,7 +171,7 @@ jobs:
           }
 
           $summary = @"
-          # HDX Release Dry Run
+          # HDX Debug Release Dry Run
 
           - version: ``$env:HDX_RELEASE_VERSION``
           - root_ref: ``$env:HDX_ROOT_REF``

@@ -30,7 +30,7 @@
 
 ## repo 内范围
 
-- `.github/workflows/release-dry-run.yml`
+- `.github/workflows/debug-release-dry-run.yml`
 - `README.md`
 - `docs/ARCHITECTURE.md`
 - `docs/adr/0012-github-releases-artifact-boundary.md`
@@ -61,7 +61,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
-- `gh workflow run release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`
+- `gh workflow run debug-release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`
 - `gh run watch 27184350227 --repo xxldm/hdx --exit-status`
 - `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`
 
@@ -73,24 +73,24 @@
 ## 状态记录
 
 - 2026-06-09：创建计划并开始实施。
-- 2026-06-09：新增 `.github/workflows/release-dry-run.yml`，使用手动触发、只读权限、指定 root ref checkout、子模块指针记录和 release manifest 校验；不初始化私有后端子模块、不下载后端 artifact、不创建 Release、不上传 asset。
+- 2026-06-09：新增 `.github/workflows/debug-release-dry-run.yml`，使用手动触发、只读权限、指定 root ref checkout、子模块指针记录和 release manifest 校验；不初始化私有后端子模块、不下载后端 artifact、不创建 Release、不上传 asset。
 - 2026-06-09：完成 README、架构、ADR 0012 和总纲同步，完成本地验证并归档计划。
 - 2026-06-09：本地补装并执行 `actionlint`，GitHub Actions workflow 语法级检查通过。
 - 2026-06-09：GitHub-hosted dry-run 首次实跑成功，run `27183829105`，输入 `version=v0.0.0-dry-run.2`、`root_ref=1a87717e3ec99e7c26c586d3dc153ab233177bb4`；该次运行仍提示 `actions/checkout@v4` 的 Node.js 20 弃用 warning。
-- 2026-06-09：将 `.github/workflows/release-dry-run.yml` 中 `actions/checkout@v4` 升级到 `actions/checkout@v6.0.3`，提交 `8e66341 维护：升级 checkout action 版本`。
+- 2026-06-09：将 `.github/workflows/debug-release-dry-run.yml` 中 `actions/checkout@v4` 升级到 `actions/checkout@v6.0.3`，提交 `8e66341 维护：升级 checkout action 版本`。
 - 2026-06-09：升级后误用不存在的 root commit `8e66341520813326512857352c68b38aab8ef9e7` 触发 run `27184311334`，GitHub 返回 `not our ref`；该失败是触发参数错误，不是 workflow 缺陷。
 - 2026-06-09：使用正确 root commit `8e66341feb32e1ea42a920785b5cc0577ae19686` 触发 run `27184350227`，GitHub-hosted dry-run 成功，且不再出现 `actions/checkout@v4` 的 Node.js 20 弃用 warning。
 
 ## 验证结果
 
-- `rg -n "workflow_dispatch|contents: read|submodules: false|persist-credentials: false|release-manifest-check|dry_run" .github/workflows/release-dry-run.yml`：通过，确认 workflow 具备手动触发、只读权限、禁用子模块 checkout、禁用 checkout 凭据持久化和 release manifest 校验入口。
-- `rg -n "gh release|upload-release|action-gh-release|download-artifact|repository_dispatch|secrets|GITHUB_TOKEN|actions/upload-artifact" .github/workflows/release-dry-run.yml`：无匹配，确认本 dry-run workflow 未包含真实 Release 创建、上传、artifact 下载、跨仓库触发或凭据引用。
+- `rg -n "workflow_dispatch|contents: read|submodules: false|persist-credentials: false|release-manifest-check|dry_run" .github/workflows/debug-release-dry-run.yml`：通过，确认 workflow 具备手动触发、只读权限、禁用子模块 checkout、禁用 checkout 凭据持久化和 release manifest 校验入口。
+- `rg -n "gh release|upload-release|action-gh-release|download-artifact|repository_dispatch|secrets|GITHUB_TOKEN|actions/upload-artifact" .github/workflows/debug-release-dry-run.yml`：无匹配，确认本 dry-run workflow 未包含真实 Release 创建、上传、artifact 下载、跨仓库触发或凭据引用。
 - `actionlint -version`：通过，当前版本为 `1.7.12`。
 - `actionlint`：通过，GitHub Actions workflow 语法级检查未发现问题。
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`：通过，确认 release manifest schema 和样例检查仍通过。
 - `git diff --check`：通过，仅提示部分文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
-- `gh workflow run release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`：通过，触发 GitHub-hosted run `27184350227`。
+- `gh workflow run debug-release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`：通过，触发 GitHub-hosted run `27184350227`。
 - `gh run watch 27184350227 --repo xxldm/hdx --exit-status`：通过，所有 job step 成功，未再出现 `actions/checkout@v4` 的 Node.js 20 弃用 annotation。
 - `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=8e66341feb32e1ea42a920785b5cc0577ae19686`。
 

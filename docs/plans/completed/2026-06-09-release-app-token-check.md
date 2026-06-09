@@ -14,7 +14,7 @@
 
 本轮完成后应具备：
 
-- `.github/workflows/release-app-token-check.yml`
+- `.github/workflows/check-release-app-token.yml`
 - workflow 使用 `workflow_dispatch` 手动触发。
 - workflow 默认检查后端仓库 `xxldm/hdx-backend`。
 - workflow 使用 GitHub App token 读取后端仓库 metadata。
@@ -31,7 +31,7 @@
 
 ## repo 内范围
 
-- `.github/workflows/release-app-token-check.yml`
+- `.github/workflows/check-release-app-token.yml`
 - `docs/adr/0013-release-workflow-token-and-artifact-policy.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
 - `docs/plans/completed/2026-06-09-release-app-token-check.md`
@@ -58,7 +58,7 @@
 - `actionlint`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
-- `gh workflow run release-app-token-check.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`
+- `gh workflow run check-release-app-token.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`
 - `gh run watch <run_id> --repo xxldm/hdx --exit-status`
 
 ## 风险与阻塞
@@ -70,7 +70,7 @@
 ## 状态记录
 
 - 2026-06-09：创建计划，开始新增最小 token check workflow。
-- 2026-06-09：新增 `.github/workflows/release-app-token-check.yml`，并同步 ADR 0013 与总纲状态。
+- 2026-06-09：新增 `.github/workflows/check-release-app-token.yml`，并同步 ADR 0013 与总纲状态。
 - 2026-06-09：本地 `actionlint`、docs 质量门禁和空白检查通过；等待提交推送后触发 GitHub-hosted workflow。
 - 2026-06-09：推送提交 `b3e1f43 功能：添加发布应用令牌验证` 后，触发 GitHub-hosted run `27186745870`；后端仓库 metadata 和主仓库 metadata 均读取成功。
 - 2026-06-09：用户删除 `HDX_RELEASE_APP_ID` 后，将 workflow 切换为 `HDX_RELEASE_APP_CLIENT_ID` 与 `client-id` 输入，避免 `app-id` 弃用 warning。
@@ -81,11 +81,11 @@
 - `actionlint`：通过，GitHub Actions workflow 语法级检查未发现问题。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认关键文档可读、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 - `git diff --check`：通过，仅提示部分文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
-- `gh workflow run release-app-token-check.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`：通过，触发 run `27186745870`。
+- `gh workflow run check-release-app-token.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`：通过，触发 run `27186745870`。
 - `gh run watch 27186745870 --repo xxldm/hdx --exit-status`：通过，所有步骤成功。
 - `gh run view 27186745870 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=b3e1f435b1deeea2e362740382abb13af05bcb87`。
 - `gh run view 27186745870 --repo xxldm/hdx --log | Select-String -Pattern "metadata 读取通过|deprecated|HDX Release App Token Check|status:"`：通过，确认后端仓库 metadata 和主仓库 metadata 均读取成功；同时确认 `actions/create-github-app-token@v3.2.0` 对 `app-id` 输入输出弃用 warning，后续已切换为 `client-id` 输入。
-- `gh workflow run release-app-token-check.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`：通过，切换为 `client-id` 后触发 run `27187218112`。
+- `gh workflow run check-release-app-token.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`：通过，切换为 `client-id` 后触发 run `27187218112`。
 - `gh run watch 27187218112 --repo xxldm/hdx --exit-status`：通过，所有步骤成功。
 - `gh run view 27187218112 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=fe632c825d668d79316651d4da395de9285bb2f9`。
 - `gh run view 27187218112 --repo xxldm/hdx --log | Select-String -Pattern "metadata 读取通过|deprecated|HDX Release App Token Check|status:"`：通过，确认后端仓库 metadata 和主仓库 metadata 均读取成功，且日志筛选未命中 `deprecated`。

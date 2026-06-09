@@ -36,7 +36,7 @@
 - `packages/shared/contracts/release/release-manifest.schema.json`
 - `packages/shared/contracts/release/README.md`
 - `packages/shared/contracts/release/examples/`
-- `.github/workflows/release-draft-reuse-backend.yml`
+- `.github/workflows/debug-release-draft-reuse-backend.yml`
 - `scripts/release-draft-reuse-backend-assets.ps1`
 - `scripts/release-manifest-check.ps1`
 - `scripts/release-draft-minimal-assets.ps1`
@@ -79,7 +79,7 @@
 - `pwsh -NoLogo -NoProfile -File services/backend/scripts/package-backend-native-artifact.ps1 ...`
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples ...`
 - `pwsh -NoLogo -NoProfile -File scripts/release-draft-reuse-backend-assets.ps1 ...`
-- `actionlint .github/workflows/release-draft-reuse-backend.yml`
+- `actionlint .github/workflows/debug-release-draft-reuse-backend.yml`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git -C services/backend diff --check`
 - `git diff --check`
@@ -112,11 +112,11 @@
 - 2026-06-09：已下载最终 artifact 到 `target/backend-artifact-check/27202869734/services-linux` 并完成两层 manifest 校验；外层 `backend-native-manifest.json` 和包内 `manifest/backend-services-manifest.json` 均通过 schema、sha256/size 和禁止文件扫描。
 - 2026-06-09：开始实现历史 Release asset 复用契约；`release-manifest.json` 顶层 `backendNativeManifest.source.type` 改为显式来源，支持 `github-actions-artifact` 和 `historical-release-asset`；backend native asset 的 `source.type=historical-release-asset` 必须记录历史 release、历史构建上下文和 backend native fingerprint。
 - 2026-06-09：历史 Release asset 复用契约已完成第一版：新增历史复用有效样例和缺失 fingerprint 负例；校验脚本会拒绝非后端 asset 使用 `historical-release-asset`、拒绝缺失 fingerprint 的 backend native 复用、校验历史 asset sha256/size、历史构建 OpenAPI hash、backend commit、backend native manifest sha256 以及 fingerprint 的 kind/platform/backend/openapi 一致性。
-- 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口。该入口从主仓库指定历史 Release 下载 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset，校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成新的 `release-manifest.json`、`SHA256SUMS` 并重新上传到新 draft Release。
+- 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/debug-release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口。该入口从主仓库指定历史 Release 下载 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset，校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成新的 `release-manifest.json`、`SHA256SUMS` 并重新上传到新 draft Release。
 - 2026-06-09：本地 dry-run 首次将复用后端 asset 自动改名为新版本文件名，导致复制过来的历史 `backend-native-manifest.json` 仍指向旧文件名并被校验脚本正确拒绝；已改为默认保留历史 asset 文件名，并禁止 `OutputBackendAssetName` 与历史文件名不一致。
-- 2026-06-09：准备 GitHub-hosted 复用实跑时发现主仓库当前没有可复用历史 Release，且旧版 `release-draft-minimal-assets.ps1` 生成的历史 release manifest 不包含 `backendNativeFingerprint`；已补齐最小 draft 资产脚本的 fingerprint 输出，让后续用 `release-draft-minimal.yml` 创建的历史 draft 可以被复用入口校验。
-- 2026-06-09：`release-draft-minimal.yml` GitHub-hosted run `27209181697` 通过，使用后端 run `27202869734` 的 artifact `7506747699` 创建历史 draft Release `v0.0.0-services-parallel.2`；资产包含 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和 `hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`，远端回读 size/sha256 校验通过。
-- 2026-06-09：`release-draft-reuse-backend.yml` GitHub-hosted run `27209326174` 通过，复用历史 draft Release `v0.0.0-services-parallel.2` 的后端 native asset 创建 draft Release `v0.0.0-services-parallel.3`。新 `release-manifest.json` 的 `root.commit` 为 `773e48a93fb0160af00eab0ec329c4edadbfdfdc`，`backendNativeManifest.source.type` 和后端 asset `source.type` 均为 `historical-release-asset`，并记录历史 release tag、asset sha256/size、历史构建 root commit `cc525b3ac82656bfced6e8951eaa901cef63c12c` 和 `backendNativeFingerprint`。
+- 2026-06-09：准备 GitHub-hosted 复用实跑时发现主仓库当前没有可复用历史 Release，且旧版 `release-draft-minimal-assets.ps1` 生成的历史 release manifest 不包含 `backendNativeFingerprint`；已补齐最小 draft 资产脚本的 fingerprint 输出，让后续用 `debug-release-draft-minimal.yml` 创建的历史 draft 可以被复用入口校验。
+- 2026-06-09：`debug-release-draft-minimal.yml` GitHub-hosted run `27209181697` 通过，使用后端 run `27202869734` 的 artifact `7506747699` 创建历史 draft Release `v0.0.0-services-parallel.2`；资产包含 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和 `hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`，远端回读 size/sha256 校验通过。
+- 2026-06-09：`debug-release-draft-reuse-backend.yml` GitHub-hosted run `27209326174` 通过，复用历史 draft Release `v0.0.0-services-parallel.2` 的后端 native asset 创建 draft Release `v0.0.0-services-parallel.3`。新 `release-manifest.json` 的 `root.commit` 为 `773e48a93fb0160af00eab0ec329c4edadbfdfdc`，`backendNativeManifest.source.type` 和后端 asset `source.type` 均为 `historical-release-asset`，并记录历史 release tag、asset sha256/size、历史构建 root commit `cc525b3ac82656bfced6e8951eaa901cef63c12c` 和 `backendNativeFingerprint`。
 - 2026-06-09：已按用户确认删除测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3`；`gh release list --repo xxldm/hdx --limit 10` 已确认当前主仓库 Release 列表为空，两个测试 tag ref 均不存在。
 
 ## 验证结果
@@ -136,9 +136,9 @@
 - `pwsh -NoLogo -NoProfile -File scripts/release-draft-minimal-assets.ps1 -ArtifactRoot target/backend-artifact-check/27202869734/services-linux ... -OutputDirectory target/release-draft-minimal/fingerprint-check/assets ...`：通过，确认最小 draft 资产脚本会为后端 native asset 生成 `backendNativeFingerprint`，并通过 release manifest 校验。
 - `pwsh -NoLogo -NoProfile -File scripts/release-draft-reuse-backend-assets.ps1 -HistoricalAssetRoot target/release-draft-reuse-backend/fixture-historical ...`：通过，确认历史 Release asset 复用脚本能生成新版 `backendNativeManifest.source.type=historical-release-asset` 的 `release-manifest.json`，并完成历史 manifest、输出 manifest、sha256、size、fingerprint 和禁止文件扫描校验。
 - `pwsh -NoLogo -NoProfile -File scripts/release-draft-reuse-backend-assets.ps1 -HistoricalAssetRoot target/release-draft-minimal/fingerprint-check/assets ...`：通过，确认由最小 draft 资产脚本生成的带 fingerprint 历史资产可以被复用脚本消费。
-- `actionlint .github/workflows/release-draft-reuse-backend.yml`：通过。
-- GitHub-hosted run `27209181697`：通过。`release-draft-minimal.yml` 成功下载后端 Actions artifact、生成带 `backendNativeFingerprint` 的最小 Release 资产、创建历史 draft Release `v0.0.0-services-parallel.2`、上传资产并远端回读校验。
-- GitHub-hosted run `27209326174`：通过。`release-draft-reuse-backend.yml` 成功下载历史 Release asset、校验 fingerprint/sha256/size/历史构建上下文和禁止文件扫描、创建复用 draft Release `v0.0.0-services-parallel.3`、上传资产并远端回读校验。
+- `actionlint .github/workflows/debug-release-draft-reuse-backend.yml`：通过。
+- GitHub-hosted run `27209181697`：通过。`debug-release-draft-minimal.yml` 成功下载后端 Actions artifact、生成带 `backendNativeFingerprint` 的最小 Release 资产、创建历史 draft Release `v0.0.0-services-parallel.2`、上传资产并远端回读校验。
+- GitHub-hosted run `27209326174`：通过。`debug-release-draft-reuse-backend.yml` 成功下载历史 Release asset、校验 fingerprint/sha256/size/历史构建上下文和禁止文件扫描、创建复用 draft Release `v0.0.0-services-parallel.3`、上传资产并远端回读校验。
 - `gh release download v0.0.0-services-parallel.3 --repo xxldm/hdx --pattern release-manifest.json`：通过。下载后的 manifest 确认 `historical-release-asset` 来源、历史 release tag、历史 asset sha256/size、历史构建 root commit 和 `backendNativeFingerprint` 均已记录。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 

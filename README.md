@@ -28,7 +28,7 @@ HDX 是一个工具箱项目，当前暂定包含四个交付面：
 
 `services/backend` 后续维持私有仓库；公开主仓库禁止提交后端源码快照、后端 Spring Boot JAR/WAR、`.class` 文件和后端构建中间产物。后端发布目标只面向 native executable archive，不发布 JAR/WAR。HDX 名称、Logo、图标和官方发布标识不随 Apache-2.0 授权给容易混淆的使用方式。
 
-公开主仓库 GitHub Releases 后续作为唯一公开发布入口。后端私有仓库先编译 native，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库可以公开后端 native archive，但不 checkout 后端私有源码，也不发布 JAR/WAR、`.class`、源码或后端构建中间产物。发布产物边界详见 `docs/adr/0012-github-releases-artifact-boundary.md`，发布 manifest JSON Schema 位于 `packages/shared/contracts/release/`。
+公开主仓库 GitHub Releases 后续作为唯一公开发布入口。后端私有仓库先编译 native，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库可以公开后端 native archive，但不 checkout 后端私有源码，也不发布 JAR/WAR、`.class`、源码或后端构建中间产物。发布产物边界详见 `docs/adr/0012-github-releases-artifact-boundary.md`；真实 release workflow 的跨仓库凭据与 artifact 策略详见 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`，使用 GitHub App token、后端 artifact `retention-days: 1`，且第一版不自动复用历史 Release 资产。发布 manifest JSON Schema 位于 `packages/shared/contracts/release/`。
 
 ## 本地质量门禁
 
@@ -51,4 +51,4 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 ## 当前状态
 
-后端、Web、Desktop、App、基础设施、公开许可、GitHub Releases 产物边界和 release manifest schema 的第一阶段技术方向已由 ADR 和 shared 契约记录；主仓库已提供 release dry-run workflow 骨架用于演练校验入口和发布顺序，但真实 GitHub Release 创建、后端 artifact 下载、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。
+后端、Web、Desktop、App、基础设施、公开许可、GitHub Releases 产物边界、release manifest schema 和真实 release workflow 凭据/artifact 策略的第一阶段技术方向已由 ADR 和 shared 契约记录；主仓库已提供 release dry-run workflow 骨架并完成 GitHub-hosted 实跑验证，但真实 GitHub Release workflow 实现、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策或实施。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。

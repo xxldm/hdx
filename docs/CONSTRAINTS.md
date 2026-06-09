@@ -24,7 +24,7 @@
 - App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI，首版 Online only，第二阶段只规划离线缓存/离线草稿；详见 `docs/adr/0009-mobile-native-online-first.md`。
 - 缓存、对象存储与队列第一阶段已绑定边界：服务端使用 Redis、S3-compatible 对象存储和 RabbitMQ；对象存储默认本地候选 RustFS；Desktop all-in-one 不内置 Redis/RabbitMQ，通过 H2 outbox 和 local worker 降级；详见 `docs/adr/0010-cache-object-storage-queue-boundary.md`。
 - 公开许可与后端私有边界已绑定：公开主仓库采用 Apache-2.0；后端仓库维持私有；公开主仓库禁止提交后端源码、JAR/WAR 和 `.class` 构建产物；详见 `docs/adr/0011-public-license-and-backend-private-boundary.md`。
-- GitHub Releases 产物边界已绑定：主仓库是唯一公开发布入口；后端 private CI 先编译 native，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库 Release 可以公开后端 native archive，但不得 checkout 后端私有源码或发布 JAR/WAR、`.class`、源码和构建中间产物；发布 manifest JSON Schema 位于 `packages/shared/contracts/release/`；详见 `docs/adr/0012-github-releases-artifact-boundary.md`。
+- GitHub Releases 产物边界已绑定：主仓库是唯一公开发布入口；后端 private CI 先编译 native，并只通过 GitHub Actions artifact 临时交接给主仓库；主仓库 Release 可以公开后端 native archive，但不得 checkout 后端私有源码或发布 JAR/WAR、`.class`、源码和构建中间产物；真实 release workflow 使用 GitHub App token，后端 Actions artifact `retention-days: 1`，第一版不自动复用历史 Release 资产；发布 manifest JSON Schema 位于 `packages/shared/contracts/release/`；详见 `docs/adr/0012-github-releases-artifact-boundary.md` 和 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`。
 - 引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - ADR 至少说明：背景、决策、备选方案、影响范围、验证方式、回滚条件。
 - 默认选择可读、稳定、生态成熟、容易被工具和智能体检查的技术。

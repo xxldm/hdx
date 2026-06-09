@@ -45,7 +45,10 @@
 - [x] 运行 workflow 静态校验、打包脚本 dummy dry-run 和 release manifest 校验。
 - [x] 运行 docs 质量门禁。
 - [x] 提交并推送 `services/backend`。
-- [ ] 提交并推送根仓库文档和子模块指针。
+- [x] 提交并推送根仓库文档和子模块指针。
+- [x] 新增 `build_scope` 手动输入，支持只跑 `services-linux-only` 远端验证。
+- [ ] 触发 `services-linux-only` GitHub-hosted run，验证 matrix 并行和 `actions/download-artifact` 聚合。
+- [ ] 下载 `backend-services-linux-x64` artifact 并运行 release manifest 校验。
 - [ ] 后续实现主仓库真实 release workflow 的历史 Release asset 复用分支。
 
 ## 验收标准
@@ -81,6 +84,9 @@
 - 2026-06-09：本地 dummy dry-run 首次从根仓库 cwd 调用打包脚本时，`-OutputDirectory target/...` 被脚本判定不在后端仓库 `target/` 下并拒绝；随后按 workflow 真实 cwd `services/backend` 复跑通过。
 - 2026-06-09：release manifest 校验首次把外层 `backend-native-manifest.json` 与包内 `backend-services-manifest.json` 混用同一个 `-AssetRoot`，脚本正确拒绝；随后按外层输出目录和包内 stage 根目录分别校验通过。
 - 2026-06-09：`services/backend` commit `c8d2aea 功能：并行构建后端 services native` 已推送到 `origin/main`。
+- 2026-06-09：根仓库 commit `e7815f1 功能：记录 native 构建额度与复用策略` 已推送到 `origin/main`，记录 ADR 0014、active 计划和 `services/backend` 子模块指针。
+- 2026-06-09：开始补充 `build_scope` 手动输入，目标是在不重跑 full Linux/Windows 的情况下只验证 `backend-services-linux-x64` 并行构建和聚合下载。
+- 2026-06-09：`services/backend` commit `0f520ab 功能：支持按范围构建后端 native` 已推送到 `origin/main`；workflow 新增 `build_scope=services-linux-only`，可只运行 Linux services matrix build 与聚合 package job。
 
 ## 验证结果
 
@@ -101,4 +107,6 @@
 ## 相关 commit
 
 - `c8d2aea 功能：并行构建后端 services native`（`services/backend`）
-- 根仓库：本计划随当前逻辑单元提交，具体哈希以 Git 历史为准。
+- `e7815f1 功能：记录 native 构建额度与复用策略`（根仓库）
+- `0f520ab 功能：支持按范围构建后端 native`（`services/backend`）
+- 当前 `build_scope` 验证切片根仓库提交：待提交。

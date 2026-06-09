@@ -1,0 +1,411 @@
+name: Release Draft Minimal
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "发布版本，也是 draft Release tag，必须与后端 manifest 一致。"
+        required: true
+        type: string
+      backend_repo:
+        description: "后端私有仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx-backend"
+        type: string
+      backend_run_id:
+        description: "后端 native workflow run id。"
+        required: true
+        type: string
+      backend_artifact_name:
+        description: "后端 Actions artifact 名称，禁止 latest。"
+        required: true
+        type: string
+      expected_root_repository:
+        description: "期望的主仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx"
+        type: string
+      expected_root_ref:
+        description: "后端 manifest 中记录的主仓库发布事实源 ref。"
+        required: true
+        type: string
+      expected_root_commit:
+        description: "后端 manifest 中记录的主仓库发布事实源 commit。"
+        required: true
+        type: string
+      expected_backend_commit:
+        description: "期望的后端 commit。"
+        required: true
+        type: string
+      expected_openapi_snapshot_hash:
+        description: "期望的 OpenAPI snapshot 集合 SHA-256。"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-draft-minimal-${{ inputs.version }}
+  cancel-in-progress: false
+
+jobs:
+  release-draft-minimal:
+    name: Release draft minimal
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout 主仓库发布脚本
+        uses: actions/checkout@v6.0.3
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验输入
+        id: input
+        env:
+          VERSION: ${{ inputs.version }}
+          BACKEND_REPO: ${{ inputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ inputs.backend_run_id }}
+          BACKEND_ARTIFACT_NAME: ${{ inputs.backend_artifact_name }}
+          EXPECTED_ROOT_REPOSITORY: ${{ inputs.expected_root_repository }}
+          EXPECTED_ROOT_REF: ${{ inputs.expected_root_ref }}
+          EXPECTED_ROOT_COMMIT: ${{ inputs.expected_root_commit }}
+          EXPECTED_BACKEND_COMMIT: ${{ inputs.expected_backend_commit }}
+          EXPECTED_OPENAPI_SNAPSHOT_HASH: ${{ inputs.expected_openapi_snapshot_hash }}
+          MAIN_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-Pattern([string]$Name, [string]$Value, [string]$Pattern, [string]$Message) {
+            if ($Value -notmatch $Pattern) {
+              throw "$Name 无效：$Message"
+            }
+          }
+
+          function Assert-NoLatest([string]$Name, [string]$Value) {
+            if ($Value -match '(?i)latest') {
+              throw "$Name 不能包含 latest：$Value"
+            }
+          }
+
+          $version = $env:VERSION.Trim()
+          $backendRepo = $env:BACKEND_REPO.Trim()
+          $backendRunId = $env:BACKEND_RUN_ID.Trim()
+          $backendArtifactName = $env:BACKEND_ARTIFACT_NAME.Trim()
+          $expectedRootRepository = $env:EXPECTED_ROOT_REPOSITORY.Trim()
+          $expectedRootRef = $env:EXPECTED_ROOT_REF.Trim()
+          $expectedRootCommit = $env:EXPECTED_ROOT_COMMIT.Trim()
+          $expectedBackendCommit = $env:EXPECTED_BACKEND_COMMIT.Trim()
+          $expectedOpenApiSnapshotHash = $env:EXPECTED_OPENAPI_SNAPSHOT_HASH.Trim()
+          $mainRepo = $env:MAIN_REPO.Trim()
+
+          Assert-Pattern 'version' $version '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3。'
+          Assert-Pattern 'backend_repo' $backendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-Pattern 'expected_root_repository' $expectedRootRepository '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-Pattern 'main_repo' $mainRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-Pattern 'backend_run_id' $backendRunId '^[1-9][0-9]*$' '必须是大于 0 的整数。'
+          Assert-Pattern 'expected_root_commit' $expectedRootCommit '^[0-9a-f]{40}$' '必须是 40 位小写 Git SHA。'
+          Assert-Pattern 'expected_backend_commit' $expectedBackendCommit '^[0-9a-f]{40}$' '必须是 40 位小写 Git SHA。'
+          Assert-Pattern 'expected_openapi_snapshot_hash' $expectedOpenApiSnapshotHash '^[0-9a-f]{64}$' '必须是 64 位小写 SHA-256。'
+          Assert-NoLatest 'version' $version
+          Assert-NoLatest 'backend_repo' $backendRepo
+          Assert-NoLatest 'backend_artifact_name' $backendArtifactName
+          Assert-NoLatest 'expected_root_ref' $expectedRootRef
+
+          $backendParts = $backendRepo -split '/', 2
+          $mainParts = $mainRepo -split '/', 2
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_repo=$mainRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_owner=$($mainParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_name=$($mainParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_run_id=$backendRunId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_artifact_name=$backendArtifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "输入校验通过：version=$version backend=$backendRepo run=$backendRunId artifact=$backendArtifactName"
+
+      - name: 生成后端仓库 GitHub App token
+        id: backend-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.input.outputs.backend_owner }}
+          repositories: ${{ steps.input.outputs.backend_name }}
+          permission-actions: read
+
+      - name: 定位后端 artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ steps.input.outputs.backend_run_id }}
+          BACKEND_ARTIFACT_NAME: ${{ steps.input.outputs.backend_artifact_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $payload = gh api "repos/$env:BACKEND_REPO/actions/runs/$env:BACKEND_RUN_ID/artifacts"
+          if ($LASTEXITCODE -ne 0) {
+            throw '读取后端 artifact 列表失败。'
+          }
+
+          $artifacts = ($payload | ConvertFrom-Json -Depth 20).artifacts
+          $matched = @($artifacts | Where-Object { $_.name -eq $env:BACKEND_ARTIFACT_NAME })
+          if ($matched.Count -ne 1) {
+            $names = @($artifacts | ForEach-Object { $_.name }) -join ', '
+            throw "无法唯一定位 artifact：$env:BACKEND_ARTIFACT_NAME；当前 run artifacts：$names"
+          }
+
+          $artifact = $matched[0]
+          if ($artifact.expired -eq $true) {
+            throw "后端 artifact 已过期，需要重跑后端 native workflow：$($artifact.name)"
+          }
+
+          "artifact_id=$($artifact.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_expires_at=$($artifact.expires_at)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "artifact 定位通过：name=$($artifact.name) id=$($artifact.id) size=$($artifact.size_in_bytes) expires_at=$($artifact.expires_at)"
+
+      - name: 下载后端 artifact zip
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/release-draft-minimal/download
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${BACKEND_REPO}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > target/release-draft-minimal/download/backend-artifact.zip
+
+      - name: 解包后端 artifact zip
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $artifactZip = 'target/release-draft-minimal/download/backend-artifact.zip'
+          $artifactRoot = 'target/release-draft-minimal/artifact'
+          if (Test-Path -LiteralPath $artifactRoot) {
+            Remove-Item -LiteralPath $artifactRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $artifactRoot | Out-Null
+          Expand-Archive -LiteralPath $artifactZip -DestinationPath $artifactRoot -Force
+
+          Write-Host '后端 artifact zip 解包完成：'
+          Get-ChildItem -LiteralPath $artifactRoot -File | Select-Object Name, Length | Format-Table | Out-String | Write-Host
+
+      - name: 生成并校验最小 Release 资产
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/release-draft-minimal-assets.ps1 `
+            -ArtifactRoot 'target/release-draft-minimal/artifact' `
+            -Version '${{ inputs.version }}' `
+            -RootRepository '${{ inputs.expected_root_repository }}' `
+            -RootRef '${{ inputs.expected_root_ref }}' `
+            -RootCommit '${{ inputs.expected_root_commit }}' `
+            -BackendRepository '${{ inputs.backend_repo }}' `
+            -BackendCommit '${{ inputs.expected_backend_commit }}' `
+            -BackendRunId '${{ inputs.backend_run_id }}' `
+            -BackendRunAttempt '1' `
+            -BackendArtifactName '${{ inputs.backend_artifact_name }}' `
+            -OpenApiSnapshotHash '${{ inputs.expected_openapi_snapshot_hash }}' `
+            -BackendArtifactId '${{ steps.artifact.outputs.artifact_id }}'
+
+      - name: 生成主仓库 GitHub App token
+        id: main-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.input.outputs.main_owner }}
+          repositories: ${{ steps.input.outputs.main_name }}
+          permission-contents: write
+
+      - name: 创建 draft Release
+        id: release
+        env:
+          GH_TOKEN: ${{ steps.main-token.outputs.token }}
+          MAIN_REPO: ${{ steps.input.outputs.main_repo }}
+          VERSION: ${{ steps.input.outputs.version }}
+          TARGET_COMMIT: ${{ inputs.expected_root_commit }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $existingRelease = gh release view $env:VERSION --repo $env:MAIN_REPO --json url,isDraft 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Release 已存在，避免覆盖：$existingRelease"
+          }
+
+          $existingTag = gh api "repos/$env:MAIN_REPO/git/ref/tags/$env:VERSION" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            throw "Git tag 已存在，避免把 draft Release 绑定到不确定的旧 tag：$env:VERSION"
+          }
+
+          $notesPath = 'target/release-draft-minimal/release-notes.md'
+          @"
+          HDX $env:VERSION draft release minimal verification.
+
+          This draft was generated by ``release-draft-minimal.yml`` to verify backend native artifact upload and remote asset checksum validation.
+
+          It is intentionally kept as draft and must not be treated as a public release.
+          "@ | Set-Content -LiteralPath $notesPath
+
+          gh release create $env:VERSION `
+            --repo $env:MAIN_REPO `
+            --draft `
+            --target $env:TARGET_COMMIT `
+            --title "HDX $env:VERSION" `
+            --notes-file $notesPath
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "创建 draft Release 失败。"
+          }
+
+          $release = gh release view $env:VERSION --repo $env:MAIN_REPO --json url,isDraft,tagName,targetCommitish
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取 draft Release 失败。"
+          }
+          $releaseJson = $release | ConvertFrom-Json
+          if ($releaseJson.isDraft -ne $true) {
+            throw "Release 创建后不是 draft，停止。"
+          }
+
+          "release_url=$($releaseJson.url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "draft Release 创建完成：$($releaseJson.url)"
+
+      - name: 上传 Release 资产
+        env:
+          GH_TOKEN: ${{ steps.main-token.outputs.token }}
+          MAIN_REPO: ${{ steps.input.outputs.main_repo }}
+          VERSION: ${{ steps.input.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $assetPaths = @(Get-ChildItem -LiteralPath 'target/release-draft-minimal/assets' -File | Sort-Object Name | ForEach-Object { $_.FullName })
+          if ($assetPaths.Count -lt 1) {
+            throw '没有可上传的 Release 资产。'
+          }
+
+          gh release upload $env:VERSION @assetPaths --repo $env:MAIN_REPO
+          if ($LASTEXITCODE -ne 0) {
+            throw '上传 Release 资产失败。'
+          }
+
+          Write-Host 'Release 资产上传完成：'
+          $assetPaths | ForEach-Object { Write-Host (Split-Path -Leaf $_) }
+
+      - name: 远端 Release 资产校验
+        env:
+          GH_TOKEN: ${{ steps.main-token.outputs.token }}
+          MAIN_REPO: ${{ steps.input.outputs.main_repo }}
+          VERSION: ${{ steps.input.outputs.version }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $release = gh release view $env:VERSION --repo $env:MAIN_REPO --json url,isDraft,assets
+          if ($LASTEXITCODE -ne 0) {
+            throw '读取远端 draft Release 失败。'
+          }
+
+          $releaseJson = $release | ConvertFrom-Json -Depth 20
+          if ($releaseJson.isDraft -ne $true) {
+            throw '远端 Release 不是 draft，停止。'
+          }
+
+          $localAssets = @(Get-ChildItem -LiteralPath 'target/release-draft-minimal/assets' -File | Sort-Object Name)
+          $remoteAssets = @($releaseJson.assets)
+          foreach ($local in $localAssets) {
+            $matched = @($remoteAssets | Where-Object { $_.name -eq $local.Name })
+            if ($matched.Count -ne 1) {
+              throw "远端 Release asset 缺失或不唯一：$($local.Name)"
+            }
+            if ([int64]$matched[0].size -ne [int64]$local.Length) {
+              throw "远端 Release asset size 不一致：$($local.Name)，期望 $($local.Length)，实际 $($matched[0].size)"
+            }
+          }
+
+          if ($remoteAssets.Count -ne $localAssets.Count) {
+            $remoteNames = @($remoteAssets | ForEach-Object { $_.name }) -join ', '
+            throw "远端 Release asset 数量不一致，远端资产：$remoteNames"
+          }
+
+          $downloadRoot = 'target/release-draft-minimal/remote-assets'
+          if (Test-Path -LiteralPath $downloadRoot) {
+            Remove-Item -LiteralPath $downloadRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $downloadRoot | Out-Null
+
+          gh release download $env:VERSION --repo $env:MAIN_REPO --dir $downloadRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw '下载远端 Release asset 失败。'
+          }
+
+          foreach ($local in $localAssets) {
+            $remotePath = Join-Path $downloadRoot $local.Name
+            if (-not (Test-Path -LiteralPath $remotePath -PathType Leaf)) {
+              throw "远端下载文件不存在：$($local.Name)"
+            }
+            $localHash = (Get-FileHash -LiteralPath $local.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            $remoteHash = (Get-FileHash -LiteralPath $remotePath -Algorithm SHA256).Hash.ToLowerInvariant()
+            if ($localHash -ne $remoteHash) {
+              throw "远端 Release asset sha256 不一致：$($local.Name)，期望 $localHash，实际 $remoteHash"
+            }
+          }
+
+          Write-Host "远端 draft Release asset 校验通过：$($releaseJson.url)"
+
+      - name: 输出验证摘要
+        if: always()
+        env:
+          RELEASE_URL: ${{ steps.release.outputs.release_url }}
+          VERSION: ${{ steps.input.outputs.version }}
+          MAIN_REPO: ${{ steps.input.outputs.main_repo }}
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ steps.input.outputs.backend_run_id }}
+          BACKEND_ARTIFACT_NAME: ${{ steps.input.outputs.backend_artifact_name }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact_id }}
+          ARTIFACT_EXPIRES_AT: ${{ steps.artifact.outputs.artifact_expires_at }}
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $summary = @"
+          # HDX Release Draft Minimal
+
+          - status: ``$env:CHECK_STATUS``
+          - version: ``$env:VERSION``
+          - main_repo: ``$env:MAIN_REPO``
+          - backend_repo: ``$env:BACKEND_REPO``
+          - backend_run_id: ``$env:BACKEND_RUN_ID``
+          - backend_artifact_name: ``$env:BACKEND_ARTIFACT_NAME``
+          - artifact_id: ``$env:ARTIFACT_ID``
+          - artifact_expires_at: ``$env:ARTIFACT_EXPIRES_AT``
+          - release_url: ``$env:RELEASE_URL``
+
+          ## 已执行
+
+          - 使用 GitHub App token 读取并下载后端 Actions artifact。
+          - 校验后端 native manifest、sha256、size 和禁止文件扫描。
+          - 生成 ``release-manifest.json`` 与 ``SHA256SUMS``。
+          - 使用 GitHub App token 创建主仓库 draft Release。
+          - 上传 Release assets。
+          - 从远端 draft Release 下载资产并核对 size 与 sha256。
+
+          ## 安全边界
+
+          - 不 checkout 后端私有源码。
+          - 不 publish Release。
+          - 不构建 Web、Desktop 或 App。
+          - 不输出 private key、JWT 或 installation token。
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

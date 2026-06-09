@@ -2,22 +2,23 @@
 
 本目录保存 HDX 发布流程使用的可机读 JSON Schema。它们是 GitHub Releases 产物边界的执行契约，配合 `docs/adr/0012-github-releases-artifact-boundary.md` 使用。
 
-本目录只定义数据形状和字段语义，不实现 GitHub Actions workflow，也不引入 schema 校验依赖。
+本目录只定义数据形状和字段语义，不实现 GitHub Actions workflow。根仓库脚本使用 PowerShell 内置逻辑校验本目录使用到的 JSON Schema 子集，不引入外部 schema 校验依赖。
 
 本地校验入口：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1
+pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1
 ```
 
-默认只校验本目录下的 schema 文件存在、可解析且 `manifestKind` 与文件职责一致。后续有真实 manifest 或候选发布包时，可以传入参数做轻量字段校验和禁止文件扫描：
+默认校验本目录下的 schema 文件存在、可解析、`manifestKind` 与文件职责一致，并运行最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。后续有真实 manifest 或候选发布包时，可以传入参数做严格 schema 校验、核心字段校验、真实文件 sha256/size 校验和禁止文件扫描：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1 `
+pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
   -BackendNativeManifestPath path/to/backend-native-manifest.json `
   -ReleaseManifestPath path/to/release-manifest.json `
   -BackendBuildPath path/to/backend-build.json `
   -BackendServicesManifestPath path/to/backend-services-manifest.json `
+  -AssetRoot path/to/release-assets-or-package-root `
   -ScanPath path/to/backend-native-or-services-package
 ```
 
@@ -50,12 +51,19 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-che
 
 ## 校验边界
 
-当前 `scripts/release-manifest-check.ps1` 已覆盖 schema JSON 解析、manifest 核心字段轻量校验和禁止文件扫描原型。后续 workflow 实现时必须至少校验：
+当前 `scripts/release-manifest-check.ps1` 已覆盖：
+
+- schema JSON 解析和 `manifestKind` 职责检查。
+- 本目录 schema 使用到的 JSON Schema 子集校验，包括 `type`、`required`、`additionalProperties`、`properties`、`items`、`minItems`、`uniqueItems`、`minLength`、`minimum`、`enum`、`const`、`pattern`、`not`、本地 `$ref` 和 `date-time`。
+- manifest 核心语义校验，包括版本、`latest` 禁止、Git commit 和 sha256 格式。
+- 传入 `-AssetRoot` 时的真实文件 sha256 和 `sizeBytes` 校验。
+- 传入 `-ScanPath` 时的后端源码、JAR/WAR、`.class`、`target/classes` 和构建中间目录禁止扫描。
+- `examples/` 下的最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。
+
+后续 workflow 实现时必须至少校验：
 
 - `backend-native-manifest.json` 的 `version`、`root.ref`、`root.commit`、`openapiSnapshotHash` 与主仓库发布上下文一致。
 - `release-manifest.json` 中所有 asset 的 sha256 与真实上传文件一致。
 - Desktop Full 内置 `backend-build.json` 中的 `archiveSha256` 与公开 Release 中对应 `backend-full` asset 的 sha256 一致。
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制、配置示例和清单文件。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。
-
-本目录当前不包含样例 manifest。后续实现完整 workflow 或正式 schema 校验时，应补充最小有效样例和无效样例。

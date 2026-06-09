@@ -117,6 +117,7 @@
 - 2026-06-09：准备 GitHub-hosted 复用实跑时发现主仓库当前没有可复用历史 Release，且旧版 `release-draft-minimal-assets.ps1` 生成的历史 release manifest 不包含 `backendNativeFingerprint`；已补齐最小 draft 资产脚本的 fingerprint 输出，让后续用 `release-draft-minimal.yml` 创建的历史 draft 可以被复用入口校验。
 - 2026-06-09：`release-draft-minimal.yml` GitHub-hosted run `27209181697` 通过，使用后端 run `27202869734` 的 artifact `7506747699` 创建历史 draft Release `v0.0.0-services-parallel.2`；资产包含 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和 `hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`，远端回读 size/sha256 校验通过。
 - 2026-06-09：`release-draft-reuse-backend.yml` GitHub-hosted run `27209326174` 通过，复用历史 draft Release `v0.0.0-services-parallel.2` 的后端 native asset 创建 draft Release `v0.0.0-services-parallel.3`。新 `release-manifest.json` 的 `root.commit` 为 `773e48a93fb0160af00eab0ec329c4edadbfdfdc`，`backendNativeManifest.source.type` 和后端 asset `source.type` 均为 `historical-release-asset`，并记录历史 release tag、asset sha256/size、历史构建 root commit `cc525b3ac82656bfced6e8951eaa901cef63c12c` 和 `backendNativeFingerprint`。
+- 2026-06-09：已按用户确认删除测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3`；`gh release list --repo xxldm/hdx --limit 10` 已确认当前主仓库 Release 列表为空，两个测试 tag ref 均不存在。
 
 ## 验证结果
 
@@ -147,7 +148,7 @@
 - 完整真实 release workflow 仍未把后端 artifact 新建分支、历史 Release asset 复用分支、Web/Desktop/App 构建、正式 publish 和失败清理整合为一条链路。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
-- 当前测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3` 仍保留在主仓库，均为 draft；后续如不继续用于排查，应删除测试 draft 和对应 tag。
+- 测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3` 已清理；后续如果再次做远端 release 验证，仍需在完成后删除测试 draft 和确认 tag ref 不存在。
 
 ## 相关 commit
 

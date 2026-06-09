@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验入口本地验证，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待主仓库后端 artifact 下载校验入口 GitHub-hosted 实跑，以及真实 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
+- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验 GitHub-hosted 实跑验证，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待真实 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-09
@@ -131,7 +131,7 @@
 - 第 9 步真实 release workflow 凭据与 artifact 策略已确认：跨仓库自动化使用 GitHub App token；后端 Actions artifact `retention-days: 1`；第一版不自动复用历史 Release 资产；每个 Release 资产必须来自本次 workflow 构建，或来自明确指定 `run_id` 和 artifact name 的短期 Actions artifact；真实 Release 先创建 draft，资产上传和远端校验通过后再 publish。
 - 第 9 步 GitHub App token 最小验证入口已新增并实跑通过：`.github/workflows/release-app-token-check.yml` 手动验证 GitHub App token 可读取后端私有仓库和公开主仓库 metadata；不读取或下载 Actions artifact、不创建 Release、不上传 asset、不 checkout 后端私有源码；当前使用 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入，切换后 GitHub-hosted run `27187218112` 已通过且未再出现 `app-id` 弃用提示。
 - 第 9 步后端 native artifact 最小生产入口已在私有后端仓库新增并实跑通过：`backend-native-artifact.yml` 第一版只生产 `backend-full-linux-x64`，通过 `backend-all-in-one` native archive 与 `backend-native-manifest.json` 上传 Actions artifact，保留期 1 天；GitHub-hosted run `27188320676` 成功，artifact `hdx-backend-native-v0.0.0-artifact-test.2-linux-x64` 的 ID 为 `7500484195`，过期时间为 `2026-06-10T06:52:18Z`。
-- 第 9 步主仓库后端 artifact 下载校验入口已新增并完成本地验证：`.github/workflows/release-backend-artifact-check.yml` 使用 GitHub App token 读取指定后端 run artifact 列表并下载 artifact，`scripts/release-backend-artifact-check.ps1` 校验 manifest 上下文、sha256/size 和禁止文件扫描；当前等待 GitHub-hosted workflow 实跑。
+- 第 9 步主仓库后端 artifact 下载校验入口已新增并实跑通过：`.github/workflows/release-backend-artifact-check.yml` 使用 GitHub App token 读取指定后端 run artifact 列表并下载 artifact，`scripts/release-backend-artifact-check.ps1` 校验 manifest 上下文、sha256/size 和禁止文件扫描；GitHub-hosted run `27190000244` 已成功校验后端 artifact `7500484195`。
 - PowerShell 脚本运行边界已收口：仓库内 `.ps1` 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文；docs 质量门禁不再执行 BOM/转义专项检查。
 
 ## 验收标准
@@ -189,7 +189,7 @@
 - 2026-06-09：新增主仓库 GitHub App token 最小验证 workflow；该 workflow 只验证 GitHub App token 读取仓库 metadata，不执行真实发布、不读取后端 artifact；GitHub-hosted run `27186745870` 已通过。
 - 2026-06-09：用户删除 `HDX_RELEASE_APP_ID` 后，主仓库 GitHub App token 最小验证 workflow 已切换为 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入；GitHub-hosted run `27187218112` 已通过，日志筛选未命中 `deprecated`。
 - 2026-06-09：完成后端 native artifact 最小 CI；私有后端仓库提交 `4a869d5` 新增 `backend-full-linux-x64` 手动 workflow 与打包脚本，提交 `051760d` 修复 workflow 中 Maven `-D` 参数的 PowerShell 引用问题；GitHub-hosted run `27188320676` 已成功产出 artifact `7500484195`，并已下载到本地通过根仓库 release manifest 校验。
-- 2026-06-09：开始主仓库后端 artifact 下载校验；新增本地校验脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 校验通过，当前等待提交推送后触发 GitHub-hosted workflow。
+- 2026-06-09：完成主仓库后端 artifact 下载校验；新增本地校验脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 校验通过，主仓库 GitHub-hosted run `27190000244` 已成功用 GitHub App token 下载并校验 artifact `7500484195`。
 
 ## 验证结果
 
@@ -220,6 +220,7 @@
 - 第 9 步真实 release workflow 凭据与 artifact 策略已新增 ADR 0013；本轮验证结果见 `docs/plans/completed/2026-06-09-release-workflow-token-artifact-policy.md`。
 - 第 9 步 GitHub App token 最小验证 workflow 已执行 `actionlint`、docs 质量门禁和 GitHub-hosted runner 实跑；`app-id` 版本成功 run `27186745870`，切换为 `client-id` 后成功 run `27187218112`，详细记录见 `docs/plans/completed/2026-06-09-release-app-token-check.md`。
 - 第 9 步后端 native artifact 最小 CI 已执行后端本地 dry-run、`actionlint`、`mvn validate`、PowerShell 引用修复验证、GitHub-hosted native run 和下载后 release manifest 校验；成功 run `27188320676`，详细记录见 `docs/plans/completed/2026-06-09-backend-native-artifact-ci.md`。
+- 第 9 步主仓库后端 artifact 下载校验已执行本地脚本、`actionlint`、docs 质量门禁、空白检查和 GitHub-hosted run `27190000244`；详细记录见 `docs/plans/completed/2026-06-09-release-backend-artifact-check.md`。
 
 ## 剩余风险
 
@@ -228,7 +229,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口和后端 `backend-full-linux-x64` native artifact 最小 CI 均已实跑通过；主仓库后端 artifact 下载校验入口已完成本地验证但尚未完成 GitHub-hosted 实跑；真实 GitHub Release workflow、`backend-services` 聚合包、Windows native artifact、真实 release artifact 上下文一致性、Release 上传、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full-linux-x64` native artifact 最小 CI 和主仓库后端 artifact 下载校验均已实跑通过；真实 GitHub Release workflow、`backend-services` 聚合包、Windows native artifact、真实 release artifact 上下文一致性、Release 上传、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

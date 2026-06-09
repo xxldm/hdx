@@ -57,6 +57,7 @@
 ## 验证方式
 
 - `rg -n "release-dry-run|workflow_dispatch|contents: read|submodules: false|release-manifest-check|gh release|upload-release|BACKEND|secret|dry_run" .github docs README.md`
+- `actionlint`
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
@@ -77,14 +78,14 @@
 
 - `rg -n "workflow_dispatch|contents: read|submodules: false|persist-credentials: false|release-manifest-check|dry_run" .github/workflows/release-dry-run.yml`：通过，确认 workflow 具备手动触发、只读权限、禁用子模块 checkout、禁用 checkout 凭据持久化和 release manifest 校验入口。
 - `rg -n "gh release|upload-release|action-gh-release|download-artifact|repository_dispatch|secrets|GITHUB_TOKEN|actions/upload-artifact" .github/workflows/release-dry-run.yml`：无匹配，确认本 dry-run workflow 未包含真实 Release 创建、上传、artifact 下载、跨仓库触发或凭据引用。
-- `Get-Command actionlint -ErrorAction SilentlyContinue`：无结果，当前本地未安装 `actionlint`，未做 GitHub Actions 语法级 lint。
+- `actionlint -version`：通过，当前版本为 `1.7.12`。
+- `actionlint`：通过，GitHub Actions workflow 语法级检查未发现问题。
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`：通过，确认 release manifest schema 和样例检查仍通过。
 - `git diff --check`：通过，仅提示部分文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 
 ## 剩余风险
 
-- 当前本地未安装 `actionlint`，workflow 未做语法级 lint；后续可在 CI 或本地工具链中补充。
 - 本轮没有在 GitHub-hosted runner 实际触发 workflow；真实运行仍需在 GitHub Actions 页面手动验证一次。
 - dry-run 不初始化子模块，因此只能记录根仓库锁定的子模块指针，不能验证私有后端 artifact 或真实子模块 checkout。
 - 正式发布仍需要后续单独设计跨仓库触发、artifact 下载权限、真实 release asset 一致性、Release 上传、签名、公证、自动更新、release notes 和版本号策略。

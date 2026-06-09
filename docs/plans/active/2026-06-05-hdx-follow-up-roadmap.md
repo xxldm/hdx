@@ -192,6 +192,7 @@
 - 2026-06-09：完成后端 native artifact 最小 CI；私有后端仓库提交 `4a869d5` 新增 `backend-full-linux-x64` 手动 workflow 与打包脚本，提交 `051760d` 修复 workflow 中 Maven `-D` 参数的 PowerShell 引用问题；GitHub-hosted run `27188320676` 已成功产出 artifact `7500484195`，并已下载到本地通过根仓库 release manifest 校验。
 - 2026-06-09：完成主仓库后端 artifact 下载校验；新增本地校验脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 校验通过，主仓库 GitHub-hosted run `27190000244` 已成功用 GitHub App token 下载并校验 artifact `7500484195`。
 - 2026-06-09：完成 draft Release 最小闭环；新增最小 Release 资产整理脚本和手动 workflow，本地已用 run `27188320676` 产出的 artifact 生成并校验候选资产，主仓库 GitHub-hosted run `27191204936` 已成功创建测试 draft Release、上传资产并远端下载校验。
+- 2026-06-09：按用户确认删除测试 draft Release `v0.0.0-artifact-test.2`；`gh release view` 已确认 release not found，Git refs API 已确认对应 tag ref 404。
 
 ## 验证结果
 

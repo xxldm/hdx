@@ -68,8 +68,8 @@
 
 - 本轮验证依赖后端 artifact `7500484195`；该 artifact 过期时间为 `2026-06-10T06:52:18Z`，过期后需要重跑后端 native workflow。
 - GitHub App 必须安装到主仓库并具备 contents write 权限，否则 draft Release 创建或 asset 上传会失败。
-- 本轮已创建测试 draft Release 和对应 tag；Release 仍保持 draft，未 publish。
-- 本轮不自动清理测试 draft Release 或 Git tag；后续是否保留、删除或复用为下一次测试入口，由用户决定。
+- 本轮曾创建测试 draft Release，并保持 draft，未 publish。
+- 用户后续确认删除测试 draft Release；当前 Release 和对应 tag ref 均已确认不存在。
 
 ## 状态记录
 
@@ -80,6 +80,7 @@
 - 2026-06-09：主仓库提交 `d8c40db` 已推送到 `origin/main`，触发 GitHub-hosted workflow run `27191204936`。
 - 2026-06-09：GitHub-hosted run `27191204936` 通过，job `80271608920` 在主仓库提交 `d8c40db92d8aa28f0884466dd151abd57ae64b06` 上完成；日志确认 artifact 定位、最小 Release 资产生成、draft Release 创建、资产上传和远端下载校验均通过。
 - 2026-06-09：测试 draft Release 已创建；GitHub API 返回 `tagName=v0.0.0-artifact-test.2`、`targetCommitish=fe497d1d17baafd4b0ab3f2942d6a0c8ad63a0b4`、`isDraft=true`，draft URL 为 `https://github.com/xxldm/hdx/releases/tag/untagged-b43af9fa30866a1cba8a`。
+- 2026-06-09：按用户确认删除测试 draft Release `v0.0.0-artifact-test.2`。`gh release delete v0.0.0-artifact-test.2 --cleanup-tag --yes` 返回 `Reference does not exist`，判断为 cleanup tag 阶段未找到 tag ref；随后用 `gh release view` 确认 release not found，用 Git refs API 确认 tag ref 404。
 
 ## 验证结果
 
@@ -93,10 +94,13 @@
 - `gh run view 27191204936 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，`headSha=d8c40db92d8aa28f0884466dd151abd57ae64b06`，job `80271608920` 成功。
 - `gh run view 27191204936 --repo xxldm/hdx --log | Select-String ...`：通过，关键日志包含 `artifact 定位通过`、`Draft Release 最小资产已生成`、`draft Release 创建完成`、`Release 资产上传完成` 和 `远端 draft Release asset 校验通过`。
 - `gh release view v0.0.0-artifact-test.2 --repo xxldm/hdx --json url,isDraft,tagName,targetCommitish,assets`：通过，确认 draft Release 保持 `isDraft=true`，包含 4 个资产：`backend-native-manifest.json`、`hdx-backend-full-linux-x64-v0.0.0-artifact-test.2.tar.gz`、`release-manifest.json` 和 `SHA256SUMS`。
+- `gh release delete v0.0.0-artifact-test.2 --repo xxldm/hdx --cleanup-tag --yes`：Release 删除生效；命令返回 `Reference does not exist`，因为 cleanup tag 阶段未找到对应 tag ref。
+- `gh release view v0.0.0-artifact-test.2 --repo xxldm/hdx --json url,isDraft,tagName,targetCommitish,assets`：按预期失败，返回 `release not found`。
+- `gh api repos/xxldm/hdx/git/ref/tags/v0.0.0-artifact-test.2`：按预期失败，返回 404，确认对应 tag ref 不存在。
 
 ## 剩余风险
 
-- 测试 draft Release `v0.0.0-artifact-test.2` 已保留为 draft；是否删除或继续保留供排障，需要用户后续决定。
+- 测试 draft Release `v0.0.0-artifact-test.2` 已按用户确认删除；对应 tag ref 也不存在。
 - 正式 publish、Web/Desktop/App 资产、`backend-services`、Windows native artifact、签名、公证、自动更新、release notes 和版本号策略仍未实现。
 
 ## 相关 commit

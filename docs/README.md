@@ -9,6 +9,7 @@
 - `QUALITY.md`：质量门禁。
 - `GIT.md`：Git 提交、推送和智能体提交纪律。
 - `HARNESS_ENGINEERING.md`：Harness Engineering 实践到本项目约束的映射。
+- `RELEASE_RUNBOOK.md`：tag-only 目标发布流程和人工操作手册。
 - `adr/`：架构决策记录。
 - `plans/`：执行计划与技术债记录。
 

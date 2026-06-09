@@ -10,7 +10,7 @@
 
 ## 目标
 
-新增手动触发的 GitHub App token 最小验证 workflow，确认主仓库可以使用 `HDX_RELEASE_APP_ID` 和 `HDX_RELEASE_APP_PRIVATE_KEY` 生成 GitHub App installation token，并读取后端私有仓库与公开主仓库 metadata。
+新增手动触发的 GitHub App token 最小验证 workflow，确认主仓库可以使用 `HDX_RELEASE_APP_CLIENT_ID` 和 `HDX_RELEASE_APP_PRIVATE_KEY` 生成 GitHub App installation token，并读取后端私有仓库与公开主仓库 metadata。
 
 本轮完成后应具备：
 
@@ -73,6 +73,7 @@
 - 2026-06-09：新增 `.github/workflows/release-app-token-check.yml`，并同步 ADR 0013 与总纲状态。
 - 2026-06-09：本地 `actionlint`、docs 质量门禁和空白检查通过；等待提交推送后触发 GitHub-hosted workflow。
 - 2026-06-09：推送提交 `b3e1f43 功能：添加发布应用令牌验证` 后，触发 GitHub-hosted run `27186745870`；后端仓库 metadata 和主仓库 metadata 均读取成功。
+- 2026-06-09：用户删除 `HDX_RELEASE_APP_ID` 后，将 workflow 切换为 `HDX_RELEASE_APP_CLIENT_ID` 与 `client-id` 输入，避免 `app-id` 弃用 warning。
 
 ## 验证结果
 
@@ -82,12 +83,12 @@
 - `gh workflow run release-app-token-check.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`：通过，触发 run `27186745870`。
 - `gh run watch 27186745870 --repo xxldm/hdx --exit-status`：通过，所有步骤成功。
 - `gh run view 27186745870 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=b3e1f435b1deeea2e362740382abb13af05bcb87`。
-- `gh run view 27186745870 --repo xxldm/hdx --log | Select-String -Pattern "metadata 读取通过|deprecated|HDX Release App Token Check|status:"`：通过，确认后端仓库 metadata 和主仓库 metadata 均读取成功；同时确认 `actions/create-github-app-token@v3.2.0` 对 `app-id` 输入输出弃用 warning，建议后续改用 `client-id`。
+- `gh run view 27186745870 --repo xxldm/hdx --log | Select-String -Pattern "metadata 读取通过|deprecated|HDX Release App Token Check|status:"`：通过，确认后端仓库 metadata 和主仓库 metadata 均读取成功；同时确认 `actions/create-github-app-token@v3.2.0` 对 `app-id` 输入输出弃用 warning，后续已切换为 `client-id` 输入。
 
 ## 剩余风险
 
 - 本轮只验证 metadata 读取，不代表 artifact 列表读取、artifact 下载或 Release 创建已可用。
-- 当前 workflow 使用 `HDX_RELEASE_APP_ID` 和 action 的 `app-id` 输入，远端成功但有弃用 warning；后续建议新增 `HDX_RELEASE_APP_CLIENT_ID` secret 后改用 `client-id` 输入。
+- 当前 workflow 已切换为 `HDX_RELEASE_APP_CLIENT_ID` 和 action 的 `client-id` 输入；切换后的 GitHub-hosted 验证结果随本轮后续提交补记。
 - 真实 release workflow、后端 artifact 下载、draft Release 创建、asset 上传和 publish 仍需后续小步实现验证。
 
 ## 相关 commit

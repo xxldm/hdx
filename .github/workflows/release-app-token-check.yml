@@ -64,7 +64,7 @@ jobs:
         id: backend-token
         uses: actions/create-github-app-token@v3.2.0
         with:
-          app-id: ${{ secrets.HDX_RELEASE_APP_ID }}
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
           owner: ${{ steps.repo.outputs.backend_owner }}
           repositories: ${{ steps.repo.outputs.backend_name }}
@@ -89,7 +89,7 @@ jobs:
         id: main-token
         uses: actions/create-github-app-token@v3.2.0
         with:
-          app-id: ${{ secrets.HDX_RELEASE_APP_ID }}
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
           private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
           owner: ${{ steps.repo.outputs.main_owner }}
           repositories: ${{ steps.repo.outputs.main_name }}

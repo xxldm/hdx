@@ -29,7 +29,6 @@
 
 - `docs/adr/0014-release-native-build-budget-and-reuse-strategy.md`
 - `docs/adr/0013-release-workflow-token-and-artifact-policy.md`
-- `docs/RELEASE_RUNBOOK.md`
 - `docs/README.md`
 - `docs/CONSTRAINTS.md`
 - `docs/ARCHITECTURE.md`
@@ -64,7 +63,7 @@
 - [x] 新增手动最小 draft 复用入口，下载历史主仓库 Release asset 并生成新的历史复用 `release-manifest.json`。
 - [x] GitHub-hosted 实跑手动最小 draft 复用入口。
 - [x] 设计正式 `release.yml` 第一版输入、job 图、后端来源解析、draft/publish 和失败处理边界。
-- [x] 新增 tag-only 目标发布操作手册，记录双 GitHub Apps、人工只推 tag、后端 resolve、主仓库 assemble 和失败处理。
+- [x] 确认一次性 release 操作说明不长期入库；tag-only 目标发布、双 GitHub Apps、后端 resolve、主仓库 assemble 和失败边界保留在 ADR 0013/0014 与计划状态中。
 - [ ] 后续实现 `.github/workflows/release.yml`，把后端 artifact 新建分支、历史 Release asset 复用分支、Web/Desktop/App 构建和正式 publish 整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
@@ -88,16 +87,16 @@
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git -C services/backend diff --check`
 - `git diff --check`
-- 本轮正式发布设计和操作手册收口只做文档和契约一致性验证；不运行 GitHub-hosted release workflow。
+- 本轮正式发布设计和计划状态收口只做文档和契约一致性验证；不运行 GitHub-hosted release workflow。
 
 ## 风险与阻塞
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- `release-manifest.json` schema、校验脚本和手动最小 draft workflow 已能表达、校验、下载并重新上传历史 Release asset；ADR 0013/0014 和 `docs/RELEASE_RUNBOOK.md` 已补齐 tag-only 目标发布设计，但完整真实 release workflow 仍未实现。
+- `release-manifest.json` schema、校验脚本和手动最小 draft workflow 已能表达、校验、下载并重新上传历史 Release asset；ADR 0013/0014 已补齐 tag-only 目标发布设计，但完整真实 release workflow 仍未实现。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口，避免不同 workflow 用不同算法误判 native 输入是否变化。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 - 当前历史复用入口为保持 `backend-native-manifest.json` provenance，不重命名复用的后端 native asset；如需按新版本重命名，需要先设计 manifest rewrite 和校验规则。
-- 正式 tag-only 发布 workflow 尚不存在；后续实现时必须按 `docs/RELEASE_RUNBOOK.md` 拆出主仓库 tag start、后端 release resolve、主仓库 release assemble、构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
+- 正式 tag-only 发布 workflow 尚不存在；后续实现时必须按 ADR 0013/0014 拆出主仓库 tag start、后端 release resolve、主仓库 release assemble、构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
 
 ## 状态记录
 
@@ -126,7 +125,7 @@
 - 2026-06-09：`debug-release-draft-reuse-backend.yml` GitHub-hosted run `27209326174` 通过，复用历史 draft Release `v0.0.0-services-parallel.2` 的后端 native asset 创建 draft Release `v0.0.0-services-parallel.3`。新 `release-manifest.json` 的 `root.commit` 为 `773e48a93fb0160af00eab0ec329c4edadbfdfdc`，`backendNativeManifest.source.type` 和后端 asset `source.type` 均为 `historical-release-asset`，并记录历史 release tag、asset sha256/size、历史构建 root commit `cc525b3ac82656bfced6e8951eaa901cef63c12c` 和 `backendNativeFingerprint`。
 - 2026-06-09：已按用户确认删除测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3`；`gh release list --repo xxldm/hdx --limit 10` 已确认当前主仓库 Release 列表为空，两个测试 tag ref 均不存在。
 - 2026-06-09：补充正式 `release.yml` 第一版设计，不创建 workflow 文件。ADR 0013 记录 `version`、`root_ref`、`backend_source_mode`、`backend_sources_json` 输入、job 图、最小权限 token、draft 到 publish 和失败 draft 保留规则；ADR 0014 记录 `resolve-backend-native` 对后端 Actions artifact 与历史主仓库 Release asset 两种来源的统一输出和历史 asset 不重命名规则。
-- 2026-06-10：根据 tag-only 目标发布讨论，新增 `docs/RELEASE_RUNBOOK.md`。操作手册记录常规人工只推主仓库 release tag；主仓库使用 `HDX Backend Actions Bot` 触发后端 release resolve；后端使用 `HDX Main Workflow Bot` 通过 `workflow_dispatch` 触发主仓库 release assemble；主仓库使用自身 `GITHUB_TOKEN` 创建、上传和 publish Release，避免在后端仓库保存具备主仓库 `Contents: write` 的 App private key。
+- 2026-06-10：用户确认一次性 release 操作说明不长期入库。常规人工只推主仓库 release tag；主仓库使用 `HDX Backend Actions Bot` 触发后端 release resolve；后端使用 `HDX Main Workflow Bot` 通过 `workflow_dispatch` 触发主仓库 release assemble；主仓库使用自身 `GITHUB_TOKEN` 创建、上传和 publish Release，避免在后端仓库保存具备主仓库 `Contents: write` 的 App private key。长期设计边界保留在 ADR 0013/0014。
 
 ## 验证结果
 
@@ -154,7 +153,7 @@
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 完整真实 tag-only 发布已有设计和操作手册，但尚未实现；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web/Desktop/App 构建、正式 publish 和失败清理仍未串成可运行 workflow。
+- 完整真实 tag-only 发布已有设计记录，但尚未实现；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web/Desktop/App 构建、正式 publish 和失败清理仍未串成可运行 workflow。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
 - 测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3` 已清理；后续如果再次做远端 release 验证，仍需在完成后删除测试 draft 和确认 tag ref 不存在。
@@ -165,4 +164,4 @@
 - `e7815f1 功能：记录 native 构建额度与复用策略`（根仓库）
 - `0f520ab 功能：支持按范围构建后端 native`（`services/backend`）
 - `b5759ac 修复：修正后端 artifact 下载 action 版本`（`services/backend`）
-- 历史复用契约、校验脚本、正式发布设计和操作手册更新由本计划后续提交记录补齐。
+- 历史复用契约、校验脚本和正式发布设计更新由本计划后续提交记录补齐。

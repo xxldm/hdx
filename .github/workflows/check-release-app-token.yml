@@ -1,4 +1,4 @@
-name: Release App Token Check
+name: Check Release App Token
 
 on:
   workflow_dispatch:
@@ -12,12 +12,12 @@ on:
 permissions: {}
 
 concurrency:
-  group: release-app-token-check-${{ inputs.backend_repo }}
+  group: check-release-app-token-${{ inputs.backend_repo }}
   cancel-in-progress: false
 
 jobs:
-  release-app-token-check:
-    name: Release app token check
+  check-release-app-token:
+    name: Check release app token
     runs-on: ubuntu-latest
     timeout-minutes: 10
     defaults:
@@ -120,7 +120,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $summary = @"
-          # HDX Release App Token Check
+          # HDX Check Release App Token
 
           - backend_repo: ``$env:BACKEND_REPO``
           - main_repo: ``$env:MAIN_REPO``

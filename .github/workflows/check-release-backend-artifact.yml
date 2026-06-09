@@ -1,4 +1,4 @@
-name: Release Backend Artifact Check
+name: Check Release Backend Artifact
 
 on:
   workflow_dispatch:
@@ -46,12 +46,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-backend-artifact-check-${{ inputs.backend_repo }}-${{ inputs.backend_run_id }}-${{ inputs.artifact_name }}
+  group: check-release-backend-artifact-${{ inputs.backend_repo }}-${{ inputs.backend_run_id }}-${{ inputs.artifact_name }}
   cancel-in-progress: false
 
 jobs:
-  release-backend-artifact-check:
-    name: Release backend artifact check
+  check-release-backend-artifact:
+    name: Check release backend artifact
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -225,7 +225,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $summary = @"
-          # HDX Release Backend Artifact Check
+          # HDX Check Release Backend Artifact
 
           - status: ``$env:CHECK_STATUS``
           - backend_repo: ``$env:BACKEND_REPO``

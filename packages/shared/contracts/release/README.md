@@ -24,7 +24,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 
 主仓库当前已有两个最小 draft Release 资产整理入口：
 
-- `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产。
+- `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产，并为后端 native asset 写入 `backendNativeFingerprint`，供后续历史 Release asset 复用校验。
 - `scripts/release-draft-reuse-backend-assets.ps1`：消费主仓库指定历史 Release 中已经公开的 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset，校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成本次后端 native 来源为 `historical-release-asset` 的最小 Release 资产。
 
 历史复用入口当前不重命名复用的后端 native asset。原因是历史 `backend-native-manifest.json` 会记录原始 archive 文件名；若要把复用 archive 改成新版本文件名，需要先设计 manifest rewrite 和对应校验规则。

@@ -98,6 +98,14 @@ function Get-Sha256 {
     return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 
+function Get-StringSha256 {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    $bytes = [System.Text.Encoding]::UTF8.GetBytes($Value)
+    $hashBytes = [System.Security.Cryptography.SHA256]::HashData($bytes)
+    return [System.BitConverter]::ToString($hashBytes).Replace('-', '').ToLowerInvariant()
+}
+
 function Get-ContentType {
     param([Parameter(Mandatory = $true)][string]$FileName)
 
@@ -115,6 +123,109 @@ function Get-ContentType {
         return 'text/plain'
     }
     return 'application/octet-stream'
+}
+
+function New-BackendServiceFingerprintItems {
+    param([Parameter(Mandatory = $true)]$Artifact)
+
+    if ($Artifact.kind -ne 'backend-services') {
+        return @()
+    }
+
+    $services = @()
+    foreach ($entrypoint in @($Artifact.entrypoints)) {
+        $executableName = Split-Path -Leaf $entrypoint
+        $module = switch ($executableName) {
+            'hdx-auth-service' { 'backend-auth-service' }
+            'hdx-gateway' { 'backend-gateway' }
+            'hdx-core-service' { 'backend-core-service' }
+            default {
+                if ($executableName.StartsWith('hdx-')) {
+                    "backend-$($executableName.Substring(4))"
+                }
+                else {
+                    $executableName
+                }
+            }
+        }
+
+        $services += [ordered]@{
+            id = $executableName
+            module = $module
+            executablePath = $entrypoint
+        }
+    }
+
+    return $services
+}
+
+function New-BackendNativeFingerprint {
+    param(
+        [Parameter(Mandatory = $true)]$BackendNativeManifest,
+        [Parameter(Mandatory = $true)]$Artifact,
+        [Parameter(Mandatory = $true)][string]$BackendRepository,
+        [Parameter(Mandatory = $true)][string]$BackendCommit,
+        [Parameter(Mandatory = $true)][string]$OpenApiSnapshotHash
+    )
+
+    $artifactFingerprint = [ordered]@{
+        kind = $Artifact.kind
+        platform = $Artifact.platform
+        packaging = $Artifact.packaging
+    }
+    if ($null -ne $Artifact.PSObject.Properties['entrypoints']) {
+        $artifactFingerprint['entrypoints'] = @($Artifact.entrypoints)
+    }
+
+    $fingerprint = [ordered]@{
+        algorithm = 'hdx-backend-native-fingerprint-v1'
+        backend = [ordered]@{
+            repository = $BackendRepository
+            commit = $BackendCommit
+        }
+        artifact = $artifactFingerprint
+        openapiSnapshotHash = $OpenApiSnapshotHash
+        packaging = [ordered]@{
+            manifestSchemaVersion = $BackendNativeManifest.schemaVersion
+            packagingScriptVersion = $BackendNativeManifest.forbiddenFilesScan.scannerVersion
+        }
+        runtime = [ordered]@{
+            javaVersion = '25'
+            graalvmVersion = 'GraalVM Native Image 25'
+        }
+        nativeInputs = [ordered]@{
+            mavenProfile = 'native'
+            nativeImageArgs = @('-Dnative.skip=false')
+            springAot = [ordered]@{
+                enabled = $true
+            }
+            runtimeHints = @('Spring AOT generated runtime hints')
+            reachabilityMetadata = @('GraalVM Reachability Metadata Repository')
+            nativeMetadata = @('Hibernate enhance')
+        }
+    }
+
+    $services = @(New-BackendServiceFingerprintItems -Artifact $Artifact)
+    if ($services.Count -gt 0) {
+        $fingerprint['services'] = $services
+    }
+
+    $fingerprintJson = $fingerprint | ConvertTo-Json -Depth 100 -Compress
+    $fingerprintWithHash = [ordered]@{
+        algorithm = $fingerprint.algorithm
+        sha256 = Get-StringSha256 -Value $fingerprintJson
+        backend = $fingerprint.backend
+        artifact = $fingerprint.artifact
+    }
+    if ($fingerprint.Contains('services')) {
+        $fingerprintWithHash['services'] = $fingerprint.services
+    }
+    $fingerprintWithHash['openapiSnapshotHash'] = $fingerprint.openapiSnapshotHash
+    $fingerprintWithHash['packaging'] = $fingerprint.packaging
+    $fingerprintWithHash['runtime'] = $fingerprint.runtime
+    $fingerprintWithHash['nativeInputs'] = $fingerprint.nativeInputs
+
+    return $fingerprintWithHash
 }
 
 $artifactRootFull = Get-FullPath -Path $ArtifactRoot
@@ -176,6 +287,12 @@ foreach ($artifact in @($backendNativeManifest.artifacts)) {
             commit = $BackendCommit
             manifestSha256 = $backendNativeManifestSha256
             openapiSnapshotHash = $OpenApiSnapshotHash
+            backendNativeFingerprint = (New-BackendNativeFingerprint `
+                -BackendNativeManifest $backendNativeManifest `
+                -Artifact $artifact `
+                -BackendRepository $BackendRepository `
+                -BackendCommit $BackendCommit `
+                -OpenApiSnapshotHash $OpenApiSnapshotHash)
         }
     }
 }

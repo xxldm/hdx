@@ -196,6 +196,7 @@
 - 2026-06-09：完成后端 native artifact 扩展切片；`services/backend` 已支持默认 `backend-full-linux-x64`、`backend-full-windows-x64`、`backend-services-linux-x64` 和可选 `backend-services-windows-x64`，GitHub-hosted run `27193262232` 成功产出 3 个默认 artifact，详细计划见 `docs/plans/completed/2026-06-09-backend-native-artifact-expanded.md`。
 - 2026-06-09：新增 ADR 0014 和 active 计划 `docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md`，确认 `backend-services` 服务级并行 native 构建、后端私有 native-image 精打细算、后端未变时按 backend native fingerprint 复用历史主仓库 Release asset，且不新增候选发布分级。
 - 2026-06-09：后端 `backend-services-linux-x64` 服务级并行验证已完成；`services/backend` GitHub-hosted run `27202869734` 成功按 `build_scope=services-linux-only` 跳过 full 与 Windows services，只运行 3 个 Linux service native matrix job 和最终聚合 job，最终 artifact `7506747699` 已下载到本地并通过 release manifest 校验。
+- 2026-06-09：release manifest 历史复用契约已补齐；`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持记录并校验历史主仓库 Release asset 来源、历史后端构建上下文和 backend native fingerprint，真实 release workflow 的复用执行分支仍待实现。
 
 ## 验证结果
 
@@ -229,6 +230,7 @@
 - 第 9 步主仓库后端 artifact 下载校验已执行本地脚本、`actionlint`、docs 质量门禁、空白检查和 GitHub-hosted run `27190000244`；详细记录见 `docs/plans/completed/2026-06-09-release-backend-artifact-check.md`。
 - 第 9 步 draft Release 最小闭环已执行本地脚本、`actionlint`、docs 质量门禁、空白检查、GitHub-hosted run `27191204936` 和 draft Release 资产清单校验；详细记录见 `docs/plans/completed/2026-06-09-release-draft-minimal-workflow.md`。
 - 第 9 步后端 native 构建额度与复用策略已执行 `services-linux-only` GitHub-hosted run `27202869734`，成功验证 Linux services matrix 并行构建、`actions/download-artifact@v7.0.0` 聚合下载和最终 `backend-services-linux-x64` artifact；本地已下载 artifact `7506747699` 并分别校验外层 `backend-native-manifest.json` 与包内 `backend-services-manifest.json`。
+- 第 9 步历史 Release asset 复用契约已执行 `scripts/release-manifest-check.ps1`、基于 run `27202869734` 下载产物的 `scripts/release-draft-minimal-assets.ps1` 生成验证、`git diff --check` 和 `scripts/quality-gate.ps1 -Scope docs -NoBuild`：均通过。
 
 ## 剩余风险
 
@@ -237,7 +239,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环和后端 native 构建额度/复用策略均已确认或实跑通过；完整真实 GitHub Release workflow、历史 Release asset 复用 schema/校验实现、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环、后端 native 构建额度/复用策略和历史 Release asset 复用契约均已确认或实跑通过；完整真实 GitHub Release workflow、历史 Release asset 自动复用执行分支、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

@@ -72,7 +72,7 @@ backend native fingerprint 至少包含：
 - `services/backend/scripts/package-backend-native-artifact.ps1`：继续作为聚合打包入口，允许从下载后的 binary artifact 路径读取服务 executable。
 - `services/backend/README.md`：需要说明 services 并行构建和临时 binary artifact。
 - `docs/adr/0012-github-releases-artifact-boundary.md` 与 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`：仍作为发布边界和凭据事实源，本 ADR 替代其中“第一版不自动复用历史 Release 资产”的限制。
-- `packages/shared/contracts/release/` 与主仓库真实 release workflow：后续需要扩展 release manifest schema、样例和校验脚本，表达历史 Release asset 复用来源和 backend native fingerprint。
+- `packages/shared/contracts/release/` 与主仓库真实 release workflow：release manifest schema、样例和校验脚本已能表达历史 Release asset 复用来源和 backend native fingerprint；主仓库真实 release workflow 后续需要消费这些字段，完成历史 asset 的查找、下载、fingerprint 比较和重新上传。
 
 ## 验证方式
 
@@ -102,6 +102,9 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - 实跑新的 `backend-services` 并行 workflow，确认默认 Linux services artifact 可生成并被主仓库校验。
-- 扩展 release manifest schema、样例和校验脚本，记录历史 Release asset 复用来源和 backend native fingerprint。
 - 实现主仓库真实 release workflow 中的后端 asset 复用分支。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
+
+## 实施记录
+
+- 2026-06-09：`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持 `backendNativeManifest.source.type` 显式来源、backend native asset 的 `historical-release-asset` 来源、历史构建上下文和 `backendNativeFingerprint` 校验；真实 release workflow 的复用执行分支仍待实现。

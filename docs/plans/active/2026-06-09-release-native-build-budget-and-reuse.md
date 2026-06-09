@@ -33,6 +33,11 @@
 - `README.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
 - `docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md`
+- `packages/shared/contracts/release/release-manifest.schema.json`
+- `packages/shared/contracts/release/README.md`
+- `packages/shared/contracts/release/examples/`
+- `scripts/release-manifest-check.ps1`
+- `scripts/release-draft-minimal-assets.ps1`
 - `services/backend/.github/workflows/backend-native-artifact.yml`
 - `services/backend/README.md`
 
@@ -49,6 +54,7 @@
 - [x] 新增 `build_scope` 手动输入，支持只跑 `services-linux-only` 远端验证。
 - [x] 触发 `services-linux-only` GitHub-hosted run，验证 matrix 并行和 `actions/download-artifact` 聚合。
 - [x] 下载 `backend-services-linux-x64` artifact 并运行 release manifest 校验。
+- [x] 扩展 `release-manifest.json` schema、样例和校验脚本，表达历史主仓库 Release asset 复用来源和 backend native fingerprint。
 - [ ] 后续实现主仓库真实 release workflow 的历史 Release asset 复用分支。
 
 ## 验收标准
@@ -72,7 +78,7 @@
 ## 风险与阻塞
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 当前 release manifest schema 还不能完整表达历史 Release asset 复用来源和 backend native fingerprint；后续实现复用分支前必须扩展 schema、样例和校验脚本。
+- `release-manifest.json` schema 和校验脚本已能表达历史 Release asset 复用来源和 backend native fingerprint；真实 release workflow 仍未实现自动查找、下载、比较和重新上传历史 asset 的执行分支。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口，避免不同 workflow 用不同算法误判 native 输入是否变化。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 
@@ -94,6 +100,8 @@
 - 2026-06-09：run `27202869734` 的 native-image 构建步骤耗时分别为 auth 约 17 分 43 秒、gateway 约 19 分 09 秒、core 约 25 分 25 秒；最终聚合 job 约 1 分 02 秒，services-only 墙钟时间约 26 分钟，验证了等待时间由最慢服务主导而不是三个服务串行累加。
 - 2026-06-09：run `27202869734` 的最终 artifact `hdx-backend-services-native-v0.0.0-services-parallel.2-linux-x64` ID 为 `7506747699`，大小 `232079179` bytes，过期时间 `2026-06-10T11:51:47Z`；临时二进制 artifact 分别为 auth `7506567328`、gateway `7506599309` 和 core `7506724997`，保留期均为 1 天。
 - 2026-06-09：已下载最终 artifact 到 `target/backend-artifact-check/27202869734/services-linux` 并完成两层 manifest 校验；外层 `backend-native-manifest.json` 和包内 `manifest/backend-services-manifest.json` 均通过 schema、sha256/size 和禁止文件扫描。
+- 2026-06-09：开始实现历史 Release asset 复用契约；`release-manifest.json` 顶层 `backendNativeManifest.source.type` 改为显式来源，支持 `github-actions-artifact` 和 `historical-release-asset`；backend native asset 的 `source.type=historical-release-asset` 必须记录历史 release、历史构建上下文和 backend native fingerprint。
+- 2026-06-09：历史 Release asset 复用契约已完成第一版：新增历史复用有效样例和缺失 fingerprint 负例；校验脚本会拒绝非后端 asset 使用 `historical-release-asset`、拒绝缺失 fingerprint 的 backend native 复用、校验历史 asset sha256/size、历史构建 OpenAPI hash、backend commit、backend native manifest sha256 以及 fingerprint 的 kind/platform/backend/openapi 一致性。
 
 ## 验证结果
 
@@ -107,11 +115,14 @@
 - GitHub-hosted run `27202869734`：通过。`build_scope=services-linux-only` 成功限制构建范围，full Linux/Windows 和 Windows services 均跳过；三个 Linux service binary job 并行运行并成功上传临时二进制；最终 `Backend services linux-x64` 聚合 job 成功下载 `actions/download-artifact@v7.0.0` artifact、打包并上传最终 artifact。
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples -BackendNativeManifestPath target/backend-artifact-check/27202869734/services-linux/backend-native-manifest.json -AssetRoot target/backend-artifact-check/27202869734/services-linux -ScanPath target/backend-artifact-check/27202869734/services-linux/hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`：通过。
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples -BackendServicesManifestPath target/backend-artifact-check/27202869734/services-linux/extracted/manifest/backend-services-manifest.json -AssetRoot target/backend-artifact-check/27202869734/services-linux/extracted -ScanPath target/backend-artifact-check/27202869734/services-linux/hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`：通过。
+- `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`：通过，覆盖新增历史复用有效样例、缺失 `backendNativeFingerprint` 负例、既有 schema/hash/禁止文件负例。
+- `pwsh -NoLogo -NoProfile -File scripts/release-draft-minimal-assets.ps1 -ArtifactRoot target/backend-artifact-check/27202869734/services-linux ...`：通过，确认最小 draft 资产脚本能生成新版 `backendNativeManifest.source.type=github-actions-artifact` 的 `release-manifest.json`，并完成本地 release manifest 校验。
+- `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 当前 release manifest schema 还不能完整表达历史 Release asset 复用来源和 backend native fingerprint；后续实现复用分支前必须扩展 schema、样例和校验脚本。
+- 真实 release workflow 仍未实现历史 Release asset 的自动查找、下载、fingerprint 比较和重新上传分支。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
 
@@ -121,4 +132,4 @@
 - `e7815f1 功能：记录 native 构建额度与复用策略`（根仓库）
 - `0f520ab 功能：支持按范围构建后端 native`（`services/backend`）
 - `b5759ac 修复：修正后端 artifact 下载 action 版本`（`services/backend`）
-- 当前 `build_scope` 远端验证和 artifact 校验结果由本计划更新提交记录。
+- 当前历史复用契约和校验脚本更新由本计划更新提交记录。

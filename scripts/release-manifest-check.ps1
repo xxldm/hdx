@@ -436,6 +436,44 @@ function Assert-ArrayValue {
     return $value
 }
 
+function Assert-JsonArrayProperty {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    if ($null -eq $Object -or -not (Test-JsonPropertyExists -Object $Object -Name $Name)) {
+        throw "$Context 缺少必填字段：$Name"
+    }
+
+    $value = Get-JsonPropertyValue -Object $Object -Name $Name
+    if (-not (Test-JsonArray -Value $value)) {
+        throw "$Context 字段必须是数组：$Name"
+    }
+
+    return $value
+}
+
+function Assert-PositiveIntegerValue {
+    param(
+        [Parameter(Mandatory = $true)]$Object,
+        [Parameter(Mandatory = $true)][string]$Name,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    if ($null -eq $Object -or -not (Test-JsonPropertyExists -Object $Object -Name $Name)) {
+        throw "$Context 缺少必填字段：$Name"
+    }
+
+    $value = Get-JsonPropertyValue -Object $Object -Name $Name
+    if (-not (Test-JsonInteger -Value $value) -or [int64]$value -lt 1) {
+        throw "$Context 字段必须是大于 0 的整数：$Name"
+    }
+
+    return [int64]$value
+}
+
 function Assert-Pattern {
     param(
         [Parameter(Mandatory = $true)][string]$Value,
@@ -501,6 +539,261 @@ function Assert-RootRef {
     Assert-GitCommit -Value $commit -Context "$Context.root.commit"
 }
 
+function Assert-GitHubActionsSource {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $githubActions = Get-JsonPropertyValue -Object $Source -Name 'githubActions'
+    if ($null -eq $githubActions) {
+        throw "$Context 缺少必填字段：githubActions"
+    }
+
+    [void](Assert-StringValue -Object $githubActions -Name 'workflow' -Context "$Context.githubActions")
+    [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'runId' -Context "$Context.githubActions")
+    [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'runAttempt' -Context "$Context.githubActions")
+    $artifactName = Assert-StringValue -Object $githubActions -Name 'artifactName' -Context "$Context.githubActions"
+    Assert-NotLatest -Value $artifactName -Context "$Context.githubActions.artifactName"
+
+    if (Test-JsonPropertyExists -Object $githubActions -Name 'artifactId') {
+        [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'artifactId' -Context "$Context.githubActions")
+    }
+
+    foreach ($historicalField in @('historicalRelease', 'historicalBuild', 'backendNativeFingerprint')) {
+        if (Test-JsonPropertyExists -Object $Source -Name $historicalField) {
+            throw "$Context type=github-actions-artifact 时不应包含字段：$historicalField"
+        }
+    }
+}
+
+function Assert-HistoricalReleaseAsset {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [string]$ExpectedAssetName = '',
+        [string]$ExpectedSha256 = '',
+        [int64]$ExpectedSizeBytes = -1
+    )
+
+    $historicalRelease = Get-JsonPropertyValue -Object $Source -Name 'historicalRelease'
+    if ($null -eq $historicalRelease) {
+        throw "$Context 缺少必填字段：historicalRelease"
+    }
+
+    [void](Assert-StringValue -Object $historicalRelease -Name 'repository' -Context "$Context.historicalRelease")
+    $tag = Assert-StringValue -Object $historicalRelease -Name 'tag' -Context "$Context.historicalRelease"
+    Assert-Version -Value $tag -Context "$Context.historicalRelease.tag"
+    $assetName = Assert-StringValue -Object $historicalRelease -Name 'assetName' -Context "$Context.historicalRelease"
+    Assert-NotLatest -Value $assetName -Context "$Context.historicalRelease.assetName"
+    $assetSha256 = Assert-StringValue -Object $historicalRelease -Name 'assetSha256' -Context "$Context.historicalRelease"
+    Assert-Sha256 -Value $assetSha256 -Context "$Context.historicalRelease.assetSha256"
+    $assetSizeBytes = Assert-PositiveIntegerValue -Object $historicalRelease -Name 'assetSizeBytes' -Context "$Context.historicalRelease"
+    $releaseManifestSha256 = Assert-StringValue -Object $historicalRelease -Name 'releaseManifestSha256' -Context "$Context.historicalRelease"
+    Assert-Sha256 -Value $releaseManifestSha256 -Context "$Context.historicalRelease.releaseManifestSha256"
+
+    if (Test-JsonPropertyExists -Object $historicalRelease -Name 'backendNativeManifestSha256') {
+        $backendNativeManifestSha256 = Assert-StringValue -Object $historicalRelease -Name 'backendNativeManifestSha256' -Context "$Context.historicalRelease"
+        Assert-Sha256 -Value $backendNativeManifestSha256 -Context "$Context.historicalRelease.backendNativeManifestSha256"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedAssetName) -and $assetName -ne $ExpectedAssetName) {
+        throw "$Context.historicalRelease.assetName 必须等于本次 asset fileName：期望 $ExpectedAssetName，实际 $assetName"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedSha256) -and $assetSha256 -ne $ExpectedSha256) {
+        throw "$Context.historicalRelease.assetSha256 必须等于本次 asset sha256：期望 $ExpectedSha256，实际 $assetSha256"
+    }
+    if ($ExpectedSizeBytes -ge 0 -and $assetSizeBytes -ne $ExpectedSizeBytes) {
+        throw "$Context.historicalRelease.assetSizeBytes 必须等于本次 asset sizeBytes：期望 $ExpectedSizeBytes，实际 $assetSizeBytes"
+    }
+
+    return $historicalRelease
+}
+
+function Assert-HistoricalBackendBuild {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [string]$ExpectedBackendCommit = '',
+        [string]$ExpectedOpenApiSnapshotHash = '',
+        [string]$ExpectedBackendNativeManifestSha256 = ''
+    )
+
+    $historicalBuild = Get-JsonPropertyValue -Object $Source -Name 'historicalBuild'
+    if ($null -eq $historicalBuild) {
+        throw "$Context 缺少必填字段：historicalBuild"
+    }
+
+    Assert-RootRef -Root (Get-JsonPropertyValue -Object $historicalBuild -Name 'root') -Context "$Context.historicalBuild"
+    $backend = Get-JsonPropertyValue -Object $historicalBuild -Name 'backend'
+    if ($null -eq $backend) {
+        throw "$Context.historicalBuild 缺少必填字段：backend"
+    }
+    [void](Assert-StringValue -Object $backend -Name 'repository' -Context "$Context.historicalBuild.backend")
+    $backendCommit = Assert-StringValue -Object $backend -Name 'commit' -Context "$Context.historicalBuild.backend"
+    Assert-GitCommit -Value $backendCommit -Context "$Context.historicalBuild.backend.commit"
+    $openapiSnapshotHash = Assert-StringValue -Object $historicalBuild -Name 'openapiSnapshotHash' -Context "$Context.historicalBuild"
+    Assert-Sha256 -Value $openapiSnapshotHash -Context "$Context.historicalBuild.openapiSnapshotHash"
+    $manifestSha256 = Assert-StringValue -Object $historicalBuild -Name 'backendNativeManifestSha256' -Context "$Context.historicalBuild"
+    Assert-Sha256 -Value $manifestSha256 -Context "$Context.historicalBuild.backendNativeManifestSha256"
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedBackendCommit) -and $backendCommit -ne $ExpectedBackendCommit) {
+        throw "$Context.historicalBuild.backend.commit 必须等于后端提交：期望 $ExpectedBackendCommit，实际 $backendCommit"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedOpenApiSnapshotHash) -and $openapiSnapshotHash -ne $ExpectedOpenApiSnapshotHash) {
+        throw "$Context.historicalBuild.openapiSnapshotHash 必须等于当前发布 OpenAPI hash：期望 $ExpectedOpenApiSnapshotHash，实际 $openapiSnapshotHash"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedBackendNativeManifestSha256) -and $manifestSha256 -ne $ExpectedBackendNativeManifestSha256) {
+        throw "$Context.historicalBuild.backendNativeManifestSha256 必须等于 backendNativeManifest.sha256：期望 $ExpectedBackendNativeManifestSha256，实际 $manifestSha256"
+    }
+
+    return $historicalBuild
+}
+
+function Assert-BackendNativeFingerprint {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [string]$ExpectedBackendCommit = '',
+        [string]$ExpectedOpenApiSnapshotHash = '',
+        [string]$ExpectedKind = '',
+        [string]$ExpectedPlatform = ''
+    )
+
+    $fingerprint = Get-JsonPropertyValue -Object $Source -Name 'backendNativeFingerprint'
+    if ($null -eq $fingerprint) {
+        throw "$Context 缺少必填字段：backendNativeFingerprint"
+    }
+
+    $algorithm = Assert-StringValue -Object $fingerprint -Name 'algorithm' -Context "$Context.backendNativeFingerprint"
+    if ($algorithm -ne 'hdx-backend-native-fingerprint-v1') {
+        throw "$Context.backendNativeFingerprint.algorithm 不支持：$algorithm"
+    }
+    $fingerprintSha256 = Assert-StringValue -Object $fingerprint -Name 'sha256' -Context "$Context.backendNativeFingerprint"
+    Assert-Sha256 -Value $fingerprintSha256 -Context "$Context.backendNativeFingerprint.sha256"
+
+    $backend = Get-JsonPropertyValue -Object $fingerprint -Name 'backend'
+    if ($null -eq $backend) {
+        throw "$Context.backendNativeFingerprint 缺少必填字段：backend"
+    }
+    [void](Assert-StringValue -Object $backend -Name 'repository' -Context "$Context.backendNativeFingerprint.backend")
+    $backendCommit = Assert-StringValue -Object $backend -Name 'commit' -Context "$Context.backendNativeFingerprint.backend"
+    Assert-GitCommit -Value $backendCommit -Context "$Context.backendNativeFingerprint.backend.commit"
+
+    $artifact = Get-JsonPropertyValue -Object $fingerprint -Name 'artifact'
+    if ($null -eq $artifact) {
+        throw "$Context.backendNativeFingerprint 缺少必填字段：artifact"
+    }
+    $kind = Assert-StringValue -Object $artifact -Name 'kind' -Context "$Context.backendNativeFingerprint.artifact"
+    if ($kind -notin @('backend-full', 'backend-services')) {
+        throw "$Context.backendNativeFingerprint.artifact.kind 无效：$kind"
+    }
+    $platform = Assert-StringValue -Object $artifact -Name 'platform' -Context "$Context.backendNativeFingerprint.artifact"
+    if ($platform -notin @('windows-x64', 'linux-x64')) {
+        throw "$Context.backendNativeFingerprint.artifact.platform 无效：$platform"
+    }
+    $packaging = Assert-StringValue -Object $artifact -Name 'packaging' -Context "$Context.backendNativeFingerprint.artifact"
+    if ($packaging -notin @('zip', 'tar.gz')) {
+        throw "$Context.backendNativeFingerprint.artifact.packaging 无效：$packaging"
+    }
+    if (Test-JsonPropertyExists -Object $artifact -Name 'entrypoints') {
+        [void](Assert-JsonArrayProperty -Object $artifact -Name 'entrypoints' -Context "$Context.backendNativeFingerprint.artifact")
+    }
+
+    if ($kind -eq 'backend-services') {
+        [void](Assert-ArrayValue -Object $fingerprint -Name 'services' -Context "$Context.backendNativeFingerprint")
+    }
+
+    $openapiSnapshotHash = Assert-StringValue -Object $fingerprint -Name 'openapiSnapshotHash' -Context "$Context.backendNativeFingerprint"
+    Assert-Sha256 -Value $openapiSnapshotHash -Context "$Context.backendNativeFingerprint.openapiSnapshotHash"
+
+    $packagingInfo = Get-JsonPropertyValue -Object $fingerprint -Name 'packaging'
+    if ($null -eq $packagingInfo) {
+        throw "$Context.backendNativeFingerprint 缺少必填字段：packaging"
+    }
+    [void](Assert-StringValue -Object $packagingInfo -Name 'manifestSchemaVersion' -Context "$Context.backendNativeFingerprint.packaging")
+    [void](Assert-StringValue -Object $packagingInfo -Name 'packagingScriptVersion' -Context "$Context.backendNativeFingerprint.packaging")
+
+    $runtime = Get-JsonPropertyValue -Object $fingerprint -Name 'runtime'
+    if ($null -eq $runtime) {
+        throw "$Context.backendNativeFingerprint 缺少必填字段：runtime"
+    }
+    [void](Assert-StringValue -Object $runtime -Name 'javaVersion' -Context "$Context.backendNativeFingerprint.runtime")
+    [void](Assert-StringValue -Object $runtime -Name 'graalvmVersion' -Context "$Context.backendNativeFingerprint.runtime")
+
+    $nativeInputs = Get-JsonPropertyValue -Object $fingerprint -Name 'nativeInputs'
+    if ($null -eq $nativeInputs) {
+        throw "$Context.backendNativeFingerprint 缺少必填字段：nativeInputs"
+    }
+    [void](Assert-StringValue -Object $nativeInputs -Name 'mavenProfile' -Context "$Context.backendNativeFingerprint.nativeInputs")
+    foreach ($arrayName in @('nativeImageArgs', 'runtimeHints', 'reachabilityMetadata', 'nativeMetadata')) {
+        [void](Assert-JsonArrayProperty -Object $nativeInputs -Name $arrayName -Context "$Context.backendNativeFingerprint.nativeInputs")
+    }
+    $springAot = Get-JsonPropertyValue -Object $nativeInputs -Name 'springAot'
+    if ($null -eq $springAot -or -not (Test-JsonPropertyExists -Object $springAot -Name 'enabled') -or (Get-JsonPropertyValue -Object $springAot -Name 'enabled') -isnot [bool]) {
+        throw "$Context.backendNativeFingerprint.nativeInputs.springAot.enabled 必须是 boolean"
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedBackendCommit) -and $backendCommit -ne $ExpectedBackendCommit) {
+        throw "$Context.backendNativeFingerprint.backend.commit 必须等于后端提交：期望 $ExpectedBackendCommit，实际 $backendCommit"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedOpenApiSnapshotHash) -and $openapiSnapshotHash -ne $ExpectedOpenApiSnapshotHash) {
+        throw "$Context.backendNativeFingerprint.openapiSnapshotHash 必须等于当前发布 OpenAPI hash：期望 $ExpectedOpenApiSnapshotHash，实际 $openapiSnapshotHash"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedKind) -and $kind -ne $ExpectedKind) {
+        throw "$Context.backendNativeFingerprint.artifact.kind 必须等于 asset kind：期望 $ExpectedKind，实际 $kind"
+    }
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedPlatform) -and $platform -ne $ExpectedPlatform) {
+        throw "$Context.backendNativeFingerprint.artifact.platform 必须等于 asset platform：期望 $ExpectedPlatform，实际 $platform"
+    }
+
+    return $fingerprint
+}
+
+function Assert-HistoricalBackendNativeSource {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context,
+        [string]$ExpectedBackendCommit = '',
+        [string]$ExpectedOpenApiSnapshotHash = '',
+        [string]$ExpectedAssetName = '',
+        [string]$ExpectedAssetSha256 = '',
+        [int64]$ExpectedAssetSizeBytes = -1,
+        [string]$ExpectedBackendNativeManifestSha256 = '',
+        [string]$ExpectedKind = '',
+        [string]$ExpectedPlatform = '',
+        [switch]$RequireFingerprint
+    )
+
+    [void](Assert-HistoricalReleaseAsset `
+        -Source $Source `
+        -Context $Context `
+        -ExpectedAssetName $ExpectedAssetName `
+        -ExpectedSha256 $ExpectedAssetSha256 `
+        -ExpectedSizeBytes $ExpectedAssetSizeBytes)
+
+    [void](Assert-HistoricalBackendBuild `
+        -Source $Source `
+        -Context $Context `
+        -ExpectedBackendCommit $ExpectedBackendCommit `
+        -ExpectedOpenApiSnapshotHash $ExpectedOpenApiSnapshotHash `
+        -ExpectedBackendNativeManifestSha256 $ExpectedBackendNativeManifestSha256)
+
+    if ($RequireFingerprint) {
+        [void](Assert-BackendNativeFingerprint `
+            -Source $Source `
+            -Context $Context `
+            -ExpectedBackendCommit $ExpectedBackendCommit `
+            -ExpectedOpenApiSnapshotHash $ExpectedOpenApiSnapshotHash `
+            -ExpectedKind $ExpectedKind `
+            -ExpectedPlatform $ExpectedPlatform)
+    }
+
+    if (Test-JsonPropertyExists -Object $Source -Name 'githubActions') {
+        throw "$Context type=historical-release-asset 时不应包含字段：githubActions"
+    }
+}
+
 function Assert-BaseManifest {
     param(
         [Parameter(Mandatory = $true)]$Manifest,
@@ -538,7 +831,6 @@ function Assert-OptionalManifestFile {
     Assert-ManifestJsonSchema -Manifest $manifest -Kind $Kind -Context $Path
     Assert-BaseManifest -Manifest $manifest -ExpectedKind $Kind -Context $Path
     Assert-ManifestFileHashes -Manifest $manifest -Kind $Kind -Context $Path -AssetRoot $AssetRoot
-    Write-Host "通过：$Path"
 
     switch ($Kind) {
         'backend-native' {
@@ -559,6 +851,8 @@ function Assert-OptionalManifestFile {
             }
         }
         'release' {
+            $releaseOpenApiSnapshotHash = Assert-StringValue -Object $manifest -Name 'openapiSnapshotHash' -Context $Path
+            Assert-Sha256 -Value $releaseOpenApiSnapshotHash -Context "$Path.openapiSnapshotHash"
             $backendNativeManifest = Get-JsonPropertyValue -Object $manifest -Name 'backendNativeManifest'
             if ($null -eq $backendNativeManifest) {
                 throw "$Path 缺少必填字段：backendNativeManifest"
@@ -567,17 +861,76 @@ function Assert-OptionalManifestFile {
             Assert-GitCommit -Value $backendCommit -Context "$Path.backendNativeManifest.backendCommit"
             $manifestSha256 = Assert-StringValue -Object $backendNativeManifest -Name 'sha256' -Context "$Path.backendNativeManifest"
             Assert-Sha256 -Value $manifestSha256 -Context "$Path.backendNativeManifest.sha256"
+            $backendNativeManifestSource = Get-JsonPropertyValue -Object $backendNativeManifest -Name 'source'
+            if ($null -eq $backendNativeManifestSource) {
+                throw "$Path.backendNativeManifest 缺少必填字段：source"
+            }
+            $backendNativeManifestSourceType = Assert-StringValue -Object $backendNativeManifestSource -Name 'type' -Context "$Path.backendNativeManifest.source"
+            switch ($backendNativeManifestSourceType) {
+                'github-actions-artifact' {
+                    Assert-GitHubActionsSource -Source $backendNativeManifestSource -Context "$Path.backendNativeManifest.source"
+                }
+                'historical-release-asset' {
+                    Assert-HistoricalBackendNativeSource `
+                        -Source $backendNativeManifestSource `
+                        -Context "$Path.backendNativeManifest.source" `
+                        -ExpectedBackendCommit $backendCommit `
+                        -ExpectedOpenApiSnapshotHash $releaseOpenApiSnapshotHash `
+                        -ExpectedAssetName 'backend-native-manifest.json' `
+                        -ExpectedAssetSha256 $manifestSha256 `
+                        -ExpectedBackendNativeManifestSha256 $manifestSha256
+                }
+                default {
+                    throw "$Path.backendNativeManifest.source.type 无效：$backendNativeManifestSourceType"
+                }
+            }
             foreach ($asset in Assert-ArrayValue -Object $manifest -Name 'assets' -Context $Path) {
+                $assetKind = Assert-StringValue -Object $asset -Name 'kind' -Context "$Path.assets"
                 $fileName = Assert-StringValue -Object $asset -Name 'fileName' -Context "$Path.assets"
                 Assert-NotLatest -Value $fileName -Context "$Path.assets.fileName"
                 $sha256 = Assert-StringValue -Object $asset -Name 'sha256' -Context "$Path.assets"
                 Assert-Sha256 -Value $sha256 -Context "$Path.assets.sha256"
+                $sizeBytes = Assert-PositiveIntegerValue -Object $asset -Name 'sizeBytes' -Context "$Path.assets"
                 $source = Get-JsonPropertyValue -Object $asset -Name 'source'
                 if ($null -eq $source) {
                     throw "$Path.assets 缺少必填字段：source"
                 }
                 $sourceCommit = Assert-StringValue -Object $source -Name 'commit' -Context "$Path.assets.source"
                 Assert-GitCommit -Value $sourceCommit -Context "$Path.assets.source.commit"
+                $sourceType = Assert-StringValue -Object $source -Name 'type' -Context "$Path.assets.source"
+                $isBackendNativeAsset = $assetKind -in @('backend-full', 'backend-services')
+                if ($sourceType -eq 'historical-release-asset') {
+                    if (-not $isBackendNativeAsset) {
+                        throw "$Path.assets.source.type=historical-release-asset 只允许用于 backend-full 或 backend-services asset"
+                    }
+                    $platform = Assert-StringValue -Object $asset -Name 'platform' -Context "$Path.assets"
+                    Assert-HistoricalBackendNativeSource `
+                        -Source $source `
+                        -Context "$Path.assets.source" `
+                        -ExpectedBackendCommit $sourceCommit `
+                        -ExpectedOpenApiSnapshotHash $releaseOpenApiSnapshotHash `
+                        -ExpectedAssetSha256 $sha256 `
+                        -ExpectedAssetSizeBytes $sizeBytes `
+                        -ExpectedBackendNativeManifestSha256 $manifestSha256 `
+                        -ExpectedKind $assetKind `
+                        -ExpectedPlatform $platform `
+                        -RequireFingerprint
+                }
+                elseif ($isBackendNativeAsset) {
+                    if ($sourceType -ne 'backend') {
+                        throw "$Path.assets.source.type 用于 backend-full/backend-services 时必须是 backend 或 historical-release-asset，实际：$sourceType"
+                    }
+                    $manifestHash = Assert-StringValue -Object $source -Name 'manifestSha256' -Context "$Path.assets.source"
+                    Assert-Sha256 -Value $manifestHash -Context "$Path.assets.source.manifestSha256"
+                    if ($manifestHash -ne $manifestSha256) {
+                        throw "$Path.assets.source.manifestSha256 必须等于 backendNativeManifest.sha256：期望 $manifestSha256，实际 $manifestHash"
+                    }
+                    $assetOpenApiHash = Assert-StringValue -Object $source -Name 'openapiSnapshotHash' -Context "$Path.assets.source"
+                    Assert-Sha256 -Value $assetOpenApiHash -Context "$Path.assets.source.openapiSnapshotHash"
+                    if ($assetOpenApiHash -ne $releaseOpenApiSnapshotHash) {
+                        throw "$Path.assets.source.openapiSnapshotHash 必须等于 release openapiSnapshotHash：期望 $releaseOpenApiSnapshotHash，实际 $assetOpenApiHash"
+                    }
+                }
             }
         }
         'backend-build' {
@@ -616,6 +969,8 @@ function Assert-OptionalManifestFile {
             }
         }
     }
+
+    Write-Host "通过：$Path"
 }
 
 function Get-FileSha256 {
@@ -709,6 +1064,7 @@ function Assert-ManifestFileHashes {
             }
         }
     }
+
 }
 
 function Normalize-EntryPath {

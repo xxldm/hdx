@@ -66,7 +66,7 @@
         "fileName",
         "sha256",
         "backendCommit",
-        "githubActions"
+        "source"
       ],
       "properties": {
         "fileName": {
@@ -78,37 +78,8 @@
         "backendCommit": {
           "$ref": "#/$defs/gitCommit"
         },
-        "githubActions": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": [
-            "workflow",
-            "runId",
-            "runAttempt",
-            "artifactName"
-          ],
-          "properties": {
-            "workflow": {
-              "type": "string",
-              "minLength": 1
-            },
-            "runId": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "runAttempt": {
-              "type": "integer",
-              "minimum": 1
-            },
-            "artifactName": {
-              "type": "string",
-              "minLength": 1
-            },
-            "artifactId": {
-              "type": "integer",
-              "minimum": 1
-            }
-          }
+        "source": {
+          "$ref": "#/$defs/backendNativeManifestSource"
         }
       }
     },
@@ -182,6 +153,320 @@
         }
       }
     },
+    "githubActionsSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "workflow",
+        "runId",
+        "runAttempt",
+        "artifactName"
+      ],
+      "properties": {
+        "workflow": {
+          "type": "string",
+          "minLength": 1
+        },
+        "runId": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "runAttempt": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "artifactName": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "artifactId": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "historicalReleaseAsset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "repository",
+        "tag",
+        "assetName",
+        "assetSha256",
+        "assetSizeBytes",
+        "releaseManifestSha256"
+      ],
+      "properties": {
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "$ref": "#/$defs/releaseVersion"
+        },
+        "assetName": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "assetSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "assetSizeBytes": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "releaseManifestSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "backendNativeManifestSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "historicalBackendBuild": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "root",
+        "backend",
+        "openapiSnapshotHash",
+        "backendNativeManifestSha256"
+      ],
+      "properties": {
+        "root": {
+          "$ref": "#/$defs/rootRef"
+        },
+        "backend": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "openapiSnapshotHash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "backendNativeManifestSha256": {
+          "$ref": "#/$defs/sha256"
+        }
+      }
+    },
+    "backendNativeManifestSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "github-actions-artifact",
+            "historical-release-asset"
+          ]
+        },
+        "githubActions": {
+          "$ref": "#/$defs/githubActionsSource"
+        },
+        "historicalRelease": {
+          "$ref": "#/$defs/historicalReleaseAsset"
+        },
+        "historicalBuild": {
+          "$ref": "#/$defs/historicalBackendBuild"
+        },
+        "backendNativeFingerprint": {
+          "$ref": "#/$defs/backendNativeFingerprint"
+        }
+      }
+    },
+    "backendNativeFingerprint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "algorithm",
+        "sha256",
+        "backend",
+        "artifact",
+        "openapiSnapshotHash",
+        "packaging",
+        "runtime",
+        "nativeInputs"
+      ],
+      "properties": {
+        "algorithm": {
+          "const": "hdx-backend-native-fingerprint-v1"
+        },
+        "sha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "backend": {
+          "$ref": "#/$defs/sourceRef"
+        },
+        "artifact": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "platform",
+            "packaging"
+          ],
+          "properties": {
+            "kind": {
+              "enum": [
+                "backend-full",
+                "backend-services"
+              ]
+            },
+            "platform": {
+              "enum": [
+                "windows-x64",
+                "linux-x64"
+              ]
+            },
+            "packaging": {
+              "enum": [
+                "zip",
+                "tar.gz"
+              ]
+            },
+            "entrypoints": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "services": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "id",
+              "module",
+              "executablePath"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^hdx-[a-z0-9-]+$"
+              },
+              "module": {
+                "type": "string",
+                "minLength": 1
+              },
+              "executablePath": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          },
+          "uniqueItems": true
+        },
+        "openapiSnapshotHash": {
+          "$ref": "#/$defs/sha256"
+        },
+        "packaging": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "manifestSchemaVersion",
+            "packagingScriptVersion"
+          ],
+          "properties": {
+            "manifestSchemaVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "packagingScriptVersion": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "runtime": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "javaVersion",
+            "graalvmVersion"
+          ],
+          "properties": {
+            "javaVersion": {
+              "type": "string",
+              "minLength": 1
+            },
+            "graalvmVersion": {
+              "type": "string",
+              "minLength": 1
+            }
+          }
+        },
+        "nativeInputs": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "mavenProfile",
+            "nativeImageArgs",
+            "springAot",
+            "runtimeHints",
+            "reachabilityMetadata",
+            "nativeMetadata"
+          ],
+          "properties": {
+            "mavenProfile": {
+              "type": "string",
+              "minLength": 1
+            },
+            "nativeImageArgs": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "springAot": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "enabled"
+              ],
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "runtimeHints": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "reachabilityMetadata": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            },
+            "nativeMetadata": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
     "releaseAsset": {
       "type": "object",
       "additionalProperties": false,
@@ -247,7 +532,8 @@
                 "backend",
                 "android",
                 "harmonyos",
-                "generated"
+                "generated",
+                "historical-release-asset"
               ]
             },
             "commit": {
@@ -258,6 +544,15 @@
             },
             "openapiSnapshotHash": {
               "$ref": "#/$defs/sha256"
+            },
+            "historicalRelease": {
+              "$ref": "#/$defs/historicalReleaseAsset"
+            },
+            "historicalBuild": {
+              "$ref": "#/$defs/historicalBackendBuild"
+            },
+            "backendNativeFingerprint": {
+              "$ref": "#/$defs/backendNativeFingerprint"
             }
           }
         }

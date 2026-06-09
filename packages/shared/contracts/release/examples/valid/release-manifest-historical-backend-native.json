@@ -1,0 +1,146 @@
+{
+  "schemaVersion": "1.0",
+  "manifestKind": "release",
+  "version": "v0.1.1",
+  "generatedAt": "2026-06-09T00:00:00Z",
+  "root": {
+    "repository": "xxldm/hdx",
+    "ref": "refs/tags/v0.1.1",
+    "commit": "1111111111111111111111111111111111111111"
+  },
+  "sources": {
+    "backend": {
+      "repository": "xxldm/hdx-backend",
+      "commit": "2222222222222222222222222222222222222222"
+    }
+  },
+  "openapiSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "backendNativeManifest": {
+    "fileName": "backend-native-manifest.json",
+    "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "backendCommit": "2222222222222222222222222222222222222222",
+    "source": {
+      "type": "historical-release-asset",
+      "historicalRelease": {
+        "repository": "xxldm/hdx",
+        "tag": "v0.1.0",
+        "assetName": "backend-native-manifest.json",
+        "assetSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "assetSizeBytes": 123,
+        "releaseManifestSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+        "backendNativeManifestSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      },
+      "historicalBuild": {
+        "root": {
+          "repository": "xxldm/hdx",
+          "ref": "refs/tags/v0.1.0",
+          "commit": "9999999999999999999999999999999999999999"
+        },
+        "backend": {
+          "repository": "xxldm/hdx-backend",
+          "commit": "2222222222222222222222222222222222222222"
+        },
+        "openapiSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "backendNativeManifestSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    }
+  },
+  "assets": [
+    {
+      "kind": "backend-services",
+      "platform": "linux-x64",
+      "fileName": "hdx-backend-services-linux-x64-v0.1.1.tar.gz",
+      "contentType": "application/gzip",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "sizeBytes": 456,
+      "source": {
+        "type": "historical-release-asset",
+        "commit": "2222222222222222222222222222222222222222",
+        "historicalRelease": {
+          "repository": "xxldm/hdx",
+          "tag": "v0.1.0",
+          "assetName": "hdx-backend-services-linux-x64-v0.1.0.tar.gz",
+          "assetSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+          "assetSizeBytes": 456,
+          "releaseManifestSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+          "backendNativeManifestSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "historicalBuild": {
+          "root": {
+            "repository": "xxldm/hdx",
+            "ref": "refs/tags/v0.1.0",
+            "commit": "9999999999999999999999999999999999999999"
+          },
+          "backend": {
+            "repository": "xxldm/hdx-backend",
+            "commit": "2222222222222222222222222222222222222222"
+          },
+          "openapiSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "backendNativeManifestSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "backendNativeFingerprint": {
+          "algorithm": "hdx-backend-native-fingerprint-v1",
+          "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+          "backend": {
+            "repository": "xxldm/hdx-backend",
+            "commit": "2222222222222222222222222222222222222222"
+          },
+          "artifact": {
+            "kind": "backend-services",
+            "platform": "linux-x64",
+            "packaging": "tar.gz",
+            "entrypoints": [
+              "bin/hdx-auth-service",
+              "bin/hdx-gateway",
+              "bin/hdx-core-service"
+            ]
+          },
+          "services": [
+            {
+              "id": "hdx-auth-service",
+              "module": "backend-auth-service",
+              "executablePath": "bin/hdx-auth-service"
+            },
+            {
+              "id": "hdx-gateway",
+              "module": "backend-gateway",
+              "executablePath": "bin/hdx-gateway"
+            },
+            {
+              "id": "hdx-core-service",
+              "module": "backend-core-service",
+              "executablePath": "bin/hdx-core-service"
+            }
+          ],
+          "openapiSnapshotHash": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "packaging": {
+            "manifestSchemaVersion": "1.0",
+            "packagingScriptVersion": "package-backend-native-artifact.ps1"
+          },
+          "runtime": {
+            "javaVersion": "25",
+            "graalvmVersion": "GraalVM 25"
+          },
+          "nativeInputs": {
+            "mavenProfile": "native",
+            "nativeImageArgs": [
+              "-Dnative.skip=false"
+            ],
+            "springAot": {
+              "enabled": true
+            },
+            "runtimeHints": [
+              "backend-core RuntimeHints"
+            ],
+            "reachabilityMetadata": [
+              "GraalVM Reachability Metadata Repository"
+            ],
+            "nativeMetadata": [
+              "Hibernate enhance"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

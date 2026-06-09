@@ -19,11 +19,14 @@
     "fileName": "backend-native-manifest.json",
     "sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
     "backendCommit": "2222222222222222222222222222222222222222",
-    "githubActions": {
-      "workflow": "backend-native.yml",
-      "runId": 1,
-      "runAttempt": 1,
-      "artifactName": "hdx-backend-native-v0.1.0"
+    "source": {
+      "type": "github-actions-artifact",
+      "githubActions": {
+        "workflow": "backend-native.yml",
+        "runId": 1,
+        "runAttempt": 1,
+        "artifactName": "hdx-backend-native-v0.1.0"
+      }
     }
   },
   "assets": [

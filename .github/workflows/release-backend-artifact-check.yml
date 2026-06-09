@@ -1,0 +1,253 @@
+name: Release Backend Artifact Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_repo:
+        description: "后端私有仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx-backend"
+        type: string
+      backend_run_id:
+        description: "后端 native workflow run id。"
+        required: true
+        type: string
+      artifact_name:
+        description: "后端 Actions artifact 名称，禁止 latest。"
+        required: true
+        type: string
+      expected_version:
+        description: "期望的发布版本，必须与 backend-native-manifest.json 一致。"
+        required: true
+        type: string
+      expected_root_repository:
+        description: "期望的主仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx"
+        type: string
+      expected_root_ref:
+        description: "期望的主仓库发布事实源 ref，禁止 latest。"
+        required: true
+        type: string
+      expected_root_commit:
+        description: "期望的主仓库发布事实源 commit，必须是 40 位小写 Git SHA。"
+        required: true
+        type: string
+      expected_backend_commit:
+        description: "期望的后端 commit，必须是 40 位小写 Git SHA。"
+        required: true
+        type: string
+      expected_openapi_snapshot_hash:
+        description: "期望的 OpenAPI snapshot 集合 SHA-256。"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-backend-artifact-check-${{ inputs.backend_repo }}-${{ inputs.backend_run_id }}-${{ inputs.artifact_name }}
+  cancel-in-progress: false
+
+jobs:
+  release-backend-artifact-check:
+    name: Release backend artifact check
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: Checkout 主仓库校验脚本
+        uses: actions/checkout@v6.0.3
+        with:
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验输入
+        id: input
+        env:
+          BACKEND_REPO: ${{ inputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ inputs.backend_run_id }}
+          ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          EXPECTED_VERSION: ${{ inputs.expected_version }}
+          EXPECTED_ROOT_REPOSITORY: ${{ inputs.expected_root_repository }}
+          EXPECTED_ROOT_REF: ${{ inputs.expected_root_ref }}
+          EXPECTED_ROOT_COMMIT: ${{ inputs.expected_root_commit }}
+          EXPECTED_BACKEND_COMMIT: ${{ inputs.expected_backend_commit }}
+          EXPECTED_OPENAPI_SNAPSHOT_HASH: ${{ inputs.expected_openapi_snapshot_hash }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-Pattern([string]$Name, [string]$Value, [string]$Pattern, [string]$Message) {
+            if ($Value -notmatch $Pattern) {
+              throw "$Name 无效：$Message"
+            }
+          }
+
+          function Assert-NoLatest([string]$Name, [string]$Value) {
+            if ($Value -match '(?i)latest') {
+              throw "$Name 不能包含 latest：$Value"
+            }
+          }
+
+          $backendRepo = $env:BACKEND_REPO.Trim()
+          $backendRunId = $env:BACKEND_RUN_ID.Trim()
+          $artifactName = $env:ARTIFACT_NAME.Trim()
+          $expectedVersion = $env:EXPECTED_VERSION.Trim()
+          $expectedRootRepository = $env:EXPECTED_ROOT_REPOSITORY.Trim()
+          $expectedRootRef = $env:EXPECTED_ROOT_REF.Trim()
+          $expectedRootCommit = $env:EXPECTED_ROOT_COMMIT.Trim()
+          $expectedBackendCommit = $env:EXPECTED_BACKEND_COMMIT.Trim()
+          $expectedOpenApiSnapshotHash = $env:EXPECTED_OPENAPI_SNAPSHOT_HASH.Trim()
+
+          Assert-Pattern 'backend_repo' $backendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-Pattern 'expected_root_repository' $expectedRootRepository '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-Pattern 'backend_run_id' $backendRunId '^[1-9][0-9]*$' '必须是大于 0 的整数。'
+          Assert-Pattern 'expected_version' $expectedVersion '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3。'
+          Assert-Pattern 'expected_root_commit' $expectedRootCommit '^[0-9a-f]{40}$' '必须是 40 位小写 Git SHA。'
+          Assert-Pattern 'expected_backend_commit' $expectedBackendCommit '^[0-9a-f]{40}$' '必须是 40 位小写 Git SHA。'
+          Assert-Pattern 'expected_openapi_snapshot_hash' $expectedOpenApiSnapshotHash '^[0-9a-f]{64}$' '必须是 64 位小写 SHA-256。'
+          Assert-NoLatest 'backend_repo' $backendRepo
+          Assert-NoLatest 'artifact_name' $artifactName
+          Assert-NoLatest 'expected_version' $expectedVersion
+          Assert-NoLatest 'expected_root_ref' $expectedRootRef
+
+          $backendParts = $backendRepo -split '/', 2
+          "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_run_id=$backendRunId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_name=$artifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "输入校验通过：backend=$backendRepo run=$backendRunId artifact=$artifactName"
+
+      - name: 生成后端仓库 GitHub App token
+        id: backend-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.input.outputs.backend_owner }}
+          repositories: ${{ steps.input.outputs.backend_name }}
+          permission-actions: read
+
+      - name: 定位后端 artifact
+        id: artifact
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ steps.input.outputs.backend_run_id }}
+          ARTIFACT_NAME: ${{ steps.input.outputs.artifact_name }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $payload = gh api "repos/$env:BACKEND_REPO/actions/runs/$env:BACKEND_RUN_ID/artifacts"
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取后端 artifact 列表失败。"
+          }
+
+          $artifacts = ($payload | ConvertFrom-Json -Depth 20).artifacts
+          $matched = @($artifacts | Where-Object { $_.name -eq $env:ARTIFACT_NAME })
+          if ($matched.Count -ne 1) {
+            $names = @($artifacts | ForEach-Object { $_.name }) -join ', '
+            throw "无法唯一定位 artifact：$env:ARTIFACT_NAME；当前 run artifacts：$names"
+          }
+
+          $artifact = $matched[0]
+          if ($artifact.expired -eq $true) {
+            throw "后端 artifact 已过期，需要重跑后端 native workflow：$($artifact.name)"
+          }
+
+          "artifact_id=$($artifact.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_size=$($artifact.size_in_bytes)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "artifact_expires_at=$($artifact.expires_at)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "artifact 定位通过：name=$($artifact.name) id=$($artifact.id) size=$($artifact.size_in_bytes) expires_at=$($artifact.expires_at)"
+
+      - name: 下载后端 artifact zip
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact_id }}
+        run: |
+          set -euo pipefail
+          mkdir -p target/release-backend-artifact-check/download
+          gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${BACKEND_REPO}/actions/artifacts/${ARTIFACT_ID}/zip" \
+            > target/release-backend-artifact-check/download/backend-artifact.zip
+
+      - name: 解包后端 artifact zip
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $artifactZip = 'target/release-backend-artifact-check/download/backend-artifact.zip'
+          $artifactRoot = 'target/release-backend-artifact-check/artifact'
+          if (Test-Path -LiteralPath $artifactRoot) {
+            Remove-Item -LiteralPath $artifactRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $artifactRoot | Out-Null
+          Expand-Archive -LiteralPath $artifactZip -DestinationPath $artifactRoot -Force
+
+          Write-Host '后端 artifact zip 解包完成：'
+          Get-ChildItem -LiteralPath $artifactRoot -File | Select-Object Name, Length | Format-Table | Out-String | Write-Host
+
+      - name: 校验后端 artifact 内容
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/release-backend-artifact-check.ps1 `
+            -ArtifactRoot 'target/release-backend-artifact-check/artifact' `
+            -ExpectedVersion '${{ inputs.expected_version }}' `
+            -ExpectedRootRepository '${{ inputs.expected_root_repository }}' `
+            -ExpectedRootRef '${{ inputs.expected_root_ref }}' `
+            -ExpectedRootCommit '${{ inputs.expected_root_commit }}' `
+            -ExpectedBackendRepository '${{ inputs.backend_repo }}' `
+            -ExpectedBackendCommit '${{ inputs.expected_backend_commit }}' `
+            -ExpectedRunId '${{ inputs.backend_run_id }}' `
+            -ExpectedRunAttempt '1' `
+            -ExpectedArtifactName '${{ inputs.artifact_name }}' `
+            -ExpectedOpenApiSnapshotHash '${{ inputs.expected_openapi_snapshot_hash }}'
+
+      - name: 输出验证摘要
+        if: always()
+        env:
+          BACKEND_REPO: ${{ steps.input.outputs.backend_repo }}
+          BACKEND_RUN_ID: ${{ steps.input.outputs.backend_run_id }}
+          ARTIFACT_NAME: ${{ steps.input.outputs.artifact_name }}
+          ARTIFACT_ID: ${{ steps.artifact.outputs.artifact_id }}
+          ARTIFACT_EXPIRES_AT: ${{ steps.artifact.outputs.artifact_expires_at }}
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $summary = @"
+          # HDX Release Backend Artifact Check
+
+          - status: ``$env:CHECK_STATUS``
+          - backend_repo: ``$env:BACKEND_REPO``
+          - backend_run_id: ``$env:BACKEND_RUN_ID``
+          - artifact_name: ``$env:ARTIFACT_NAME``
+          - artifact_id: ``$env:ARTIFACT_ID``
+          - artifact_expires_at: ``$env:ARTIFACT_EXPIRES_AT``
+
+          ## 验证动作
+
+          - 使用 GitHub App token 读取后端 run artifact 列表。
+          - 下载指定后端 Actions artifact。
+          - 解包 artifact zip。
+          - 校验 ``backend-native-manifest.json`` 的版本、root commit、后端 commit、run id、artifact name 和 OpenAPI hash。
+          - 校验 native archive 的 sha256、sizeBytes 和禁止文件扫描。
+
+          ## 安全边界
+
+          - 不 checkout 后端私有源码。
+          - 不创建 GitHub Release。
+          - 不上传 release asset。
+          - 不输出 private key、JWT 或 installation token。
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

@@ -56,7 +56,7 @@ backend native fingerprint 至少包含：
 - GraalVM / Java 版本。
 - Maven native profile、native-image 参数、Spring AOT、RuntimeHints、reachability metadata 和相关 native metadata 配置。
 
-当前 `backend-native-manifest.json` 中的 `root.commit` 表示该后端 asset 的构建上下文，不等于复用后新 Release 的 root commit。后续实现复用时，需要让 release manifest 和校验脚本能区分“当前发布事实源”和“历史后端 asset 构建来源”。
+当前 `backend-native-manifest.json` 中的 `root.commit` 表示该后端 asset 的构建上下文，不等于复用后新 Release 的 root commit。复用入口需要让 release manifest 和校验脚本能区分“当前发布事实源”和“历史后端 asset 构建来源”。
 
 ## 备选方案
 
@@ -72,7 +72,7 @@ backend native fingerprint 至少包含：
 - `services/backend/scripts/package-backend-native-artifact.ps1`：继续作为聚合打包入口，允许从下载后的 binary artifact 路径读取服务 executable。
 - `services/backend/README.md`：需要说明 services 并行构建和临时 binary artifact。
 - `docs/adr/0012-github-releases-artifact-boundary.md` 与 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`：仍作为发布边界和凭据事实源，本 ADR 替代其中“第一版不自动复用历史 Release 资产”的限制。
-- `packages/shared/contracts/release/` 与主仓库真实 release workflow：release manifest schema、样例和校验脚本已能表达历史 Release asset 复用来源和 backend native fingerprint；主仓库真实 release workflow 后续需要消费这些字段，完成历史 asset 的查找、下载、fingerprint 比较和重新上传。
+- `packages/shared/contracts/release/`、`scripts/release-draft-reuse-backend-assets.ps1` 与主仓库 release workflow：release manifest schema、样例、校验脚本和最小 draft 复用脚本已能表达并生成历史 Release asset 复用来源和 backend native fingerprint；`.github/workflows/release-draft-reuse-backend.yml` 已提供手动最小 draft 复用入口。完整真实 release workflow 后续仍需要把后端 artifact 新建分支、历史 asset 复用分支、Web/Desktop/App 构建和正式 publish 串成统一发布链路。
 
 ## 验证方式
 
@@ -90,6 +90,11 @@ backend native fingerprint 至少包含：
 - 复用 asset 的 sha256、size、禁止文件扫描和 release manifest 记录一致。
 - 匹配不到旧 asset、旧 manifest 不兼容、OpenAPI hash 变化或 fingerprint 变化时，workflow 明确要求重跑后端 native 构建。
 
+当前主仓库最小 draft 复用入口验证：
+
+- 使用 `scripts/release-draft-reuse-backend-assets.ps1` 基于历史 Release asset 本地夹具生成复用资产，并复跑 `scripts/release-manifest-check.ps1` 校验历史 manifest、输出 manifest、sha256、size、fingerprint 和禁止文件扫描。
+- 使用 `actionlint .github/workflows/release-draft-reuse-backend.yml` 检查手动 workflow 语法。
+
 ## 回滚条件
 
 满足以下任一条件时，需要新增 ADR 替代本决策：
@@ -102,9 +107,10 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - 实跑新的 `backend-services` 并行 workflow，确认默认 Linux services artifact 可生成并被主仓库校验。
-- 实现主仓库真实 release workflow 中的后端 asset 复用分支。
+- 将当前手动最小 draft 复用入口并入完整真实 release workflow，并补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录
 
-- 2026-06-09：`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持 `backendNativeManifest.source.type` 显式来源、backend native asset 的 `historical-release-asset` 来源、历史构建上下文和 `backendNativeFingerprint` 校验；真实 release workflow 的复用执行分支仍待实现。
+- 2026-06-09：`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持 `backendNativeManifest.source.type` 显式来源、backend native asset 的 `historical-release-asset` 来源、历史构建上下文和 `backendNativeFingerprint` 校验。
+- 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口：从主仓库指定历史 Release 下载 manifest 和后端 native asset，校验后生成新的 `release-manifest.json`、重新上传到新 draft Release，并远端下载核对 size 与 sha256。完整真实 release workflow 仍待后续整合。

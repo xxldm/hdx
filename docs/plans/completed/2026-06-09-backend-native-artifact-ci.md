@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：后端仓库 commit `051760d` 已推送，等待根仓库提交子模块指针后重新触发 GitHub-hosted workflow
+- 当前状态：已完成，后端 `backend-full-linux-x64` native artifact 已在 GitHub-hosted run 中成功产出
 - 计划来源：用户确认先做后端 artifact 生产入口，因为当前后端仓库还没有可供主仓库下载验证的 artifact
 - 创建时间：2026-06-09
 - 最后更新：2026-06-09
@@ -35,7 +35,7 @@
 - `services/backend/.github/workflows/backend-native-artifact.yml`
 - `services/backend/scripts/package-backend-native-artifact.ps1`
 - `services/backend/README.md`
-- `docs/plans/active/2026-06-09-backend-native-artifact-ci.md`
+- `docs/plans/completed/2026-06-09-backend-native-artifact-ci.md`
 - `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
 
 ## 本地任务清单
@@ -47,7 +47,7 @@
 - [x] 运行本地脚本 dry-run、workflow lint 和后端基础验证。
 - [x] 提交并推送后端仓库。
 - [x] 更新根仓库子模块指针和发布总纲。
-- [ ] 触发 GitHub-hosted backend artifact workflow 并记录结果。
+- [x] 触发 GitHub-hosted backend artifact workflow 并记录结果。
 
 ## 验收标准
 
@@ -79,6 +79,9 @@
 - 2026-06-09：本地 Windows dry-run、linux-x64 dry-run、根仓库 release manifest 校验、`actionlint`、`mvn validate` 和后端空白检查均通过；等待提交推送后触发 GitHub-hosted native workflow。
 - 2026-06-09：后端仓库提交 `4a869d5 功能：添加后端 native artifact workflow` 已推送到 `xxldm/hdx-backend/main`；根仓库准备更新 `services/backend` 子模块指针。
 - 2026-06-09：GitHub-hosted run `27188076358` 失败在 `构建 backend-full native` 步骤；日志显示 Maven 收到错误生命周期参数 `.skip=false`，原因是 Ubuntu runner 使用 `pwsh` shell 时未加引号的 `-Dnative.skip=false` 被 PowerShell 拆坏。后端仓库提交 `051760d 修复：引用后端 native workflow 的 Maven 参数` 已将 Maven `-D` 参数改为单引号包裹并推送。
+- 2026-06-09：根仓库提交 `fe497d1 修复：同步后端 native workflow 参数引用` 已指向后端 `051760d`。
+- 2026-06-09：GitHub-hosted run `27188320676` 成功，`backend-full-linux-x64` native build、打包、上传 artifact 全部通过；artifact `hdx-backend-native-v0.0.0-artifact-test.2-linux-x64` 的 ID 为 `7500484195`，过期时间为 `2026-06-10T06:52:18Z`。
+- 2026-06-09：下载 artifact 到本地 `target/backend-artifact-check/27188320676` 后，根仓库 release manifest 校验通过，确认 manifest、tar.gz sha256/size 和禁止文件扫描均通过。
 
 ## 验证结果
 
@@ -90,14 +93,22 @@
 - `mvn --batch-mode --no-transfer-progress -pl :backend-all-in-one -am -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，验证 PowerShell 下 Maven `-D` 参数引用方式正确；native-image 按 `skipNativeBuild` 跳过。
 - `git diff --check`：通过，仅提示 README 后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `gh run watch 27188076358 --repo xxldm/hdx-backend --exit-status`：失败，定位为 workflow 中 Maven `-Dnative.skip=false` 未加引号导致 PowerShell 参数拆分；已由后端 commit `051760d` 修复，需重新触发远端 run。
+- `gh run watch 27188320676 --repo xxldm/hdx-backend --exit-status`：通过，run 总耗时约 20 分钟，native build、打包和上传均成功。
+- `gh run view 27188320676 --repo xxldm/hdx-backend --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=051760d590ac2a49ad7ecb4bf1cd643d74ab7b20`。
+- `gh api repos/xxldm/hdx-backend/actions/runs/27188320676/artifacts --jq '.artifacts[] | {id, name, size_in_bytes, expired, expires_at}'`：通过，确认 artifact ID `7500484195`、名称 `hdx-backend-native-v0.0.0-artifact-test.2-linux-x64`、未过期、过期时间 `2026-06-10T06:52:18Z`。
+- `gh run download 27188320676 --repo xxldm/hdx-backend --name hdx-backend-native-v0.0.0-artifact-test.2-linux-x64 --dir target\backend-artifact-check\27188320676`：通过，下载得到 `backend-native-manifest.json` 和 `hdx-backend-full-linux-x64-v0.0.0-artifact-test.2.tar.gz`。
+- `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -BackendNativeManifestPath target\backend-artifact-check\27188320676\backend-native-manifest.json -AssetRoot target\backend-artifact-check\27188320676 -ScanPath target\backend-artifact-check\27188320676-extracted`：通过，确认远端 artifact 内容符合根仓库 release contract。
 
 ## 剩余风险
 
-- GitHub-hosted native build 尚未触发，仍需验证 GraalVM JDK 25、Maven native profile 和 `actions/upload-artifact@v7.0.1` 在远端 runner 上实际通过。
 - `backend-services`、Windows native artifact 和主仓库跨仓库 artifact 下载验证仍未实现。
 - OpenAPI snapshot 集合 hash 算法尚未固化，本轮 workflow 只要求调用方显式传入 64 位 SHA-256。
+- 本轮使用本地计算的临时 OpenAPI snapshot 集合 hash `6f25f723550eecbeedbe2aca1f23070411a2d81be5127d8fc27643ffab91505c` 作为手动 run 输入；正式 release workflow 前仍需把 hash 算法固化为脚本或 workflow 步骤。
+- 远端 native build 日志仍保留既有 warning：`hibernate-maven-plugin:7.1.11.Final:enhance` 不识别 `failOnError` 参数；本轮未修改该 POM 配置，后续可独立清理。
 
 ## 相关 commit
 
 - `4a869d5 功能：添加后端 native artifact workflow`（`services/backend`）
 - `051760d 修复：引用后端 native workflow 的 Maven 参数`（`services/backend`）
+- `c050245 功能：接入后端 native artifact 入口`（根仓库）
+- `fe497d1 修复：同步后端 native workflow 参数引用`（根仓库）

@@ -134,7 +134,7 @@ manifest/
 - 不初始化或 checkout 私有后端子模块；只记录根仓库锁定的子模块指针。
 - 不使用跨仓库凭据。
 
-真实 release workflow 的设计补充见 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`：跨仓库自动化使用 GitHub App token，后端 Actions artifact `retention-days: 1`，第一版不自动复用历史 Release 资产，并先创建 draft Release，资产上传和远端校验通过后再 publish。
+真实 release workflow 的设计补充见 `docs/adr/0013-release-workflow-token-and-artifact-policy.md`：跨仓库自动化使用 GitHub App token，后端 Actions artifact `retention-days: 1`，并先创建 draft Release，资产上传和远端校验通过后再 publish。后端 native 构建额度与历史主仓库 Release asset 复用策略见 `docs/adr/0014-release-native-build-budget-and-reuse-strategy.md`。
 
 ## 回滚条件
 
@@ -149,6 +149,6 @@ manifest/
 ## 后续事项
 
 - 设计并实现后端私有仓库 native CI：编译 `backend-full` 与 `backend-services`、生成 manifest、上传 `retention-days: 1` 的 Actions artifact、触发主仓库 release workflow。
-- 按 ADR 0013 实现主仓库真实 release workflow：使用 GitHub App token 下载 artifact、校验 manifest、扫描禁止文件、构建 Web/Desktop/App、生成 `SHA256SUMS` 和 `release-manifest.json`，并通过 draft Release 完成上传和发布。
+- 按 ADR 0013 和 ADR 0014 实现主仓库真实 release workflow：使用 GitHub App token 下载 artifact、校验 manifest、扫描禁止文件、按 backend native fingerprint 判断是否可复用历史主仓库 Release asset、构建 Web/Desktop/App、生成 `SHA256SUMS` 和 `release-manifest.json`，并通过 draft Release 完成上传和发布。
 - 在 workflow 中接入 `scripts/release-manifest-check.ps1` 或等价校验，并使用真实 release artifact 执行 sha256、size 和禁止文件扫描。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。

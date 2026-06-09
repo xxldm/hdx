@@ -16,7 +16,7 @@
 
 - ADR 0013 记录使用 GitHub App token，不使用 fine-grained PAT。
 - ADR 0013 记录后端私有 Actions artifact `retention-days: 1`。
-- ADR 0013 记录第一版不做跨 Release 旧资产复用。
+- ADR 0013 记录第一版不做跨 Release 旧资产复用；后续 ADR 0014 已针对后端 native 资产复用重新决策。
 - ADR 0013 记录每次 Release 的资产必须来自本次 workflow 构建，或明确指定 `run_id` 的短期 Actions artifact。
 - ADR 0013 记录真实 Release workflow 先创建 draft，上传和校验通过后再 publish。
 - README、架构、约束、ADR 0012 和总纲同步最新状态。
@@ -50,7 +50,7 @@
 
 - ADR 0013 明确 GitHub App token 是跨仓库自动化凭据。
 - ADR 0013 明确后端 Actions artifact 保留 1 天，过期重建，不作为长期发布存档。
-- ADR 0013 明确第一版不自动复用历史 Release 资产。
+- ADR 0013 明确第一版不自动复用历史 Release 资产；当前后端 native 资产复用边界已由 ADR 0014 替代。
 - ADR 0013 明确所有 Release 资产来源必须可追溯到本次 workflow 或显式 `run_id` artifact。
 - ADR 0013 明确 draft Release 到 publish 的边界。
 - 现有文档不再把真实 Release workflow 的凭据和 artifact 策略列为待决策。
@@ -72,6 +72,7 @@
 - 2026-06-09：创建计划，开始新增 ADR 0013。
 - 2026-06-09：新增 ADR 0013，并同步 README、架构、约束、ADR 0012 和总纲状态。
 - 2026-06-09：完成文档验证并归档计划。
+- 2026-06-09：后续 ADR 0014 已针对后端 native 构建额度和历史主仓库 Release asset 复用重新决策；本计划中“第一版不复用”只保留为当时的历史状态。
 
 ## 验证结果
 

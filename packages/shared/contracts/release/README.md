@@ -67,3 +67,5 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - Desktop Full 内置 `backend-build.json` 中的 `archiveSha256` 与公开 Release 中对应 `backend-full` asset 的 sha256 一致。
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制和配置示例；`manifest/SHA256SUMS` 覆盖除自身外的包内文件。manifest 自身不写入 `files`，避免自引用 hash。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。
+
+ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。实现该分支前，必须扩展 `release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1`，记录历史 release tag、asset name、sha256、size、backend native fingerprint 和历史构建来源；校验逻辑必须区分当前发布事实源和历史后端 asset 的构建 `root.commit`。

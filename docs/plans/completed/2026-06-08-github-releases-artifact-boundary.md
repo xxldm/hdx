@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成，待随本轮根仓库提交推送
+- 当前状态：已完成；后续 release manifest schema 与本地校验脚本已补齐
 - 计划来源：用户确认第 9 步发布产物、后端 native artifact 交接和 Release 资产粒度
 - 创建时间：2026-06-08
-- 最后更新：2026-06-08
+- 最后更新：2026-06-09
 
 ## 目标
 
@@ -73,6 +73,7 @@
 - 2026-06-08：新增 ADR 0012，确认 GitHub Releases 产物边界、后端 Actions artifact 临时交接、主仓库公开后端 native archive、App Online only 和后端微服务平台聚合压缩包策略。
 - 2026-06-08：更新 ADR 0011、架构、约束、README、总纲和相关已归档计划，移除“后端 native 是否进入公开 Release 待确认”的旧状态。
 - 2026-06-08：完成文档验证，计划归档到 `docs/plans/completed/`。
+- 2026-06-09：后续已补齐 release manifest schema、本地 JSON Schema 子集校验、样例检查和可选 `-AssetRoot` sha256/size 校验；发布校验相关风险已收窄为真实 workflow 接入和真实 artifact 上下文一致性。
 
 ## 验证结果
 
@@ -84,7 +85,7 @@
 ## 剩余风险
 
 - 本轮只完成设计与文档，不实现真实 GitHub Actions workflow。
-- 后端 native manifest schema、禁止文件扫描、Release asset 一致性检查、artifact 下载权限和跨仓库触发方式尚未实现。
+- 后端 native manifest schema、本地禁止文件扫描和可选 Release asset sha256/size 校验已实现；真实 GitHub Actions artifact 下载权限、跨仓库触发方式、真实 release artifact 上下文一致性和 Release 上传尚未实现。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍需后续单独确认。
 
 ## 相关 commit

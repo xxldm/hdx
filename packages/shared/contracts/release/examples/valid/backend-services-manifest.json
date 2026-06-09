@@ -1,0 +1,32 @@
+{
+  "schemaVersion": "1.0",
+  "manifestKind": "backend-services",
+  "version": "v0.1.0",
+  "generatedAt": "2026-06-08T00:00:00Z",
+  "root": {
+    "repository": "xxldm/hdx",
+    "ref": "refs/tags/v0.1.0",
+    "commit": "1111111111111111111111111111111111111111"
+  },
+  "backend": {
+    "repository": "xxldm/hdx-backend",
+    "commit": "2222222222222222222222222222222222222222"
+  },
+  "platform": "linux-x64",
+  "services": [
+    {
+      "id": "hdx-gateway",
+      "executablePath": "bin/hdx-gateway",
+      "configExamplePath": "config/gateway.example.yml",
+      "exposure": "external",
+      "healthCheckPath": "/actuator/health"
+    }
+  ],
+  "files": [
+    {
+      "path": "bin/hdx-gateway",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sizeBytes": 1
+    }
+  ]
+}

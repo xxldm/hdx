@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release 校验脚本原型，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待确认 GitHub Actions workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
+- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待确认 GitHub Actions workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
-- 最后更新：2026-06-08
+- 最后更新：2026-06-09
 
 ## 目标
 
@@ -125,7 +125,8 @@
 - 第 9 步许可边界补充确认：除后端外，后续公开仓库统一 Apache-2.0；`apps/web` 与 `apps/desktop` 已在各自子仓库补齐 `LICENSE`、`NOTICE` 和 package `license` 字段；`apps/mobile` 当前仍为根仓库占位目录，后续拆为独立仓库时再补自身许可文件。
 - 第 9 步 GitHub Releases 产物边界已确认：主仓库是唯一公开发布入口；后端私有仓库先编译 native，并只通过 GitHub Actions artifact 临时交接；主仓库 Release 公开 Web、Desktop Online、Desktop Full、后端 `backend-full` 和 `backend-services` 平台聚合包，以及后续 App Online 包；App 不内置后端；发布流程不使用 `latest`。
 - 第 9 步 release manifest schema 已确认：`packages/shared/contracts/release/` 定义 `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema，后续 workflow 必须据此校验发布事实源、commit、OpenAPI hash 和 sha256。
-- 第 9 步本地 release 校验脚本原型已确认：`scripts/release-manifest-check.ps1` 默认校验 release schema 文件，并预留 manifest 实例轻量字段校验和禁止文件扫描参数；docs 质量门禁已接入默认检查。
+- 第 9 步本地 release 校验脚本最小入口已确认：`scripts/release-manifest-check.ps1` 已接入 docs 质量门禁；后续已在该入口上补齐 JSON Schema 子集校验、样例检查和可选真实文件 sha256/size 校验。
+- 第 9 步本地 release 校验已补齐 JSON Schema 子集校验和样例检查：`scripts/release-manifest-check.ps1` 当前默认校验 schema 文件、最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例；传入 `-AssetRoot` 时可校验真实文件 sha256 与 `sizeBytes`。
 - PowerShell 脚本运行边界已收口：仓库内 `.ps1` 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文；docs 质量门禁不再执行 BOM/转义专项检查。
 
 ## 验收标准
@@ -176,6 +177,7 @@
 - 2026-06-08：完成第 9 步 release manifest schema 设计；新增 `packages/shared/contracts/release/`，记录 4 个发布 manifest 的 JSON Schema 与使用说明。
 - 2026-06-08：完成第 9 步本地 release 校验脚本原型；新增 `scripts/release-manifest-check.ps1` 并接入 docs 质量门禁。
 - 2026-06-08：完成 PowerShell 7+ / `pwsh` 运行边界收口；项目不再支持 Windows PowerShell 5.1，不再要求 `.ps1` UTF-8 with BOM，也不再把 `Get-Content -Encoding UTF8` 作为读取文档强制规则。
+- 2026-06-09：补齐第 9 步本地 release JSON Schema 校验和样例检查；`scripts/release-manifest-check.ps1` 已覆盖当前 release schema 使用到的 JSON Schema 子集、可选 `-AssetRoot` sha256/size 校验、最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。
 
 ## 验证结果
 
@@ -199,6 +201,9 @@
 - 第 9 步 release manifest schema 设计已执行 PowerShell `ConvertFrom-Json` 解析 4 个 schema 文件、`rg -n "backend-native-manifest|release-manifest|backend-build|backend-services-manifest|JSON Schema|latest" packages/shared/contracts/release docs README.md`、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - 第 9 步本地 release 校验脚本原型已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1`、`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/release-manifest-check.ps1 -ScanPath packages/shared/contracts/release`、临时禁止文件扫描负例、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 - PowerShell 编码债务收口已执行 BOM 检查、`\uXXXX` 转义扫描、PowerShell AST 解析检查、`scripts/release-manifest-check.ps1`、`scripts/release-manifest-check.ps1 -ScanPath packages/shared/contracts/release`、`git diff --check` 和 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
+- 第 9 步 release JSON Schema 校验补齐已执行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`：通过，确认合法样例、sha256 匹配样例、schema 负例、sha256 不匹配负例和禁止文件扫描负例均按预期。
+- 第 9 步 release JSON Schema 校验补齐已执行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples -ScanPath packages/shared/contracts/release`：通过，确认样例目录不会污染 release 契约目录的禁止文件扫描。
+- 第 9 步 release JSON Schema 校验补齐已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 
 ## 剩余风险
 
@@ -207,7 +212,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema 与本地校验脚本原型已定；但 GitHub Actions workflow、完整 JSON Schema 校验、真实 release asset 一致性、Release 上传、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema 与本地 JSON Schema 校验已定；但 GitHub Actions workflow、真实 release artifact 上下文一致性、Release 上传、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

@@ -117,13 +117,13 @@ manifest/
 - 使用 `rg` 检查 GitHub Releases、Actions artifact、backend-services、backend-full、`latest`、App 不内置后端和后端源码禁止项是否可发现。
 - 执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
 
-当前根仓库已提供本地原型脚本 `scripts/release-manifest-check.ps1`，用于校验 release manifest schema、manifest 核心字段和禁止文件扫描。后续 workflow 实现时必须补齐：
+当前根仓库已提供本地脚本 `scripts/release-manifest-check.ps1`，用于校验 release manifest schema、manifest 核心字段、样例、可选真实文件 sha256/size 和禁止文件扫描。脚本不引入外部 schema 校验依赖，只覆盖当前 release schema 使用到的 JSON Schema 子集。后续 workflow 实现时必须接入该脚本或等价校验，并补齐发布上下文一致性：
 
-- 复用或替换为等价 CI 校验，校验 `packages/shared/contracts/release/` 下的 JSON Schema、`backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json`。
-- 后端 native archive sha256 校验。
-- 后端 native archive 禁止文件扫描，覆盖源码、JAR/WAR、`.class`、`target/classes` 和构建中间目录。
-- Release asset 与 `release-manifest.json` 一致性检查。
-- Desktop Full 内置 `backend-build.json` 与 Release 中 `backend-full` archive 的 sha256 一致性检查。
+- 使用 `packages/shared/contracts/release/` 下的 JSON Schema 校验 `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json`。
+- 使用 `-AssetRoot` 校验后端 native archive、Release asset、Desktop Full 内置后端 archive 和 `backend-services` 包内文件的 sha256 与 `sizeBytes`。
+- 使用 `-ScanPath` 扫描后端 native archive 和 `backend-services` 聚合包，禁止源码、JAR/WAR、`.class`、`target/classes` 和构建中间目录。
+- 校验 `version`、`root.ref`、`root.commit`、OpenAPI/API contract hash、后端 commit、平台列表和主仓库 release workflow 上下文一致。
+- 校验 Desktop Full 内置 `backend-build.json` 与 Release 中对应 `backend-full` archive 的 sha256 一致。
 
 ## 回滚条件
 
@@ -139,5 +139,5 @@ manifest/
 
 - 设计并实现后端私有仓库 native CI：编译 `backend-full` 与 `backend-services`、生成 manifest、上传 Actions artifact、触发主仓库 release workflow。
 - 设计并实现主仓库 release workflow：下载 artifact、校验 manifest、扫描禁止文件、构建 Web/Desktop/App、生成 `SHA256SUMS` 和 `release-manifest.json`。
-- 为 release manifest schema 补充最小有效样例和无效样例，并在 workflow 中接入完整校验。
+- 在 workflow 中接入 `scripts/release-manifest-check.ps1` 或等价校验，并使用真实 release artifact 执行 sha256、size 和禁止文件扫描。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。

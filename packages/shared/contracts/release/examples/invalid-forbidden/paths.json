@@ -1,0 +1,6 @@
+{
+  "paths": [
+    "src/main/java/leaked.txt",
+    "target/classes/Leaked.class"
+  ]
+}

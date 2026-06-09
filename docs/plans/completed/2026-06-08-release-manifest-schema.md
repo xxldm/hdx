@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成，待随本轮根仓库提交推送
+- 当前状态：已完成；2026-06-09 已由后续小步补齐 release manifest JSON Schema 子集校验和样例检查
 - 计划来源：用户确认在 GitHub Releases 产物边界后，先定义 manifest schema
 - 创建时间：2026-06-08
-- 最后更新：2026-06-08
+- 最后更新：2026-06-09
 
 ## 目标
 
@@ -68,8 +68,8 @@
 
 ## 风险与阻塞
 
-- 本轮只验证 schema 文件本身是合法 JSON，不验证 schema 对样例 manifest 的约束效果。
-- 后续 workflow 仍需实现 schema 校验、sha256 校验、禁止文件扫描和 Release asset 一致性检查。
+- schema 对样例 manifest 的约束效果已由 2026-06-09 后续小步补齐验证，覆盖最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。
+- 后续 workflow 仍需接入真实 GitHub Actions artifact 下载、发布上下文一致性、Release 上传和跨包 sha256 对齐。
 - schema 已允许 `v<major>.<minor>.<patch>` 携带 prerelease 和 build metadata；正式版本号策略、tag 规则和 release notes 仍需后续单独确认。
 
 ## 状态记录
@@ -78,6 +78,7 @@
 - 2026-06-08：新增 `packages/shared/contracts/release/`，定义 `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema。
 - 2026-06-08：更新 release 契约说明、shared 索引、shared 根说明、ADR 0012、架构、质量门禁和后续事项总纲。
 - 2026-06-08：完成 JSON 解析和 docs 质量门禁验证，计划归档到 `docs/plans/completed/`。
+- 2026-06-09：后续小步已补齐 release manifest JSON Schema 子集校验、可选 `-AssetRoot` sha256/size 校验和最小正反例样例；原“未提供样例”和“未验证 schema 对样例约束效果”风险已解决。
 
 ## 验证结果
 
@@ -88,9 +89,8 @@
 
 ## 剩余风险
 
-- 本轮只定义 schema 和说明文档，不实现真实 JSON Schema 校验脚本。
-- 后续 workflow 仍需把 schema 校验、sha256 校验、禁止文件扫描和 Release asset 一致性检查接入 CI。
-- 当前未提供最小有效样例和无效样例；后续实现校验脚本时应补充样例。
+- 本轮定义的 schema 已有本地脚本校验和样例检查；后续 workflow 仍需把该校验接入真实 GitHub Actions artifact、Release asset 和 Desktop Full 打包产物。
+- 当前本地脚本覆盖 release schema 使用到的 JSON Schema 子集，不是通用 JSON Schema 引擎；schema 后续如引入新关键字，需要同步扩展脚本或重新评估外部校验器。
 - 正式版本号策略、tag 规则、release notes、安装器签名、公证和自动更新仍需后续单独确认。
 
 ## 相关 commit

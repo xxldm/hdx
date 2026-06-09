@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：已完成，随本轮提交归档
+- 当前状态：已完成；2026-06-09 已由后续小步补齐 JSON Schema 子集校验、样例检查和可选真实文件 sha256/size 校验
 - 计划来源：用户确认在 release manifest schema 后，先补本地校验脚本原型
 - 创建时间：2026-06-08
-- 最后更新：2026-06-08
+- 最后更新：2026-06-09
 
 ## 目标
 
@@ -64,14 +64,15 @@
 
 ## 风险与阻塞
 
-- 本轮只做轻量字段和禁止文件扫描原型，不实现完整 JSON Schema 校验器。
+- 当前脚本已由 2026-06-09 后续小步补齐 release schema 使用到的 JSON Schema 子集校验；它不是通用 JSON Schema 引擎，后续如果 schema 引入新关键字，需要同步扩展脚本或重新评估外部校验器。
 - `.tar.gz` 扫描依赖本机 `tar` 命令；如果环境缺失，脚本会给出明确错误。
-- 后续真实 workflow 仍需要补 manifest 样例、sha256 sums 校验、Release asset 一致性和 GitHub artifact 下载权限验证。
+- 后续真实 workflow 仍需要接入 GitHub artifact 下载权限验证、真实发布上下文一致性、Release 上传和跨包 sha256 对齐。
 
 ## 状态记录
 
 - 2026-06-08：创建计划并开始实施。
 - 2026-06-08：完成 release manifest 本地校验脚本原型，接入 docs 质量门禁，并归档计划。
+- 2026-06-09：后续小步已在同一脚本入口补齐 JSON Schema 子集校验、样例检查和可选 `-AssetRoot` sha256/size 校验；原“未集成完整 JSON Schema validator”和“未补 manifest 样例”风险已解决。
 
 ## 验证结果
 
@@ -84,9 +85,9 @@
 
 ## 剩余风险
 
-- 当前脚本只做 schema 文件存在/JSON 解析/`manifestKind.const` 检查，以及 manifest 实例的轻量字段校验；尚未集成完整 JSON Schema validator。
+- 当前脚本覆盖 release schema 使用到的 JSON Schema 子集，不是通用 JSON Schema 引擎；后续 schema 如引入新关键字，需要同步扩展脚本或重新评估外部校验器。
 - 当前禁止文件扫描支持目录、zip、tar/tar.gz/tgz；`.tar.gz` 依赖本机 `tar` 命令，环境缺失时会明确失败。
-- 后续 GitHub Actions workflow 仍需要接入真实 artifact 下载、manifest 实例校验、sha256 sums、release asset 一致性和禁止文件扫描。
+- 后续 GitHub Actions workflow 仍需要接入真实 artifact 下载、发布上下文一致性、Release 上传和跨包 sha256 对齐。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍是第 9 步后续独立小项。
 
 ## 相关 commit

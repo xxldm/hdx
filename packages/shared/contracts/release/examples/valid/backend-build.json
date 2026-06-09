@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "1.0",
+  "manifestKind": "backend-build",
+  "version": "v0.1.0",
+  "generatedAt": "2026-06-08T00:00:00Z",
+  "root": {
+    "repository": "xxldm/hdx",
+    "ref": "refs/tags/v0.1.0",
+    "commit": "1111111111111111111111111111111111111111"
+  },
+  "desktop": {
+    "commit": "4444444444444444444444444444444444444444",
+    "flavor": "full",
+    "platform": "windows-x64"
+  },
+  "backend": {
+    "kind": "backend-full",
+    "commit": "2222222222222222222222222222222222222222",
+    "archiveFileName": "hdx-backend-full-windows-x64-v0.1.0.zip",
+    "archiveSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "manifestSha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "executablePath": "bin/hdx-backend-full.exe"
+  }
+}

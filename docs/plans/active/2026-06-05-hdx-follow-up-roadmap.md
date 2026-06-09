@@ -187,7 +187,7 @@
 - 2026-06-09：新增 ADR 0013，确认真实 release workflow 使用 GitHub App token、后端 Actions artifact 保留 1 天、第一版不自动复用历史 Release 资产，并通过 draft Release 完成上传校验后再 publish。
 - 2026-06-09：新增主仓库 GitHub App token 最小验证 workflow；该 workflow 只验证 GitHub App token 读取仓库 metadata，不执行真实发布、不读取后端 artifact；GitHub-hosted run `27186745870` 已通过。
 - 2026-06-09：用户删除 `HDX_RELEASE_APP_ID` 后，主仓库 GitHub App token 最小验证 workflow 已切换为 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入；GitHub-hosted run `27187218112` 已通过，日志筛选未命中 `deprecated`。
-- 2026-06-09：开始后端 native artifact 最小 CI；私有后端仓库提交 `4a869d5` 新增 `backend-full-linux-x64` 手动 workflow 与打包脚本，当前等待 GitHub-hosted native run 实跑验证。
+- 2026-06-09：开始后端 native artifact 最小 CI；私有后端仓库提交 `4a869d5` 新增 `backend-full-linux-x64` 手动 workflow 与打包脚本，提交 `051760d` 修复 workflow 中 Maven `-D` 参数的 PowerShell 引用问题；当前等待 GitHub-hosted native run 重新实跑验证。
 
 ## 验证结果
 

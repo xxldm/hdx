@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：后端仓库 commit `4a869d5` 已推送，等待根仓库提交子模块指针后触发 GitHub-hosted workflow
+- 当前状态：后端仓库 commit `051760d` 已推送，等待根仓库提交子模块指针后重新触发 GitHub-hosted workflow
 - 计划来源：用户确认先做后端 artifact 生产入口，因为当前后端仓库还没有可供主仓库下载验证的 artifact
 - 创建时间：2026-06-09
 - 最后更新：2026-06-09
@@ -78,6 +78,7 @@
 - 2026-06-09：本地普通权限写入 `services/backend/target/test-native` 时触发 `AccessDeniedException`，随后按 `docs/AGENT_WORKFLOW.md` 权限规则提权复跑通过；该现象归类为 target 写入 sandbox 权限问题，不是打包脚本缺陷。
 - 2026-06-09：本地 Windows dry-run、linux-x64 dry-run、根仓库 release manifest 校验、`actionlint`、`mvn validate` 和后端空白检查均通过；等待提交推送后触发 GitHub-hosted native workflow。
 - 2026-06-09：后端仓库提交 `4a869d5 功能：添加后端 native artifact workflow` 已推送到 `xxldm/hdx-backend/main`；根仓库准备更新 `services/backend` 子模块指针。
+- 2026-06-09：GitHub-hosted run `27188076358` 失败在 `构建 backend-full native` 步骤；日志显示 Maven 收到错误生命周期参数 `.skip=false`，原因是 Ubuntu runner 使用 `pwsh` shell 时未加引号的 `-Dnative.skip=false` 被 PowerShell 拆坏。后端仓库提交 `051760d 修复：引用后端 native workflow 的 Maven 参数` 已将 Maven `-D` 参数改为单引号包裹并推送。
 
 ## 验证结果
 
@@ -86,7 +87,9 @@
 - `pwsh -NoLogo -NoProfile -File scripts/package-backend-native-artifact.ps1 ... -Platform linux-x64 ... -ExecutablePath target\test-native\backend-all-in-one.exe`：提权通过，生成 tar.gz 与 `backend-native-manifest.json`；Windows 本地无 `chmod`，脚本按预期提示跳过本地模拟的 Linux 可执行权限设置，GitHub Ubuntu runner 仍必须执行 `chmod`。
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -BackendNativeManifestPath services\backend\target\release-artifacts\backend-native-manifest.json -AssetRoot services\backend\target\release-artifacts -ScanPath services\backend\target\release-artifacts\stage\hdx-backend-full-linux-x64-v0.0.0-artifact-test.1`：通过，确认生成 manifest 符合根仓库 release contract，sha256/size 与包文件一致，禁止文件扫描通过。
 - `mvn validate`：通过；保留 JDK 25 下 Maven/Jansi/Unsafe warning，不阻塞本轮验证。
+- `mvn --batch-mode --no-transfer-progress -pl :backend-all-in-one -am -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，验证 PowerShell 下 Maven `-D` 参数引用方式正确；native-image 按 `skipNativeBuild` 跳过。
 - `git diff --check`：通过，仅提示 README 后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
+- `gh run watch 27188076358 --repo xxldm/hdx-backend --exit-status`：失败，定位为 workflow 中 Maven `-Dnative.skip=false` 未加引号导致 PowerShell 参数拆分；已由后端 commit `051760d` 修复，需重新触发远端 run。
 
 ## 剩余风险
 
@@ -97,3 +100,4 @@
 ## 相关 commit
 
 - `4a869d5 功能：添加后端 native artifact workflow`（`services/backend`）
+- `051760d 修复：引用后端 native workflow 的 Maven 参数`（`services/backend`）

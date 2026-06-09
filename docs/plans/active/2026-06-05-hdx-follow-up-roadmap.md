@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验 GitHub-hosted 实跑验证、draft Release 最小闭环 GitHub-hosted 实跑验证、后端 `backend-full` Linux/Windows 默认 artifact 与 `backend-services` Linux 聚合 artifact 扩展验证、后端 native 构建额度与历史 Release asset 复用策略、历史 Release asset 手动最小 draft 复用入口 GitHub-hosted 实跑、正式 `release.yml` 第一版设计、tag-only 目标发布边界，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待实现真实完整 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
+- 当前状态：第 9 步发布与环境管理已完成公开许可、后端私有边界、GitHub Releases 产物边界、release manifest schema 设计、本地 release JSON Schema 校验和样例检查、主仓库 release dry-run workflow 骨架与 GitHub-hosted 实跑验证、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证、后端 `backend-full-linux-x64` native artifact 最小生产入口、主仓库后端 artifact 下载校验 GitHub-hosted 实跑验证、draft Release 最小闭环 GitHub-hosted 实跑验证、后端 `backend-full` Linux/Windows 默认 artifact 与 `backend-services` Linux 聚合 artifact 扩展验证、后端 native 构建额度与历史 Release asset 复用策略、历史 Release asset 手动最小 draft 复用入口 GitHub-hosted 实跑、正式 `release.yml` 第一版设计、tag-only 日常发布操作手册，以及 PowerShell 7+ / `pwsh` 运行边界收口；当前等待实现真实完整 GitHub Release workflow、安装器签名、公证、自动更新、release notes 或版本号策略等后续小步。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-09
@@ -201,7 +201,7 @@
 - 2026-06-09：历史 Release asset 手动最小 draft 复用入口已 GitHub-hosted 实跑通过；`debug-release-draft-minimal.yml` run `27209181697` 创建历史 draft Release `v0.0.0-services-parallel.2`，`debug-release-draft-reuse-backend.yml` run `27209326174` 复用该历史后端 asset 创建 draft Release `v0.0.0-services-parallel.3`。
 - 2026-06-09：按用户确认删除测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3`；`gh release list` 已确认主仓库 Release 列表为空，两个测试 tag ref 均不存在。
 - 2026-06-09：完成正式 `release.yml` 第一版设计，ADR 0013 记录 `version`、`root_ref`、`backend_source_mode`、`backend_sources_json` 输入、job 图、最小权限 token、draft 到 publish 和失败 draft 保留规则；ADR 0014 记录 `resolve-backend-native` 对后端 Actions artifact 与历史主仓库 Release asset 两种来源的统一输出和历史 asset 不重命名规则。当前只做设计，不创建 `.github/workflows/release.yml`。
-- 2026-06-10：用户确认一次性 release 操作说明不长期入库；tag-only 目标发布、双 GitHub Apps、后端 release resolve 和主仓库 release assemble 的设计边界保留在 ADR 0013、ADR 0014 与本计划状态中。
+- 2026-06-10：纠正一次性配置说明和日常发布手册边界：`docs/RELEASE_RUNBOOK.md` 保留 tag-only 日常发布、观察和失败处理；GitHub App 权限配置属于一次性外部配置，不写入仓库手册。tag-only 目标发布、双 GitHub Apps、后端 release resolve 和主仓库 release assemble 的设计边界保留在 ADR 0013、ADR 0014 与本计划状态中。
 
 ## 验证结果
 
@@ -246,7 +246,7 @@
 - 第 5 步 OpenAPI 与 shared 层已建立 TypeScript 类型生成原型和 Web 只读类型对齐检查；尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构，这些作为后续独立事项处理。
 - 第 6 步 Desktop 已创建 Tauri 工程骨架、补齐 Rust 编译验证，并已将用户指定的 `favicon3.ico` 复制为 Tauri Windows 图标；all-in-one sidecar 启动、本机 token 注入、真实自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和 package/工程元数据许可声明。
-- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环、后端 native 构建额度/复用策略、历史 Release asset 复用契约、手动最小 draft 复用入口 GitHub-hosted 实跑、正式 `release.yml` 第一版设计和 tag-only 目标发布边界均已确认或验证通过；完整真实 GitHub Release workflow 实现、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步发布产物边界、release manifest schema、本地 JSON Schema 校验、release dry-run workflow 骨架、GitHub-hosted dry-run 实跑、真实 release workflow 凭据与 artifact 策略、GitHub App token metadata 验证入口、后端 `backend-full` Linux/Windows artifact、后端 `backend-services` Linux 聚合 artifact、主仓库后端 artifact 下载校验、draft Release 最小闭环、后端 native 构建额度/复用策略、历史 Release asset 复用契约、手动最小 draft 复用入口 GitHub-hosted 实跑、正式 `release.yml` 第一版设计和 tag-only 日常发布操作手册均已确认或验证通过；完整真实 GitHub Release workflow 实现、`backend-services-windows-x64`、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

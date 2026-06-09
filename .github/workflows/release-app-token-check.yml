@@ -1,0 +1,143 @@
+name: Release App Token Check
+
+on:
+  workflow_dispatch:
+    inputs:
+      backend_repo:
+        description: "后端私有仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx-backend"
+        type: string
+
+permissions: {}
+
+concurrency:
+  group: release-app-token-check-${{ inputs.backend_repo }}
+  cancel-in-progress: false
+
+jobs:
+  release-app-token-check:
+    name: Release app token check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+
+    steps:
+      - name: 校验仓库输入
+        id: repo
+        env:
+          BACKEND_REPO: ${{ inputs.backend_repo }}
+          MAIN_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $backendRepo = $env:BACKEND_REPO.Trim()
+          $mainRepo = $env:MAIN_REPO.Trim()
+
+          if ($backendRepo -match 'latest') {
+            throw "backend_repo 不允许包含 latest：$backendRepo"
+          }
+
+          if ($backendRepo -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "backend_repo 必须形如 owner/repo：$backendRepo"
+          }
+
+          if ($mainRepo -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "github.repository 格式异常：$mainRepo"
+          }
+
+          $backendParts = $backendRepo -split '/', 2
+          $mainParts = $mainRepo -split '/', 2
+
+          "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_repo=$mainRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_owner=$($mainParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "main_name=$($mainParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "仓库输入校验通过：backend=$backendRepo main=$mainRepo"
+
+      - name: 生成后端仓库 GitHub App token
+        id: backend-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          app-id: ${{ secrets.HDX_RELEASE_APP_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.repo.outputs.backend_owner }}
+          repositories: ${{ steps.repo.outputs.backend_name }}
+          permission-actions: read
+
+      - name: 读取后端仓库 metadata
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPO: ${{ steps.repo.outputs.backend_repo }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $metadata = gh api "repos/$env:BACKEND_REPO" --jq '{full_name, private, visibility, default_branch, archived, disabled}'
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取后端仓库 metadata 失败。"
+          }
+
+          Write-Host "后端仓库 metadata 读取通过："
+          Write-Host $metadata
+
+      - name: 生成主仓库 GitHub App token
+        id: main-token
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          app-id: ${{ secrets.HDX_RELEASE_APP_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.repo.outputs.main_owner }}
+          repositories: ${{ steps.repo.outputs.main_name }}
+          permission-contents: read
+
+      - name: 读取主仓库 metadata
+        env:
+          GH_TOKEN: ${{ steps.main-token.outputs.token }}
+          MAIN_REPO: ${{ steps.repo.outputs.main_repo }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $metadata = gh api "repos/$env:MAIN_REPO" --jq '{full_name, private, visibility, default_branch, archived, disabled}'
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取主仓库 metadata 失败。"
+          }
+
+          Write-Host "主仓库 metadata 读取通过："
+          Write-Host $metadata
+
+      - name: 输出验证摘要
+        if: always()
+        env:
+          BACKEND_REPO: ${{ steps.repo.outputs.backend_repo }}
+          MAIN_REPO: ${{ steps.repo.outputs.main_repo }}
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $summary = @"
+          # HDX Release App Token Check
+
+          - backend_repo: ``$env:BACKEND_REPO``
+          - main_repo: ``$env:MAIN_REPO``
+          - status: ``$env:CHECK_STATUS``
+
+          ## 验证动作
+
+          - 使用 GitHub App token 读取后端仓库 metadata。
+          - 使用 GitHub App token 读取主仓库 metadata。
+
+          ## 安全边界
+
+          - 不 checkout 后端私有源码。
+          - 不读取或下载 Actions artifact。
+          - 不创建、上传或发布 GitHub Release。
+          - 不输出 private key、JWT 或 installation token。
+          - 不上传 artifact，不写入 cache。
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

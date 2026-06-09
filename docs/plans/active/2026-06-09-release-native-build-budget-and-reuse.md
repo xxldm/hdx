@@ -47,8 +47,8 @@
 - [x] 提交并推送 `services/backend`。
 - [x] 提交并推送根仓库文档和子模块指针。
 - [x] 新增 `build_scope` 手动输入，支持只跑 `services-linux-only` 远端验证。
-- [ ] 触发 `services-linux-only` GitHub-hosted run，验证 matrix 并行和 `actions/download-artifact` 聚合。
-- [ ] 下载 `backend-services-linux-x64` artifact 并运行 release manifest 校验。
+- [x] 触发 `services-linux-only` GitHub-hosted run，验证 matrix 并行和 `actions/download-artifact` 聚合。
+- [x] 下载 `backend-services-linux-x64` artifact 并运行 release manifest 校验。
 - [ ] 后续实现主仓库真实 release workflow 的历史 Release asset 复用分支。
 
 ## 验收标准
@@ -72,8 +72,8 @@
 ## 风险与阻塞
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- `actions/download-artifact@v7.0.1` 尚需 GitHub-hosted runner 实跑确认。
 - 当前 release manifest schema 还不能完整表达历史 Release asset 复用来源和 backend native fingerprint；后续实现复用分支前必须扩展 schema、样例和校验脚本。
+- OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口，避免不同 workflow 用不同算法误判 native 输入是否变化。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 
 ## 状态记录
@@ -90,6 +90,10 @@
 - 2026-06-09：首次 `services-linux-only` 远端 run `27201075082` 已触发；`backend-full-linux-x64`、`backend-full-windows-x64`、Windows services build 和 Windows services 聚合均按预期跳过，Linux `backend-auth-service`、`backend-gateway` 和 `backend-core-service` 三个 service binary job 并行运行并全部成功。
 - 2026-06-09：run `27201075082` 的 Linux services 聚合 job 在 `Set up job` 阶段失败，未进入 artifact 下载或打包；原因判断为 workflow 引用了不存在的 `actions/download-artifact@v7.0.1`，公开 action tag 存在 `v7` / `v7.0.0`，不存在 `v7.0.1`。已改为 `actions/download-artifact@v7.0.0`，需要重新触发一次 `services-linux-only` 验证。
 - 2026-06-09：`services/backend` commit `b5759ac 修复：修正后端 artifact 下载 action 版本` 已推送到 `origin/main`。
+- 2026-06-09：第二次 `services-linux-only` 远端 run `27202869734` 已成功；`backend-full-linux-x64`、`backend-full-windows-x64`、Windows services build 和 Windows services 聚合均按预期跳过，Linux `backend-auth-service`、`backend-gateway` 和 `backend-core-service` 三个 service binary job 并行运行并全部成功，最终 `Backend services linux-x64` 聚合 job 已成功下载三个临时二进制、打包并上传最终 artifact。
+- 2026-06-09：run `27202869734` 的 native-image 构建步骤耗时分别为 auth 约 17 分 43 秒、gateway 约 19 分 09 秒、core 约 25 分 25 秒；最终聚合 job 约 1 分 02 秒，services-only 墙钟时间约 26 分钟，验证了等待时间由最慢服务主导而不是三个服务串行累加。
+- 2026-06-09：run `27202869734` 的最终 artifact `hdx-backend-services-native-v0.0.0-services-parallel.2-linux-x64` ID 为 `7506747699`，大小 `232079179` bytes，过期时间 `2026-06-10T11:51:47Z`；临时二进制 artifact 分别为 auth `7506567328`、gateway `7506599309` 和 core `7506724997`，保留期均为 1 天。
+- 2026-06-09：已下载最终 artifact 到 `target/backend-artifact-check/27202869734/services-linux` 并完成两层 manifest 校验；外层 `backend-native-manifest.json` 和包内 `manifest/backend-services-manifest.json` 均通过 schema、sha256/size 和禁止文件扫描。
 
 ## 验证结果
 
@@ -100,12 +104,15 @@
 - `scripts/release-manifest-check.ps1 -SkipExamples ...`：通过，分别校验 Linux/Windows 的外层 `backend-native-manifest.json`、包内 `backend-services-manifest.json`、archive sha256/size 和禁止文件扫描。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认关键文档可读、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 - GitHub-hosted run `27201075082`：部分通过。`build_scope=services-linux-only` 成功限制构建范围，full Linux/Windows 和 Windows services 均跳过；三个 Linux service binary job 均成功；聚合 job 因 `actions/download-artifact@v7.0.1` 版本不存在而失败。
+- GitHub-hosted run `27202869734`：通过。`build_scope=services-linux-only` 成功限制构建范围，full Linux/Windows 和 Windows services 均跳过；三个 Linux service binary job 并行运行并成功上传临时二进制；最终 `Backend services linux-x64` 聚合 job 成功下载 `actions/download-artifact@v7.0.0` artifact、打包并上传最终 artifact。
+- `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples -BackendNativeManifestPath target/backend-artifact-check/27202869734/services-linux/backend-native-manifest.json -AssetRoot target/backend-artifact-check/27202869734/services-linux -ScanPath target/backend-artifact-check/27202869734/services-linux/hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`：通过。
+- `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -SkipExamples -BackendServicesManifestPath target/backend-artifact-check/27202869734/services-linux/extracted/manifest/backend-services-manifest.json -AssetRoot target/backend-artifact-check/27202869734/services-linux/extracted -ScanPath target/backend-artifact-check/27202869734/services-linux/hdx-backend-services-linux-x64-v0.0.0-services-parallel.2.tar.gz`：通过。
 
 ## 剩余风险
 
-- `actions/download-artifact@v7.0.0` 聚合下载仍需 GitHub-hosted runner 重新实跑确认。
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
 - 当前 release manifest schema 还不能完整表达历史 Release asset 复用来源和 backend native fingerprint；后续实现复用分支前必须扩展 schema、样例和校验脚本。
+- OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
 
 ## 相关 commit
@@ -114,4 +121,4 @@
 - `e7815f1 功能：记录 native 构建额度与复用策略`（根仓库）
 - `0f520ab 功能：支持按范围构建后端 native`（`services/backend`）
 - `b5759ac 修复：修正后端 artifact 下载 action 版本`（`services/backend`）
-- 当前 `build_scope` 验证切片根仓库提交：待提交。
+- 当前 `build_scope` 远端验证和 artifact 校验结果由本计划更新提交记录。

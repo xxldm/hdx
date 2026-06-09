@@ -195,6 +195,7 @@
 - 2026-06-09：按用户确认删除测试 draft Release `v0.0.0-artifact-test.2`；`gh release view` 已确认 release not found，Git refs API 已确认对应 tag ref 404。
 - 2026-06-09：完成后端 native artifact 扩展切片；`services/backend` 已支持默认 `backend-full-linux-x64`、`backend-full-windows-x64`、`backend-services-linux-x64` 和可选 `backend-services-windows-x64`，GitHub-hosted run `27193262232` 成功产出 3 个默认 artifact，详细计划见 `docs/plans/completed/2026-06-09-backend-native-artifact-expanded.md`。
 - 2026-06-09：新增 ADR 0014 和 active 计划 `docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md`，确认 `backend-services` 服务级并行 native 构建、后端私有 native-image 精打细算、后端未变时按 backend native fingerprint 复用历史主仓库 Release asset，且不新增候选发布分级。
+- 2026-06-09：后端 `backend-services-linux-x64` 服务级并行验证已完成；`services/backend` GitHub-hosted run `27202869734` 成功按 `build_scope=services-linux-only` 跳过 full 与 Windows services，只运行 3 个 Linux service native matrix job 和最终聚合 job，最终 artifact `7506747699` 已下载到本地并通过 release manifest 校验。
 
 ## 验证结果
 
@@ -227,6 +228,7 @@
 - 第 9 步后端 native artifact 最小 CI 已执行后端本地 dry-run、`actionlint`、`mvn validate`、PowerShell 引用修复验证、GitHub-hosted native run 和下载后 release manifest 校验；成功 run `27188320676`，详细记录见 `docs/plans/completed/2026-06-09-backend-native-artifact-ci.md`。
 - 第 9 步主仓库后端 artifact 下载校验已执行本地脚本、`actionlint`、docs 质量门禁、空白检查和 GitHub-hosted run `27190000244`；详细记录见 `docs/plans/completed/2026-06-09-release-backend-artifact-check.md`。
 - 第 9 步 draft Release 最小闭环已执行本地脚本、`actionlint`、docs 质量门禁、空白检查、GitHub-hosted run `27191204936` 和 draft Release 资产清单校验；详细记录见 `docs/plans/completed/2026-06-09-release-draft-minimal-workflow.md`。
+- 第 9 步后端 native 构建额度与复用策略已执行 `services-linux-only` GitHub-hosted run `27202869734`，成功验证 Linux services matrix 并行构建、`actions/download-artifact@v7.0.0` 聚合下载和最终 `backend-services-linux-x64` artifact；本地已下载 artifact `7506747699` 并分别校验外层 `backend-native-manifest.json` 与包内 `backend-services-manifest.json`。
 
 ## 剩余风险
 

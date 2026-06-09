@@ -125,6 +125,14 @@ manifest/
 - 校验 `version`、`root.ref`、`root.commit`、OpenAPI/API contract hash、后端 commit、平台列表和主仓库 release workflow 上下文一致。
 - 校验 Desktop Full 内置 `backend-build.json` 与 Release 中对应 `backend-full` archive 的 sha256 一致。
 
+当前主仓库已提供 release dry-run workflow 骨架 `.github/workflows/release-dry-run.yml`。该 workflow 只用于演练输入校验、指定 root ref checkout、子模块指针记录、release manifest 校验和 dry-run 摘要输出。它必须保持以下限制，直到真实 release workflow 单独设计并确认：
+
+- 不创建 GitHub Release。
+- 不上传 release asset。
+- 不下载后端私有仓库 Actions artifact。
+- 不初始化或 checkout 私有后端子模块；只记录根仓库锁定的子模块指针。
+- 不使用跨仓库凭据。
+
 ## 回滚条件
 
 满足以下任一条件时，需要新增 ADR 替代本决策：
@@ -138,6 +146,6 @@ manifest/
 ## 后续事项
 
 - 设计并实现后端私有仓库 native CI：编译 `backend-full` 与 `backend-services`、生成 manifest、上传 Actions artifact、触发主仓库 release workflow。
-- 设计并实现主仓库 release workflow：下载 artifact、校验 manifest、扫描禁止文件、构建 Web/Desktop/App、生成 `SHA256SUMS` 和 `release-manifest.json`。
+- 设计并实现主仓库真实 release workflow：下载 artifact、校验 manifest、扫描禁止文件、构建 Web/Desktop/App、生成 `SHA256SUMS` 和 `release-manifest.json`，并创建 GitHub Release。
 - 在 workflow 中接入 `scripts/release-manifest-check.ps1` 或等价校验，并使用真实 release artifact 执行 sha256、size 和禁止文件扫描。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。

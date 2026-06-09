@@ -51,4 +51,4 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 ## 当前状态
 
-后端、Web、Desktop、App、基础设施、公开许可、GitHub Releases 产物边界和 release manifest schema 的第一阶段技术方向已由 ADR 和 shared 契约记录；具体 GitHub Actions workflow、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。
+后端、Web、Desktop、App、基础设施、公开许可、GitHub Releases 产物边界和 release manifest schema 的第一阶段技术方向已由 ADR 和 shared 契约记录；主仓库已提供 release dry-run workflow 骨架用于演练校验入口和发布顺序，但真实 GitHub Release 创建、后端 artifact 下载、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。

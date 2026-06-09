@@ -1,0 +1,218 @@
+name: Release Dry Run
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "发布版本，例如 v0.1.0；不得使用 latest。"
+        required: true
+        type: string
+      root_ref:
+        description: "主仓库发布事实源：release tag 或 40 位 root commit；不得使用 latest。"
+        required: true
+        type: string
+      dry_run:
+        description: "必须保持 true。本 workflow 只演练，不创建 Release 或上传资产。"
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-dry-run-${{ inputs.version }}-${{ inputs.root_ref }}
+  cancel-in-progress: false
+
+jobs:
+  release-dry-run:
+    name: Release dry run
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      HDX_RELEASE_VERSION: ${{ inputs.version }}
+      HDX_ROOT_REF: ${{ inputs.root_ref }}
+      HDX_DRY_RUN: ${{ inputs.dry_run }}
+
+    steps:
+      - name: 校验 dry-run 输入
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $version = $env:HDX_RELEASE_VERSION
+          $rootRef = $env:HDX_ROOT_REF
+          $dryRun = $env:HDX_DRY_RUN
+
+          if ($dryRun -ne 'true') {
+            throw 'release-dry-run.yml 只允许 dry_run=true；真实发布 workflow 尚未实现。'
+          }
+
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw 'version 不能为空。'
+          }
+
+          if ($version -match 'latest') {
+            throw "version 不允许使用 latest：$version"
+          }
+
+          if ($version -notmatch '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') {
+            throw "version 必须形如 v<major>.<minor>.<patch>：$version"
+          }
+
+          if ([string]::IsNullOrWhiteSpace($rootRef)) {
+            throw 'root_ref 不能为空。'
+          }
+
+          if ($rootRef -match 'latest') {
+            throw "root_ref 不允许使用 latest：$rootRef"
+          }
+
+          $isRootCommit = $rootRef -match '^[0-9a-f]{40}$'
+          $isReleaseTag = $rootRef -match '^(refs/tags/)?v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+          if (-not ($isRootCommit -or $isReleaseTag)) {
+            throw "root_ref 必须是 40 位 root commit 或 release tag：$rootRef"
+          }
+
+          Write-Host "输入校验通过：version=$version root_ref=$rootRef dry_run=$dryRun"
+
+      - name: Checkout 指定 root ref
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 记录 root commit 与子模块指针
+        id: context
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = (git rev-parse HEAD).Trim()
+          if ($rootCommit -notmatch '^[0-9a-f]{40}$') {
+            throw "无法解析 root commit：$rootCommit"
+          }
+
+          if ($env:HDX_ROOT_REF -match '^[0-9a-f]{40}$' -and $rootCommit -ne $env:HDX_ROOT_REF) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:HDX_ROOT_REF，实际 $rootCommit"
+          }
+
+          "root_commit=$rootCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          $submoduleStatus = git submodule status --recursive
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取子模块指针失败，退出码：$LASTEXITCODE"
+          }
+
+          $submoduleStatus | Set-Content -LiteralPath '.release-dry-run-submodules.txt' -Encoding utf8
+          Write-Host "root commit：$rootCommit"
+          Write-Host '子模块只记录指针，不初始化或 checkout：'
+          Get-Content -LiteralPath '.release-dry-run-submodules.txt'
+
+      - name: 运行 release manifest 校验
+        run: |
+          $ErrorActionPreference = 'Stop'
+          pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1
+
+      - name: 生成 dry-run 资产清单
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $version = $env:HDX_RELEASE_VERSION
+          $assets = @(
+            "hdx-web-$version.zip",
+            "hdx-desktop-online-windows-x64-$version.msi",
+            "hdx-desktop-online-linux-x64-$version.AppImage",
+            "hdx-desktop-full-windows-x64-$version.msi",
+            "hdx-desktop-full-linux-x64-$version.AppImage",
+            "hdx-backend-full-windows-x64-$version.zip",
+            "hdx-backend-full-linux-x64-$version.tar.gz",
+            "hdx-backend-services-windows-x64-$version.zip",
+            "hdx-backend-services-linux-x64-$version.tar.gz",
+            'SHA256SUMS',
+            'release-manifest.json'
+          )
+
+          foreach ($asset in $assets) {
+            if ($asset -match 'latest') {
+              throw "dry-run 资产名不允许包含 latest：$asset"
+            }
+          }
+
+          $assets | Set-Content -LiteralPath '.release-dry-run-assets.txt' -Encoding utf8
+          Write-Host 'dry-run 预期资产清单：'
+          Get-Content -LiteralPath '.release-dry-run-assets.txt'
+
+      - name: 输出 dry-run 摘要
+        if: always()
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = '${{ steps.context.outputs.root_commit }}'
+          if ([string]::IsNullOrWhiteSpace($rootCommit)) {
+            $rootCommit = '未解析'
+          }
+
+          $submodules = if (Test-Path -LiteralPath '.release-dry-run-submodules.txt') {
+            (Get-Content -LiteralPath '.release-dry-run-submodules.txt' -Raw).Trim()
+          }
+          else {
+            '未生成'
+          }
+
+          $assets = if (Test-Path -LiteralPath '.release-dry-run-assets.txt') {
+            (Get-Content -LiteralPath '.release-dry-run-assets.txt' -Raw).Trim()
+          }
+          else {
+            '未生成'
+          }
+
+          $summary = @"
+          # HDX Release Dry Run
+
+          - version: ``$env:HDX_RELEASE_VERSION``
+          - root_ref: ``$env:HDX_ROOT_REF``
+          - root_commit: ``$rootCommit``
+          - dry_run: ``$env:HDX_DRY_RUN``
+
+          ## 已执行
+
+          - 校验输入版本与 root ref，禁止 ``latest``。
+          - Checkout 指定 root ref。
+          - 记录子模块指针，但不初始化子模块。
+          - 运行 ``scripts/release-manifest-check.ps1``。
+          - 生成 dry-run 预期资产清单。
+
+          ## 安全边界
+
+          - 不创建 GitHub Release。
+          - 不上传 release asset。
+          - 不下载后端私有仓库 Actions artifact。
+          - 不 checkout 后端私有源码。
+          - 不使用跨仓库凭据。
+
+          ## 子模块指针
+
+          ````text
+          $submodules
+          ````
+
+          ## 预期 Release 资产
+
+          ````text
+          $assets
+          ````
+
+          ## 后续真实发布仍需接入
+
+          - 后端私有仓库 native artifact 下载与权限边界。
+          - 后端 manifest、Release asset、Desktop Full 内置 ``backend-build.json`` 的真实 sha256/size 一致性校验。
+          - Web/Desktop/App 真实构建。
+          - GitHub Release 创建和资产上传。
+          - 安装器签名、公证、自动更新、release notes 和版本号策略。
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

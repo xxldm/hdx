@@ -129,7 +129,7 @@
 - 第 9 步本地 release 校验已补齐 JSON Schema 子集校验和样例检查：`scripts/release-manifest-check.ps1` 当前默认校验 schema 文件、最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例；传入 `-AssetRoot` 时可校验真实文件 sha256 与 `sizeBytes`。
 - 第 9 步主仓库 release dry-run workflow 已确认并实跑通过：`.github/workflows/release-dry-run.yml` 支持手动输入 `version`、`root_ref` 和 `dry_run`，只演练输入校验、指定 root ref checkout、子模块指针记录、release manifest 校验和摘要输出；不初始化私有后端子模块、不下载后端 artifact、不创建 GitHub Release、不上传 asset、不使用跨仓库凭据；当前使用 `actions/checkout@v6.0.3`。
 - 第 9 步真实 release workflow 凭据与 artifact 策略已确认：跨仓库自动化使用 GitHub App token；后端 Actions artifact `retention-days: 1`；第一版不自动复用历史 Release 资产；每个 Release 资产必须来自本次 workflow 构建，或来自明确指定 `run_id` 和 artifact name 的短期 Actions artifact；真实 Release 先创建 draft，资产上传和远端校验通过后再 publish。
-- 第 9 步 GitHub App token 最小验证入口已新增并实跑通过：`.github/workflows/release-app-token-check.yml` 手动验证 GitHub App token 可读取后端私有仓库和公开主仓库 metadata；不读取或下载 Actions artifact、不创建 Release、不上传 asset、不 checkout 后端私有源码；当前使用 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入。
+- 第 9 步 GitHub App token 最小验证入口已新增并实跑通过：`.github/workflows/release-app-token-check.yml` 手动验证 GitHub App token 可读取后端私有仓库和公开主仓库 metadata；不读取或下载 Actions artifact、不创建 Release、不上传 asset、不 checkout 后端私有源码；当前使用 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入，切换后 GitHub-hosted run `27187218112` 已通过且未再出现 `app-id` 弃用提示。
 - PowerShell 脚本运行边界已收口：仓库内 `.ps1` 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文；docs 质量门禁不再执行 BOM/转义专项检查。
 
 ## 验收标准
@@ -185,6 +185,7 @@
 - 2026-06-09：主仓库 release dry-run workflow 已在 GitHub-hosted runner 实跑通过；成功 run `27184350227` 使用 `version=v0.0.0-dry-run.4`、`root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686`，所有步骤成功，且升级到 `actions/checkout@v6.0.3` 后不再出现 Node.js 20 弃用 annotation。
 - 2026-06-09：新增 ADR 0013，确认真实 release workflow 使用 GitHub App token、后端 Actions artifact 保留 1 天、第一版不自动复用历史 Release 资产，并通过 draft Release 完成上传校验后再 publish。
 - 2026-06-09：新增主仓库 GitHub App token 最小验证 workflow；该 workflow 只验证 GitHub App token 读取仓库 metadata，不执行真实发布、不读取后端 artifact；GitHub-hosted run `27186745870` 已通过。
+- 2026-06-09：用户删除 `HDX_RELEASE_APP_ID` 后，主仓库 GitHub App token 最小验证 workflow 已切换为 `HDX_RELEASE_APP_CLIENT_ID` 和 `client-id` 输入；GitHub-hosted run `27187218112` 已通过，日志筛选未命中 `deprecated`。
 
 ## 验证结果
 
@@ -213,7 +214,7 @@
 - 第 9 步 release JSON Schema 校验补齐已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 - 第 9 步主仓库 release dry-run workflow 已执行 workflow 静态边界扫描、`actionlint`、`scripts/release-manifest-check.ps1`、docs 质量门禁和 GitHub-hosted runner 实跑；成功 run `27184350227`，详细记录见 `docs/plans/completed/2026-06-09-release-dry-run-workflow.md`。
 - 第 9 步真实 release workflow 凭据与 artifact 策略已新增 ADR 0013；本轮验证结果见 `docs/plans/completed/2026-06-09-release-workflow-token-artifact-policy.md`。
-- 第 9 步 GitHub App token 最小验证 workflow 已执行 `actionlint`、docs 质量门禁和 GitHub-hosted runner 实跑；成功 run `27186745870`，详细记录见 `docs/plans/completed/2026-06-09-release-app-token-check.md`。
+- 第 9 步 GitHub App token 最小验证 workflow 已执行 `actionlint`、docs 质量门禁和 GitHub-hosted runner 实跑；`app-id` 版本成功 run `27186745870`，切换为 `client-id` 后成功 run `27187218112`，详细记录见 `docs/plans/completed/2026-06-09-release-app-token-check.md`。
 
 ## 剩余风险
 

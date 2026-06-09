@@ -87,6 +87,9 @@
 - 2026-06-09：根仓库 commit `e7815f1 功能：记录 native 构建额度与复用策略` 已推送到 `origin/main`，记录 ADR 0014、active 计划和 `services/backend` 子模块指针。
 - 2026-06-09：开始补充 `build_scope` 手动输入，目标是在不重跑 full Linux/Windows 的情况下只验证 `backend-services-linux-x64` 并行构建和聚合下载。
 - 2026-06-09：`services/backend` commit `0f520ab 功能：支持按范围构建后端 native` 已推送到 `origin/main`；workflow 新增 `build_scope=services-linux-only`，可只运行 Linux services matrix build 与聚合 package job。
+- 2026-06-09：首次 `services-linux-only` 远端 run `27201075082` 已触发；`backend-full-linux-x64`、`backend-full-windows-x64`、Windows services build 和 Windows services 聚合均按预期跳过，Linux `backend-auth-service`、`backend-gateway` 和 `backend-core-service` 三个 service binary job 并行运行并全部成功。
+- 2026-06-09：run `27201075082` 的 Linux services 聚合 job 在 `Set up job` 阶段失败，未进入 artifact 下载或打包；原因判断为 workflow 引用了不存在的 `actions/download-artifact@v7.0.1`，公开 action tag 存在 `v7` / `v7.0.0`，不存在 `v7.0.1`。已改为 `actions/download-artifact@v7.0.0`，需要重新触发一次 `services-linux-only` 验证。
+- 2026-06-09：`services/backend` commit `b5759ac 修复：修正后端 artifact 下载 action 版本` 已推送到 `origin/main`。
 
 ## 验证结果
 
@@ -96,10 +99,11 @@
 - `services/backend/scripts/package-backend-native-artifact.ps1` dummy dry-run：通过，覆盖 workflow 下载路径对应的 `backend-services` `linux-x64` 和 `windows-x64` 聚合打包；Windows 本地没有 `chmod`，Linux executable 权限设置仅保留预期 warning。
 - `scripts/release-manifest-check.ps1 -SkipExamples ...`：通过，分别校验 Linux/Windows 的外层 `backend-native-manifest.json`、包内 `backend-services-manifest.json`、archive sha256/size 和禁止文件扫描。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认关键文档可读、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
+- GitHub-hosted run `27201075082`：部分通过。`build_scope=services-linux-only` 成功限制构建范围，full Linux/Windows 和 Windows services 均跳过；三个 Linux service binary job 均成功；聚合 job 因 `actions/download-artifact@v7.0.1` 版本不存在而失败。
 
 ## 剩余风险
 
-- `actions/download-artifact@v7.0.1` 和 services matrix 并行结构仍需 GitHub-hosted runner 实跑确认。
+- `actions/download-artifact@v7.0.0` 聚合下载仍需 GitHub-hosted runner 重新实跑确认。
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
 - 当前 release manifest schema 还不能完整表达历史 Release asset 复用来源和 backend native fingerprint；后续实现复用分支前必须扩展 schema、样例和校验脚本。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
@@ -109,4 +113,5 @@
 - `c8d2aea 功能：并行构建后端 services native`（`services/backend`）
 - `e7815f1 功能：记录 native 构建额度与复用策略`（根仓库）
 - `0f520ab 功能：支持按范围构建后端 native`（`services/backend`）
+- `b5759ac 修复：修正后端 artifact 下载 action 版本`（`services/backend`）
 - 当前 `build_scope` 验证切片根仓库提交：待提交。

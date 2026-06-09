@@ -61,10 +61,12 @@
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
+- `gh workflow run release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`
+- `gh run watch 27184350227 --repo xxldm/hdx --exit-status`
+- `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`
 
 ## 风险与阻塞
 
-- 本地无法真正执行 GitHub-hosted workflow；本轮只能做静态检查和本地脚本验证。
 - dry-run 不初始化子模块，因此只能记录根仓库锁定的子模块指针，不能验证私有后端 artifact 或真实子模块 checkout。
 - 正式发布仍需要后续单独设计跨仓库触发、artifact 下载权限、真实 release asset 一致性、Release 上传、签名、公证、自动更新、release notes 和版本号策略。
 
@@ -73,6 +75,11 @@
 - 2026-06-09：创建计划并开始实施。
 - 2026-06-09：新增 `.github/workflows/release-dry-run.yml`，使用手动触发、只读权限、指定 root ref checkout、子模块指针记录和 release manifest 校验；不初始化私有后端子模块、不下载后端 artifact、不创建 Release、不上传 asset。
 - 2026-06-09：完成 README、架构、ADR 0012 和总纲同步，完成本地验证并归档计划。
+- 2026-06-09：本地补装并执行 `actionlint`，GitHub Actions workflow 语法级检查通过。
+- 2026-06-09：GitHub-hosted dry-run 首次实跑成功，run `27183829105`，输入 `version=v0.0.0-dry-run.2`、`root_ref=1a87717e3ec99e7c26c586d3dc153ab233177bb4`；该次运行仍提示 `actions/checkout@v4` 的 Node.js 20 弃用 warning。
+- 2026-06-09：将 `.github/workflows/release-dry-run.yml` 中 `actions/checkout@v4` 升级到 `actions/checkout@v6.0.3`，提交 `8e66341 维护：升级 checkout action 版本`。
+- 2026-06-09：升级后误用不存在的 root commit `8e66341520813326512857352c68b38aab8ef9e7` 触发 run `27184311334`，GitHub 返回 `not our ref`；该失败是触发参数错误，不是 workflow 缺陷。
+- 2026-06-09：使用正确 root commit `8e66341feb32e1ea42a920785b5cc0577ae19686` 触发 run `27184350227`，GitHub-hosted dry-run 成功，且不再出现 `actions/checkout@v4` 的 Node.js 20 弃用 warning。
 
 ## 验证结果
 
@@ -83,13 +90,17 @@
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`：通过，确认 release manifest schema 和样例检查仍通过。
 - `git diff --check`：通过，仅提示部分文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
+- `gh workflow run release-dry-run.yml --repo xxldm/hdx --ref main -f version=v0.0.0-dry-run.4 -f root_ref=8e66341feb32e1ea42a920785b5cc0577ae19686 -f dry_run=true`：通过，触发 GitHub-hosted run `27184350227`。
+- `gh run watch 27184350227 --repo xxldm/hdx --exit-status`：通过，所有 job step 成功，未再出现 `actions/checkout@v4` 的 Node.js 20 弃用 annotation。
+- `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=8e66341feb32e1ea42a920785b5cc0577ae19686`。
 
 ## 剩余风险
 
-- 本轮没有在 GitHub-hosted runner 实际触发 workflow；真实运行仍需在 GitHub Actions 页面手动验证一次。
 - dry-run 不初始化子模块，因此只能记录根仓库锁定的子模块指针，不能验证私有后端 artifact 或真实子模块 checkout。
 - 正式发布仍需要后续单独设计跨仓库触发、artifact 下载权限、真实 release asset 一致性、Release 上传、签名、公证、自动更新、release notes 和版本号策略。
 
 ## 相关 commit
 
-- 本计划随本轮提交 `功能：添加发布演练工作流` 归档；具体哈希以 Git 历史为准。
+- `fa5a793 功能：添加发布演练工作流`
+- `1a87717 文档：补记 actionlint 验证结果`
+- `8e66341 维护：升级 checkout action 版本`

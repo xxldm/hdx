@@ -930,6 +930,16 @@ function Assert-OptionalManifestFile {
                     if ($assetOpenApiHash -ne $releaseOpenApiSnapshotHash) {
                         throw "$Path.assets.source.openapiSnapshotHash 必须等于 release openapiSnapshotHash：期望 $releaseOpenApiSnapshotHash，实际 $assetOpenApiHash"
                     }
+                    if (Test-JsonPropertyExists -Object $source -Name 'backendNativeFingerprint') {
+                        $platform = Assert-StringValue -Object $asset -Name 'platform' -Context "$Path.assets"
+                        [void](Assert-BackendNativeFingerprint `
+                            -Source $source `
+                            -Context "$Path.assets.source" `
+                            -ExpectedBackendCommit $sourceCommit `
+                            -ExpectedOpenApiSnapshotHash $releaseOpenApiSnapshotHash `
+                            -ExpectedKind $assetKind `
+                            -ExpectedPlatform $platform)
+                    }
                 }
             }
         }

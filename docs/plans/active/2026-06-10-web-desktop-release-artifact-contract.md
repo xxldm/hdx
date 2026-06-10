@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口和 client/public sourcemap 关闭已实现并验证，Desktop build 尚未实测
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证，Desktop build 尚未实测
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -24,7 +24,7 @@
 - Web 位于 `apps/web/`，采用 Nuxt 4 SSR + Nuxt server BFF；浏览器不直接访问后端，token 和敏感配置留在 Nuxt server 边界内。
 - Web 当前已有 `pnpm build`，第一版 Release 产物形态已确认为 Nuxt SSR server bundle archive；因为存在 BFF/session/CSRF，不能按纯静态 `dist` 包处理。
 - Web 运行时尊重 Nuxt/Nitro 设计，以环境变量为事实源；不在 Nuxt 应用内新增独立配置文件读取层。
-- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`apps/web` 已新增 `start.sh`、`start-web.mjs`、`scripts/web-config-loader.mjs` 和 `config.example.yml`。`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
+- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`apps/web` 已新增 `start.sh`、`start-web.mjs`、`scripts/web-config-loader.mjs`、`scripts/package-node-server.mjs` 和 `config.example.yml`。`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
@@ -34,6 +34,7 @@
 
 - Web 第一版 Release asset 采用 Nuxt SSR server bundle archive。
 - Web asset 名称采用 Linux 友好的 `hdx-web-node-server-<version>.tar.gz`。
+- `apps/web` 使用 `pnpm package:node-server -- --version <version>` 生成 Web node-server tar 包；脚本默认先 build，本地调试可传 `--skip-build`。
 - 公开 Web Release 包禁止包含 client/public sourcemap；server sourcemap 可保留在 `server/` 运行产物内，用于 Node SSR/BFF 报错定位。
 - Web 包只包含整理后的运行产物，不直接把默认 `.output` 原样当成发布标准。
 - Web 发布包移除 `.output` 外层隐藏目录，把 `.output` 内的 `public/`、`server/` 和 `nitro.json` 整理到包根目录。
@@ -76,7 +77,6 @@
 
 ## 待确认问题
 
-- Web 发布打包脚本仍需把 `.output` 整理为 `hdx-web-node-server-<version>.tar.gz`，并把 `start.sh`、`start-web.mjs`、配置 loader 与 YAML runtime 依赖纳入运行产物。
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。
@@ -89,6 +89,7 @@
 - [x] 提出 Web 第一版发布产物契约。
 - [x] 确认 Web 配置字段清单。
 - [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 client/public sourcemap 关闭。
+- [x] 实现 Web `hdx-web-node-server-<version>.tar.gz` 打包脚本和包结构检查。
 - [ ] 提出 Desktop Online 第一版发布产物契约。
 - [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
@@ -112,6 +113,10 @@
 - 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\nuxt.CMD typecheck`，通过。
 - 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/web-dev-runner.mjs build`，通过；`.output/public` 下 `*.map` 文件数量为 `0`，`.output/server` 下 `*.map` 文件数量为 `26`。
 - 2026-06-10：在 `apps/web/` 普通权限运行 `rg -n 'sourcesContent|NUXT_AUTH_SESSION_SECRET|NUXT_BACKEND_LOCAL_TOKEN' .output\server --glob '*.map'`，无匹配；当前 server sourcemap 不内嵌源码正文，也未匹配到敏感运行时变量名。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/package-node-server.mjs --version dev`，通过，生成 `dist/hdx-web-node-server-dev.tar.gz`；包内 `publicMapCount` 为 `0`，`serverMapCount` 为 `26`。
+- 2026-06-10：使用 `tar -tzf` / `tar -tvzf` 检查 `dist/hdx-web-node-server-dev.tar.gz`，包根目录直接包含 `public/`、`server/`、`nitro.json`、`start.sh`、`start-web.mjs`、`config.example.yml`、配置 loader 和 `node_modules/yaml/`；未发现 `.output/`、`.nuxt/`、`public/*.map`、`.env` 或链接项；`start.sh` 在 tar 内为 `0755`。
+- 2026-06-10：同一 tar 包在 Windows Node 下解压后运行 `node start-web.mjs` 并请求 `/login`，通过。
+- 2026-06-10：WSL 需要沙盒外执行；通过提权路径运行 `wsl bash /mnt/d/Project/hdx/apps/web/dist/web-smoke-run.sh`，脚本解压 `dist/hdx-web-node-server-dev.tar.gz`、检查 `start.sh` 可执行、使用 `./start.sh` 启动并请求 `/login`，通过。
 - 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `public/` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
 
 ## 剩余风险
@@ -125,4 +130,5 @@
 
 - `apps/web`：`80e164c` 功能：新增 Web 启动配置入口。
 - `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
+- `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
 - 根仓库：本次提交更新 `apps/web` 子模块指针与本计划状态。

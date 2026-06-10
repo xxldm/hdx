@@ -10,6 +10,20 @@
 
 这些快照也是后续 OpenAPI TypeScript 类型生成的首选输入。生成策略见 `docs/adr/0007-openapi-typescript-generation-strategy.md`；第一阶段只允许生成类型，不生成完整 API client。
 
+## Snapshot Hash
+
+发布链路使用 `scripts/openapi-snapshot-hash.ps1` 计算 OpenAPI snapshot 集合 hash。算法按 `snapshots/` 下文件的相对路径排序，记录每个文件的 `path + size + fileSha256`，再对规范清单计算 SHA-256。
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/openapi-snapshot-hash.ps1
+```
+
+只输出 hash：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/openapi-snapshot-hash.ps1 -Quiet
+```
+
 ## 刷新流程
 
 先运行后端 OpenAPI 测试生成真实 spec：
@@ -21,13 +35,13 @@ mvn -pl :backend-auth-service,:backend-gateway -am test
 再从后端 `target/openapi/` 刷新本目录快照：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-refresh-snapshots.ps1
+pwsh -NoLogo -NoProfile -File scripts/openapi-refresh-snapshots.ps1
 ```
 
 最后运行契约检查：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-check.ps1
+pwsh -NoLogo -NoProfile -File scripts/openapi-contract-check.ps1
 ```
 
 如果后端公开路径或关键字段变化符合预期，必须同时提交后端测试或 OpenAPI 配置变更、`snapshots/` 快照更新、`expected-paths.json` 或 `expected-schemas.json` 变更。
@@ -37,13 +51,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-contract-che
 当前 OpenAPI TypeScript 类型原型从本目录快照生成：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1
+pwsh -NoLogo -NoProfile -File scripts/openapi-generate-types.ps1
 ```
 
 提交前必须检查生成类型没有漂移：
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-types.ps1 -Check
+pwsh -NoLogo -NoProfile -File scripts/openapi-generate-types.ps1 -Check
 ```
 
 ## Web 类型对齐
@@ -51,5 +65,5 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-generate-typ
 `web-type-compatibility.ts` 是只读编译期检查文件，用于确认 Web Zod schema 推导出的类型和 OpenAPI 生成类型仍兼容。它不生成运行时代码，不替代 Web Zod 边界校验。
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/openapi-web-type-check.ps1
+pwsh -NoLogo -NoProfile -File scripts/openapi-web-type-check.ps1
 ```

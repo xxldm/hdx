@@ -1,0 +1,425 @@
+name: Check Public Release Assets
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "用于资产命名的版本，例如 v0.1.0；禁止 latest。"
+        required: true
+        default: "v0.0.0-public-assets-smoke.1"
+        type: string
+      root_ref:
+        description: "主仓库事实源 ref、分支或 commit；禁止 latest。"
+        required: true
+        default: "refs/heads/main"
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: check-public-release-assets-${{ inputs.version }}-${{ inputs.root_ref }}
+  cancel-in-progress: false
+
+jobs:
+  validate-inputs:
+    name: Validate inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        shell: pwsh
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      root_ref: ${{ steps.validate.outputs.root_ref }}
+    steps:
+      - name: 校验公开端资产检查输入
+        id: validate
+        env:
+          VERSION: ${{ inputs.version }}
+          ROOT_REF: ${{ inputs.root_ref }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-Pattern([string]$Name, [string]$Value, [string]$Pattern, [string]$Message) {
+            if ($Value -notmatch $Pattern) {
+              throw "$Name 无效：$Message"
+            }
+          }
+
+          function Assert-NoLatest([string]$Name, [string]$Value) {
+            if ($Value -match '(?i)latest') {
+              throw "$Name 不能包含 latest：$Value"
+            }
+          }
+
+          $version = $env:VERSION.Trim()
+          $rootRef = $env:ROOT_REF.Trim()
+
+          Assert-Pattern 'version' $version '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
+          Assert-Pattern 'root_ref' $rootRef '^[^\s]+$' '不能为空或包含空白字符。'
+          Assert-NoLatest 'version' $version
+          Assert-NoLatest 'root_ref' $rootRef
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "root_ref=$rootRef" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "公开端资产检查输入通过：version=$version root_ref=$rootRef"
+
+  build-web:
+    name: Build Web node-server
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+    steps:
+      - name: Checkout 主仓库事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 初始化并校验 Web 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = (git rev-parse HEAD).Trim()
+          if ($rootCommit -notmatch '^[0-9a-f]{40}$') {
+            throw "无法解析 root commit：$rootCommit"
+          }
+
+          $webTree = (git ls-tree HEAD apps/web).Trim()
+          if ($webTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/web$') {
+            throw "无法读取 apps/web 子模块指针：$webTree"
+          }
+          $webCommit = $Matches[1]
+
+          $webUrl = (git config -f .gitmodules --get submodule.apps/web.url).Trim()
+          $webRepository = $webUrl `
+            -replace '^https://github\.com/', '' `
+            -replace '\.git$', ''
+          if ($webRepository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "apps/web 子模块 URL 无法解析为 GitHub 仓库：$webUrl"
+          }
+          if ($webRepository -match '(?i)latest') {
+            throw "apps/web repository 不能包含 latest：$webRepository"
+          }
+
+          git submodule update --init --depth 1 apps/web
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/web 子模块失败。'
+          }
+
+          $actualWebCommit = (git -C apps/web rev-parse HEAD).Trim()
+          if ($actualWebCommit -ne $webCommit) {
+            throw "apps/web checkout 后 commit 与 root 指针不一致：指针 $webCommit，实际 $actualWebCommit"
+          }
+
+          "ROOT_COMMIT=$rootCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WEB_REPOSITORY=$webRepository" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "WEB_COMMIT=$webCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Web 子模块已初始化：$webRepository@$webCommit"
+
+      - name: 设置 Web pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Web Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: 构建 Web node-server 资产
+        working-directory: apps/web
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web 依赖安装失败。'
+          }
+
+          pnpm package:node-server -- --version $env:VERSION --out-dir '../../target/public-release-assets/web'
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web node-server 打包失败。'
+          }
+
+          $repoRoot = (Resolve-Path '../..').Path
+          $archivePath = Join-Path $repoRoot "target/public-release-assets/web/hdx-web-node-server-$env:VERSION.tar.gz"
+          if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
+            throw "Web node-server 打包完成后未找到资产：$archivePath"
+          }
+          Write-Host "Web node-server 资产生成：$archivePath"
+
+      - name: 上传 Web 检查资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-release-assets-web
+          path: target/public-release-assets/web/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 输出 Web 检查摘要
+        if: always()
+        env:
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $assets = if (Test-Path -LiteralPath 'target/public-release-assets/web') {
+            (Get-ChildItem -LiteralPath 'target/public-release-assets/web' -File | Sort-Object Name | ForEach-Object { "- ``$($_.Name)`` ($($_.Length) bytes)" }) -join [Environment]::NewLine
+          }
+          else {
+            '未生成'
+          }
+
+          $summary = @"
+          # HDX Web Public Release Asset Check
+
+          - status: ``$env:CHECK_STATUS``
+          - version: ``$env:VERSION``
+          - root_ref: ``$env:ROOT_REF``
+          - root_commit: ``$env:ROOT_COMMIT``
+          - web_repository: ``$env:WEB_REPOSITORY``
+          - web_commit: ``$env:WEB_COMMIT``
+
+          ## 验证动作
+
+          - Checkout 指定 root ref。
+          - 初始化根仓库锁定的 ``apps/web`` 子模块。
+          - 使用 Node 24 + pnpm 10 安装依赖。
+          - 构建 ``hdx-web-node-server-<version>.tar.gz``。
+          - 上传 1 天保留期的临时检查 artifact。
+
+          ## 生成资产
+
+          $assets
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+  build-desktop-online:
+    name: Build Desktop Online (${{ matrix.platform }})
+    needs: validate-inputs
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            bundle: nsis
+          - os: ubuntu-latest
+            platform: linux-x64
+            bundle: appimage
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      DESKTOP_FLAVOR: online
+      DESKTOP_PLATFORM: ${{ matrix.platform }}
+      TAURI_BUNDLE: ${{ matrix.bundle }}
+    steps:
+      - name: Checkout 主仓库事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 初始化并校验 Desktop 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = (git rev-parse HEAD).Trim()
+          if ($rootCommit -notmatch '^[0-9a-f]{40}$') {
+            throw "无法解析 root commit：$rootCommit"
+          }
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          $desktopUrl = (git config -f .gitmodules --get submodule.apps/desktop.url).Trim()
+          $desktopRepository = $desktopUrl `
+            -replace '^https://github\.com/', '' `
+            -replace '\.git$', ''
+          if ($desktopRepository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "apps/desktop 子模块 URL 无法解析为 GitHub 仓库：$desktopUrl"
+          }
+          if ($desktopRepository -match '(?i)latest') {
+            throw "apps/desktop repository 不能包含 latest：$desktopRepository"
+          }
+
+          git submodule update --init --depth 1 apps/desktop
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/desktop 子模块失败。'
+          }
+
+          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
+          if ($actualDesktopCommit -ne $desktopCommit) {
+            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
+          }
+
+          "ROOT_COMMIT=$rootCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DESKTOP_REPOSITORY=$desktopRepository" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块已初始化：$desktopRepository@$desktopCommit"
+
+      - name: 安装 Linux Tauri 依赖
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: 设置 Desktop pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Desktop Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: 准备 Desktop release Tauri 配置
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Tauri version 无效：$tauriVersion"
+          }
+
+          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
+          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
+          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
+
+          Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
+
+      - name: 构建 Desktop Online
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 依赖安装失败。'
+          }
+
+          $arguments = @(
+            'exec',
+            'tauri',
+            'build',
+            '--config',
+            "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json",
+            '--features',
+            "flavor-$env:DESKTOP_FLAVOR",
+            '--bundles',
+            $env:TAURI_BUNDLE,
+            '--ci'
+          )
+          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
+            $arguments += '--no-sign'
+          }
+
+          & pnpm @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "Desktop $env:DESKTOP_FLAVOR $env:DESKTOP_PLATFORM 构建失败。"
+          }
+
+      - name: 整理 Desktop Online 检查资产
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
+            -Version $env:VERSION `
+            -Flavor $env:DESKTOP_FLAVOR `
+            -Platform $env:DESKTOP_PLATFORM `
+            -OutputDirectory 'target/public-release-assets/desktop' `
+            -RootCommit $env:ROOT_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT
+
+      - name: 上传 Desktop Online 检查资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-release-assets-desktop-online-${{ matrix.platform }}
+          path: target/public-release-assets/desktop/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 输出 Desktop 检查摘要
+        if: always()
+        env:
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $assets = if (Test-Path -LiteralPath 'target/public-release-assets/desktop') {
+            (Get-ChildItem -LiteralPath 'target/public-release-assets/desktop' -File | Sort-Object Name | ForEach-Object { "- ``$($_.Name)`` ($($_.Length) bytes)" }) -join [Environment]::NewLine
+          }
+          else {
+            '未生成'
+          }
+
+          $summary = @"
+          # HDX Desktop Online Public Release Asset Check
+
+          - status: ``$env:CHECK_STATUS``
+          - version: ``$env:VERSION``
+          - root_ref: ``$env:ROOT_REF``
+          - root_commit: ``$env:ROOT_COMMIT``
+          - desktop_repository: ``$env:DESKTOP_REPOSITORY``
+          - desktop_commit: ``$env:DESKTOP_COMMIT``
+          - desktop_platform: ``$env:DESKTOP_PLATFORM``
+
+          ## 验证动作
+
+          - Checkout 指定 root ref。
+          - 初始化根仓库锁定的 ``apps/desktop`` 子模块。
+          - 使用 Node 24 + pnpm 10 安装依赖。
+          - 构建 Desktop Online ``nsis`` 或 ``appimage`` bundle。
+          - 按 Release 命名规则整理安装包、绿色包或 AppImage。
+          - 上传 1 天保留期的临时检查 artifact。
+
+          ## 生成资产
+
+          $assets
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

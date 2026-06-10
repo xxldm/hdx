@@ -394,79 +394,16 @@ jobs:
           }
 
       - name: 整理 Desktop Online Release asset
-        working-directory: apps/desktop
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $repoRoot = (Resolve-Path '../..').Path
-          $assetRoot = Join-Path $repoRoot 'target/release/desktop-assets'
-          New-Item -ItemType Directory -Path $assetRoot -Force | Out-Null
-
-          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
-            $setupCandidates = @(Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*setup.exe' -File)
-            if ($setupCandidates.Count -ne 1) {
-              $names = $setupCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
-              throw "无法唯一定位 NSIS 安装包，候选：$names"
-            }
-
-            $portableExePath = Join-Path 'src-tauri/target/release' "$env:DESKTOP_BINARY.exe"
-            if (-not (Test-Path -LiteralPath $portableExePath -PathType Leaf)) {
-              throw "无法定位 Desktop 裸 EXE：$portableExePath"
-            }
-
-            $setupAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION`_setup.exe"
-            $portableAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION`_portable.zip"
-            Copy-Item -LiteralPath $setupCandidates[0].FullName -Destination (Join-Path $assetRoot $setupAssetName) -Force
-
-            $portableRoot = Join-Path $repoRoot "target/release/desktop-portable/$env:DESKTOP_FLAVOR-$env:DESKTOP_PLATFORM"
-            if (Test-Path -LiteralPath $portableRoot) {
-              Remove-Item -LiteralPath $portableRoot -Recurse -Force
-            }
-            New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
-            Copy-Item -LiteralPath $portableExePath -Destination (Join-Path $portableRoot "$env:DESKTOP_BINARY.exe") -Force
-
-            foreach ($documentName in @('README.md', 'LICENSE', 'NOTICE')) {
-              $documentPath = Join-Path (Get-Location) $documentName
-              if (Test-Path -LiteralPath $documentPath -PathType Leaf) {
-                Copy-Item -LiteralPath $documentPath -Destination (Join-Path $portableRoot $documentName) -Force
-              }
-            }
-
-            @(
-              'HDX Desktop Online 绿色包'
-              ''
-              "version：$env:VERSION"
-              "platform：$env:DESKTOP_PLATFORM"
-              "root_commit：$env:ROOT_COMMIT"
-              "desktop_commit：$env:DESKTOP_COMMIT"
-              ''
-              '运行配置写入用户级应用配置位置。'
-              '本绿色包不包含另一套默认配置模板。'
-            ) | Set-Content -LiteralPath (Join-Path $portableRoot 'RELEASE.txt')
-
-            $portableArchivePath = Join-Path $assetRoot $portableAssetName
-            if (Test-Path -LiteralPath $portableArchivePath) {
-              Remove-Item -LiteralPath $portableArchivePath -Force
-            }
-            Compress-Archive -Path (Join-Path $portableRoot '*') -DestinationPath $portableArchivePath -CompressionLevel Optimal
-
-            Write-Host "Desktop Windows assets：$setupAssetName, $portableAssetName"
-          }
-          elseif ($env:DESKTOP_PLATFORM -eq 'linux-x64') {
-            $appImageCandidates = @(Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/appimage' -Filter '*.AppImage' -File)
-            if ($appImageCandidates.Count -ne 1) {
-              $names = $appImageCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
-              throw "无法唯一定位 AppImage，候选：$names"
-            }
-
-            $appImageAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION.AppImage"
-            Copy-Item -LiteralPath $appImageCandidates[0].FullName -Destination (Join-Path $assetRoot $appImageAssetName) -Force
-
-            Write-Host "Desktop Linux asset：$appImageAssetName"
-          }
-          else {
-            throw "未知 Desktop platform：$env:DESKTOP_PLATFORM"
-          }
+          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
+            -Version $env:VERSION `
+            -Flavor $env:DESKTOP_FLAVOR `
+            -Platform $env:DESKTOP_PLATFORM `
+            -OutputDirectory 'target/release/desktop-assets' `
+            -RootCommit $env:ROOT_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT
 
       - name: 上传 Desktop Online 临时资产
         uses: actions/upload-artifact@v4

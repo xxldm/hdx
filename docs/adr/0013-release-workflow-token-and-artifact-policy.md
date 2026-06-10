@@ -23,7 +23,7 @@ ADR 0012 已确认：公开主仓库 GitHub Releases 是唯一公开发布入口
 GitHub App 的权限是一套最大授权；虽然 installation token 可以请求权限子集，但持有 App private key 的 workflow 仍可能生成该 App 最大授权范围内的 token。为降低 private key 泄漏时的影响面，正式 tag-only 发布流程使用两个 GitHub Apps：
 
 - `HDX Backend Actions Bot`：安装到后端私有仓库，用于主仓库触发后端 workflow 和读取后端 Actions artifact。权限为 `Actions: read`、`Actions: write`、`Contents: read`、`Metadata: read`，private key 只保存到公开主仓库 secrets。
-- `HDX Main Workflow Bot`：安装到公开主仓库，用于后端私有仓库触发主仓库 release assemble workflow。权限为 `Actions: write`、`Metadata: read`，private key 只保存到后端私有仓库 secrets。
+- `HDX Main Workflow Bot`：安装到公开主仓库，用于后端私有仓库读取主仓库发布脚本和历史 Release asset，并触发主仓库 release assemble workflow。权限为 `Actions: write`、`Contents: read`、`Metadata: read`，private key 只保存到后端私有仓库 secrets，当前后端仓库 secret 名称为 `HDX_MAIN_WORKFLOW_APP_CLIENT_ID` 和 `HDX_MAIN_WORKFLOW_APP_PRIVATE_KEY`。
 
 主仓库创建、上传和发布 GitHub Release 时，优先使用主仓库 workflow 自己的 `GITHUB_TOKEN`，并在对应 job 中声明 `permissions: contents: write`。如果后续要求 Release 必须由 GitHub App 身份创建，不得把具备主仓库 `Contents: write` 的 App private key 放入后端私有仓库；应另行设计只保存在主仓库的发布 App 或继续使用主仓库 `GITHUB_TOKEN`。
 
@@ -55,7 +55,7 @@ ADR 0014 已替代本 ADR 早期“后端 native 一律不复用历史 Release a
 
 常规发版目标是人工只在公开主仓库推送 release tag，其余步骤自动完成。主仓库 release start workflow 由 tag push 触发，读取 root commit、子模块指针和 OpenAPI hash 后，使用 `HDX Backend Actions Bot` 通过 `workflow_dispatch` 触发后端私有仓库 release resolve workflow。
 
-后端 release resolve workflow 计算 backend native fingerprint，判断复用历史主仓库 Release asset 还是重新构建后端 native。完成后，后端使用 `HDX Main Workflow Bot` 通过 `workflow_dispatch` 触发主仓库 release assemble workflow。
+后端 release resolve workflow 计算 backend native fingerprint，判断复用历史主仓库 Release asset 还是重新构建后端 native。解析历史主仓库 Release asset 时，后端使用 `HDX Main Workflow Bot` 的 `Contents: read` token checkout 主仓库发布工具并下载历史 Release asset；完成后，后端再使用同一 Bot 的 `Actions: write` token 通过 `workflow_dispatch` 触发主仓库 release assemble workflow。
 
 主仓库 release assemble workflow 至少接收以下由上游自动生成的 payload；这些字段不是常规人工输入：
 

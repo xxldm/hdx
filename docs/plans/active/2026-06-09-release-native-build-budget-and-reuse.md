@@ -126,7 +126,7 @@
 - 2026-06-09：`debug-release-draft-reuse-backend.yml` GitHub-hosted run `27209326174` 通过，复用历史 draft Release `v0.0.0-services-parallel.2` 的后端 native asset 创建 draft Release `v0.0.0-services-parallel.3`。新 `release-manifest.json` 的 `root.commit` 为 `773e48a93fb0160af00eab0ec329c4edadbfdfdc`，`backendNativeManifest.source.type` 和后端 asset `source.type` 均为 `historical-release-asset`，并记录历史 release tag、asset sha256/size、历史构建 root commit `cc525b3ac82656bfced6e8951eaa901cef63c12c` 和 `backendNativeFingerprint`。
 - 2026-06-09：已按用户确认删除测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3`；`gh release list --repo xxldm/hdx --limit 10` 已确认当前主仓库 Release 列表为空，两个测试 tag ref 均不存在。
 - 2026-06-09：补充正式 `release.yml` 第一版设计，不创建 workflow 文件。ADR 0013 记录 `version`、`root_ref`、`backend_source_mode`、`backend_sources_json` 输入、job 图、最小权限 token、draft 到 publish 和失败 draft 保留规则；ADR 0014 记录 `resolve-backend-native` 对后端 Actions artifact 与历史主仓库 Release asset 两种来源的统一输出和历史 asset 不重命名规则。
-- 2026-06-10：纠正一次性配置说明和日常发布手册边界：`docs/RELEASE_RUNBOOK.md` 保留常规人工只推主仓库 release tag、观察自动化和失败处理；GitHub App 权限配置属于一次性外部配置，不写入仓库手册。主仓库使用 `HDX Backend Actions Bot` 触发后端 release resolve；后端使用 `HDX Main Workflow Bot` 通过 `workflow_dispatch` 触发主仓库 release assemble；主仓库使用自身 `GITHUB_TOKEN` 创建、上传和 publish Release，避免在后端仓库保存具备主仓库 `Contents: write` 的 App private key。长期设计边界保留在 ADR 0013/0014。
+- 2026-06-10：纠正一次性配置说明和日常发布手册边界：`docs/RELEASE_RUNBOOK.md` 保留常规人工只推主仓库 release tag、观察自动化和失败处理；GitHub App 权限配置属于一次性外部配置，不写入仓库手册。主仓库使用 `HDX Backend Actions Bot` 触发后端 release resolve；后端使用 `HDX Main Workflow Bot` 读取主仓库发布脚本和历史 Release asset，并通过 `workflow_dispatch` 触发主仓库 release assemble；主仓库使用自身 `GITHUB_TOKEN` 创建、上传和 publish Release，避免在后端仓库保存具备主仓库 `Contents: write` 的 App private key。长期设计边界保留在 ADR 0013/0014。
 
 ## 验证结果
 

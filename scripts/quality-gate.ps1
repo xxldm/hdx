@@ -329,7 +329,7 @@ function Assert-DesktopStaticFiles {
         'src-tauri/Cargo.lock',
         'src-tauri/build.rs',
         'src-tauri/tauri.conf.json',
-        'src-tauri/tauri.local.conf.json',
+        'src-tauri/tauri.full.conf.json',
         'src-tauri/tauri.online.conf.json',
         'src-tauri/capabilities/default.json',
         'src-tauri/icons/icon.ico',
@@ -352,7 +352,7 @@ function Assert-DesktopStaticFiles {
         'package.json',
         'tsconfig.json',
         'src-tauri/tauri.conf.json',
-        'src-tauri/tauri.local.conf.json',
+        'src-tauri/tauri.full.conf.json',
         'src-tauri/tauri.online.conf.json',
         'src-tauri/capabilities/default.json'
     )
@@ -363,14 +363,14 @@ function Assert-DesktopStaticFiles {
 
     $packageJsonPath = Join-Path $DesktopRoot 'package.json'
     $packageJson = Get-Content -LiteralPath $packageJsonPath -Encoding UTF8 -Raw | ConvertFrom-Json
-    foreach ($scriptName in @('dev:local', 'dev:online', 'build:local', 'build:online', 'typecheck')) {
+    foreach ($scriptName in @('dev:full', 'dev:online', 'build:full', 'build:online', 'typecheck')) {
         if ($null -eq $packageJson.scripts.$scriptName) {
             throw "缺少 Desktop 脚本：$scriptName"
         }
     }
 
     $cargoToml = Get-Content -LiteralPath (Join-Path $DesktopRoot 'src-tauri/Cargo.toml') -Encoding UTF8 -Raw
-    foreach ($requiredText in @('flavor-local', 'flavor-online', 'tauri = { version = "2.11.2"')) {
+    foreach ($requiredText in @('flavor-full', 'flavor-online', 'tauri = { version = "2.11.2"')) {
         if (-not $cargoToml.Contains($requiredText)) {
             throw "Desktop Cargo 配置缺少：$requiredText"
         }
@@ -424,10 +424,10 @@ function Invoke-DesktopChecks {
     }
 
     Invoke-Step `
-        -Title 'Desktop Rust Local flavor 检查' `
+        -Title 'Desktop Rust Full flavor 检查' `
         -WorkingDirectory $DesktopRoot `
         -Command $cargo.Source `
-        -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-local')
+        -Arguments @('check', '--manifest-path', (Join-Path $DesktopRoot 'src-tauri/Cargo.toml'), '--features', 'flavor-full')
 
     Invoke-Step `
         -Title 'Desktop Rust Online flavor 检查' `

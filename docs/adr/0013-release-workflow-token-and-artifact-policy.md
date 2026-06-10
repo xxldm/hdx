@@ -200,7 +200,19 @@ validate-inputs
 
 - 创建 `HDX Backend Actions Bot` 和 `HDX Main Workflow Bot`，确认安装范围、最小权限和 secrets 命名。
 - 设计后端私有仓库 native CI：生成 artifact、manifest、sha256，设置 `retention-days: 1`，并触发主仓库 workflow。
-- 主仓库真实 `release-start.yml` 已完成 tag start 第一片：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：支持手动输入多个后端 Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset，完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。后端私有仓库已完成 release resolve 第一片，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml`。后续仍需补齐 Desktop/App 构建、publish 和失败清理。
+- 主仓库真实 `release-start.yml` 已完成 tag start 第一片：
+  - 真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver。
+  - 手动入口默认 dry-run。
+- 主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：
+  - 支持手动输入多个后端 Actions artifact 聚合。
+  - 支持从同一个历史主仓库 Release 复用多个后端 native asset。
+  - 构建 Web node-server asset。
+  - 完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。
+- 后端私有仓库已完成 release resolve 第一片：
+  - 可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release。
+  - 历史复用失败时可显式开启 native build fallback。
+  - 解析完成后可显式回调主仓库 `release.yml`。
+- 后续仍需补齐 Desktop/App 构建、publish 和失败清理。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录

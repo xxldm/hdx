@@ -113,7 +113,7 @@ on:
 - 构建 Desktop Online。
 - 构建 Desktop Full，并内置同平台 `backend-full`。
 - 后续 App 可打包后构建 App Online。
-- 从 Desktop 安装包/AppImage 和 Tauri `.sig` 文件生成 flavor/channel 专用 updater JSON，例如 `hdx-desktop-online-stable.json` 和 `hdx-desktop-full-stable.json`。
+- 从 Desktop 安装包/AppImage 和 Tauri `.sig` 文件生成 flavor/channel 专用 updater JSON，例如 `HDX.Desktop.Online_stable.json` 和 `HDX.Desktop.Full_stable.json`。
 - 生成 `release-manifest.json` 和 `SHA256SUMS`。
 - 创建 draft Release。
 - 上传全部资产。

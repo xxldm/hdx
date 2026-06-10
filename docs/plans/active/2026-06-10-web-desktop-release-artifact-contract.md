@@ -55,23 +55,23 @@
 - Desktop Windows 首版允许未签名；release notes 需要提示 Windows SmartScreen 或系统安全提示风险。
 - Desktop 绿色包包含可运行程序、`README`、`LICENSE`、`NOTICE` 和 release manifest 摘要；不包含另一套默认配置模板。
 - `release-manifest.json` 作为 Release 总账，记录所有 Web/Desktop/后端 asset 的 sha256、size、来源、platform、flavor、packaging 和 channel；Tauri updater 使用的静态 JSON 作为 `desktop-updater-manifest` asset 记录在总账中，但不直接复用 `release-manifest.json` 作为客户端 updater endpoint。
-- Tauri updater JSON 按 Desktop flavor/channel 分开生成，例如 `hdx-desktop-online-stable.json` 与 `hdx-desktop-full-stable.json`；文件名不使用 `latest`，客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
+- Tauri updater JSON 按 Desktop flavor/channel 分开生成，例如 `HDX.Desktop.Online_stable.json` 与 `HDX.Desktop.Full_stable.json`；文件名不使用 `latest`，客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
 
 ## Desktop 第一版 Release asset 命名
 
 | 平台 | Flavor | 产物 | 命名 |
 | --- | --- | --- | --- |
-| Windows x64 | Online | NSIS 安装包 | `hdx-desktop-online-windows-x64-<version>-setup.exe` |
-| Windows x64 | Online | 绿色包 | `hdx-desktop-online-windows-x64-<version>.zip` |
-| Windows x64 | Full | NSIS 安装包 | `hdx-desktop-full-windows-x64-<version>-setup.exe` |
-| Windows x64 | Full | 绿色包 | `hdx-desktop-full-windows-x64-<version>.zip` |
-| Linux x64 | Online | AppImage | `hdx-desktop-online-linux-x64-<version>.AppImage` |
-| Linux x64 | Full | AppImage | `hdx-desktop-full-linux-x64-<version>.AppImage` |
+| Windows x64 | Online | NSIS 安装包 | `HDX.Desktop.Online_windows-x64_<version>_setup.exe` |
+| Windows x64 | Online | 绿色包 | `HDX.Desktop.Online_windows-x64_<version>.zip` |
+| Windows x64 | Full | NSIS 安装包 | `HDX.Desktop.Full_windows-x64_<version>_setup.exe` |
+| Windows x64 | Full | 绿色包 | `HDX.Desktop.Full_windows-x64_<version>.zip` |
+| Linux x64 | Online | AppImage | `HDX.Desktop.Online_linux-x64_<version>.AppImage` |
+| Linux x64 | Full | AppImage | `HDX.Desktop.Full_linux-x64_<version>.AppImage` |
 
 说明：
 
 - `<version>` 使用 release tag 对应版本，不包含空格。
-- Windows 安装包内部显示名称仍可保留 `HDX Desktop Online` / `HDX Desktop Full`；无空格要求只约束 Release asset 文件名。
+- Release asset 的应用名前缀保留 `HDX.Desktop.Online` / `HDX.Desktop.Full` 的大小写与点分隔；应用名、平台、版本和包类型使用 `_` 分组，平台内部继续使用 `windows-x64` / `linux-x64`。
 - 绿色包不是另一套配置模型，只是免安装交付形态；远端地址、本机模式状态和用户偏好仍写入用户级 app config。
 - Linux 如后续 AppImage 在 WebKitGTK 或桌面集成上出现不可接受兼容问题，再补 `.deb` / `.rpm`，不在第一版默认增加包型。
 
@@ -161,7 +161,8 @@
 - 2026-06-10：扩展 `release-manifest.json` schema，新增 Web/Desktop 发布物粒度 kind、flavor、packaging、channel 和 Tauri updater 静态 JSON 引用字段；样例已覆盖 `web-node-server`、`desktop-installer`、`desktop-update-signature` 和 `desktop-updater-manifest`。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`，通过。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过，覆盖新增 release manifest schema、样例、ADR、runbook 和 debug dry-run 资产清单。
-- 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，`mainBinaryName` 继续使用 `hdx-desktop-*`；已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过。
+- 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，避免安装包默认文件名前缀包含空格；Windows 裸 EXE 的 `mainBinaryName` 允许使用空格，例如 `HDX Desktop Online.exe`。已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过；后续实际运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --no-bundle`，通过，生成 `src-tauri/target/release/HDX Desktop Online.exe`，验证后已清理 `src-tauri/target`。
+- 2026-06-10：Desktop Release asset 命名改为应用名前缀保留大小写与点分隔、使用 `_` 分组，例如 `HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe`；已运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 
 ## 剩余风险
 

@@ -58,7 +58,7 @@
       "flavor": "online",
       "packaging": "nsis",
       "channel": "stable",
-      "fileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe",
+      "fileName": "HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe",
       "contentType": "application/vnd.microsoft.portable-executable",
       "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
       "sizeBytes": 2,
@@ -73,7 +73,7 @@
       "flavor": "online",
       "packaging": "tauri-updater-signature",
       "channel": "stable",
-      "fileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe.sig",
+      "fileName": "HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe.sig",
       "contentType": "text/plain",
       "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
       "sizeBytes": 3,
@@ -87,7 +87,7 @@
       "flavor": "online",
       "packaging": "tauri-updater-json",
       "channel": "stable",
-      "fileName": "hdx-desktop-online-stable.json",
+      "fileName": "HDX.Desktop.Online_stable.json",
       "contentType": "application/json",
       "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
       "sizeBytes": 4,
@@ -97,16 +97,16 @@
       },
       "updater": {
         "format": "tauri-v2-static-json",
-        "endpoint": "https://github.com/xxldm/hdx/releases/latest/download/hdx-desktop-online-stable.json",
+        "endpoint": "https://github.com/xxldm/hdx/releases/latest/download/HDX.Desktop.Online_stable.json",
         "signatureRequired": true,
         "publicKeyId": "hdx-desktop-updater-v1",
         "targets": [
           {
             "platform": "windows-x64",
-            "assetName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe",
-            "signatureFileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe.sig",
+            "assetName": "HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe",
+            "signatureFileName": "HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe.sig",
             "signatureSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
-            "url": "https://github.com/xxldm/hdx/releases/download/v0.1.0/hdx-desktop-online-windows-x64-v0.1.0-setup.exe"
+            "url": "https://github.com/xxldm/hdx/releases/download/v0.1.0/HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe"
           }
         ]
       }

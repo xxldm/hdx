@@ -38,7 +38,7 @@
 
 - 新增 `scripts/release-resolve-backend-sources.ps1`，从指定历史主仓库 Release 目录解析后端 native 来源，校验 `release-manifest.json`、`backend-native-manifest.json`、资产 sha256、size、kind、platform、root commit、backend commit 和 OpenAPI snapshot hash，并生成可供当前 `release.yml` 消费的 compact `backend_sources_json`。
 - 新增后端私有仓库 `.github/workflows/backend-release-resolve.yml`，支持手动输入 release 版本、root/backend 提交、OpenAPI hash、候选历史 Release tag 和 required assets，使用 `HDX Main Workflow Bot` 的 `Contents: read` token checkout 主仓库发布工具、下载候选主仓库 Release asset 后调用主仓库 resolver，并上传 `backend-source-resolution-<version>` artifact，保留期 1 天。
-- 后端 resolver workflow 只覆盖“指定历史 Release asset 复用”的第一片，不自动搜索历史版本、不触发 native-image、不回调主仓库 assemble。
+- 后端 resolver workflow 只覆盖历史 Release asset 复用解析；当前可解析指定历史 Release，或在未指定时只检查最新一个合格已发布 Release，不触发 native-image、不回调主仓库 assemble。
 - 更新 `docs/ARCHITECTURE.md`、`docs/RELEASE_RUNBOOK.md`、ADR 0013、ADR 0014、release contracts README 和总纲计划，明确当前能力与未完成边界。
 
 ## 验证记录
@@ -60,7 +60,7 @@
 
 ## 剩余风险
 
-- 历史 Release 仍由人工指定；自动搜索可复用历史 Release 需要后续切片。
+- 自动历史复用第一版只检查最新一个合格 Release；如果它不匹配但更老 Release 可复用，当前仍会进入后续 native build 分支。
 - 匹配失败后尚未自动触发后端 native-image workflow。
 - 后端 resolver 尚未用 GitHub App token 回调主仓库正式 assemble。
 - 后端仓库必须持续配置 `HDX_MAIN_WORKFLOW_APP_CLIENT_ID` 和 `HDX_MAIN_WORKFLOW_APP_PRIVATE_KEY`，且对应 GitHub App 安装到主仓库并具备 `Contents: read`；真实历史复用来源必须是已发布 Release，不能依赖 draft Release。

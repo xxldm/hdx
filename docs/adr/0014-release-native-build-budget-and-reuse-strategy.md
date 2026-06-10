@@ -34,12 +34,12 @@
 
 ### 后端未变时复用主仓库 Release asset
 
-真实 release workflow 后续允许在后端 native 输入未变化时，复用上一版或指定历史主仓库 GitHub Release 中已经公开的后端 native asset。
+真实 release workflow 后续允许在后端 native 输入未变化时，复用最新一个合格或显式指定的历史主仓库 GitHub Release 中已经公开的后端 native asset。
 
 复用必须满足以下条件：
 
 - 复用来源是主仓库 GitHub Release asset，不是后端私有仓库 Actions artifact、后端 private release、S3、RustFS、云 OSS 或独立 artifact 仓库。
-- 复用来源必须显式指定 release tag、asset name、sha256、size 和原始 release manifest，不允许使用 `latest`。
+- 复用来源必须在解析结果中显式记录 release tag、asset name、sha256、size 和原始 release manifest，不允许使用 `latest`。未显式指定历史 Release tag 时，后端 release resolve 第一版只检查最新一个合格已发布 Release：排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease。
 - 新 Release 必须重新上传该 asset，并在新的 `release-manifest.json` 中记录它来自哪个历史 Release、对应 asset、sha256、size、后端 commit、OpenAPI snapshot hash 和 backend native fingerprint。
 - 后端 native fingerprint 必须完全匹配；匹配不到或无法验证时必须重新运行后端 native workflow。
 - 复用旧 asset 不代表复用旧发布事实源。新的 `release-manifest.json` 仍以当前主仓库 release tag 或 root commit 作为事实源，同时记录该后端 asset 的历史构建来源。
@@ -122,7 +122,7 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - `backend-services` Linux 并行 workflow 已完成 GitHub-hosted 实跑验证；Windows services 包仍默认不跑，后续需要发布时再显式验证。
-- `.github/workflows/release.yml` 第一版已支持多个后端 Actions artifact 聚合，并支持从同一个历史主仓库 Release 复用多个后端 native asset；后端私有仓库已提供手动 release resolve 第一片，可从指定历史主仓库 Release 生成复用 payload。完整 tag-only 触发、自动搜索历史 Release、匹配失败后的后端 native build 分支和主仓库 assemble 回调仍待后续实现。
+- `.github/workflows/release.yml` 第一版已支持多个后端 Actions artifact 聚合，并支持从同一个历史主仓库 Release 复用多个后端 native asset；后端私有仓库已提供 release resolve 第一片，可从指定历史主仓库 Release 或最新一个合格已发布 Release 生成复用 payload。完整 tag-only 触发、匹配失败后的后端 native build 分支和主仓库 assemble 回调仍待后续实现。
 - 补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
@@ -137,3 +137,4 @@ backend native fingerprint 至少包含：
 - 2026-06-10：新增 `scripts/release-assemble-backend-assets.ps1`，支持把多个后端 Actions artifact 聚合为统一 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和多个后端 native Release asset。当时历史 Release asset 多资产复用与自动 fingerprint 匹配仍未实现。
 - 2026-06-10：新增 `scripts/release-assemble-historical-backend-assets.ps1`，支持从同一个历史主仓库 Release 复用多个后端 native asset；第一版要求显式输入每个历史 asset 的 sha256/size，并要求来源覆盖历史 `backend-native-manifest.json` 中的全部后端 native asset。
 - 2026-06-10：新增 `scripts/release-resolve-backend-sources.ps1` 和后端私有仓库 `backend-release-resolve.yml`，先覆盖指定历史 Release 的复用解析：校验 required assets、sha256/size、OpenAPI hash 和 backend native fingerprint 后输出 `backend_sources_json`。
+- 2026-06-10：`backend-release-resolve.yml` 支持在未显式传入历史 Release tag 时，自动选择最新一个合格已发布主仓库 Release；选择规则排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease，并且只检查这一个候选。

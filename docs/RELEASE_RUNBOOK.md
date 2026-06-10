@@ -26,7 +26,7 @@
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
 - `.github/workflows/release.yml` 已提供正式入口第一版，可手动接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；不构建 Web、Desktop 或 App，不自动 publish。
-- 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可手动解析指定历史主仓库 Release 是否可复用并生成 `backend_sources_json`；暂不自动触发 native-image 或回调主仓库 assemble。
+- 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release，并生成 `backend_sources_json`；暂不自动触发 native-image 或回调主仓库 assemble。
 - 本手册描述目标流程，不表示当前已经可以只推 tag 发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
@@ -116,7 +116,7 @@ on:
 
 - `github-actions-artifact` 模式支持多个 `backend_sources_json.sources` 条目。
 - `historical-release-asset` 模式支持多个 `backend_sources_json.sources` 条目，但第一版要求这些条目来自同一个历史主仓库 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
-- 后端 release resolve 第一版只解析指定历史 Release asset 复用来源；匹配失败时不自动触发后端 native-image。
+- 后端 release resolve 第一版可解析指定历史 Release asset；未指定时只检查最新一个合格已发布 Release，不排除 prerelease；匹配失败时不自动触发后端 native-image。
 - 只创建并校验 draft Release。
 - 不构建 Web、Desktop 或 App。
 - 不自动 publish。

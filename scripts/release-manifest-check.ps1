@@ -539,6 +539,47 @@ function Assert-RootRef {
     Assert-GitCommit -Value $commit -Context "$Context.root.commit"
 }
 
+function Assert-GitHubActionsObject {
+    param(
+        [Parameter(Mandatory = $true)]$GitHubActions,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    [void](Assert-StringValue -Object $GitHubActions -Name 'workflow' -Context $Context)
+    [void](Assert-PositiveIntegerValue -Object $GitHubActions -Name 'runId' -Context $Context)
+    [void](Assert-PositiveIntegerValue -Object $GitHubActions -Name 'runAttempt' -Context $Context)
+    $artifactName = Assert-StringValue -Object $GitHubActions -Name 'artifactName' -Context $Context
+    Assert-NotLatest -Value $artifactName -Context "$Context.artifactName"
+
+    if (Test-JsonPropertyExists -Object $GitHubActions -Name 'artifactId') {
+        [void](Assert-PositiveIntegerValue -Object $GitHubActions -Name 'artifactId' -Context $Context)
+    }
+}
+
+function Assert-GitHubActionsArtifactSources {
+    param(
+        [Parameter(Mandatory = $true)]$Source,
+        [Parameter(Mandatory = $true)][string]$Context
+    )
+
+    $items = Assert-ArrayValue -Object $Source -Name 'githubActionsArtifacts' -Context $Context
+    foreach ($item in $items) {
+        $kind = Assert-StringValue -Object $item -Name 'kind' -Context "$Context.githubActionsArtifacts"
+        if ($kind -notin @('backend-full', 'backend-services')) {
+            throw "$Context.githubActionsArtifacts.kind 无效：$kind"
+        }
+        $platform = Assert-StringValue -Object $item -Name 'platform' -Context "$Context.githubActionsArtifacts"
+        if ($platform -notin @('windows-x64', 'linux-x64')) {
+            throw "$Context.githubActionsArtifacts.platform 无效：$platform"
+        }
+        $githubActions = Get-JsonPropertyValue -Object $item -Name 'githubActions'
+        if ($null -eq $githubActions) {
+            throw "$Context.githubActionsArtifacts 缺少必填字段：githubActions"
+        }
+        Assert-GitHubActionsObject -GitHubActions $githubActions -Context "$Context.githubActionsArtifacts.githubActions"
+    }
+}
+
 function Assert-GitHubActionsSource {
     param(
         [Parameter(Mandatory = $true)]$Source,
@@ -550,14 +591,10 @@ function Assert-GitHubActionsSource {
         throw "$Context 缺少必填字段：githubActions"
     }
 
-    [void](Assert-StringValue -Object $githubActions -Name 'workflow' -Context "$Context.githubActions")
-    [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'runId' -Context "$Context.githubActions")
-    [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'runAttempt' -Context "$Context.githubActions")
-    $artifactName = Assert-StringValue -Object $githubActions -Name 'artifactName' -Context "$Context.githubActions"
-    Assert-NotLatest -Value $artifactName -Context "$Context.githubActions.artifactName"
+    Assert-GitHubActionsObject -GitHubActions $githubActions -Context "$Context.githubActions"
 
-    if (Test-JsonPropertyExists -Object $githubActions -Name 'artifactId') {
-        [void](Assert-PositiveIntegerValue -Object $githubActions -Name 'artifactId' -Context "$Context.githubActions")
+    if (Test-JsonPropertyExists -Object $Source -Name 'githubActionsArtifacts') {
+        Assert-GitHubActionsArtifactSources -Source $Source -Context $Context
     }
 
     foreach ($historicalField in @('historicalRelease', 'historicalBuild', 'backendNativeFingerprint')) {
@@ -842,6 +879,9 @@ function Assert-OptionalManifestFile {
             Assert-GitCommit -Value $backendCommit -Context "$Path.backend.commit"
             $openapiHash = Assert-StringValue -Object $manifest -Name 'openapiSnapshotHash' -Context $Path
             Assert-Sha256 -Value $openapiHash -Context "$Path.openapiSnapshotHash"
+            if (Test-JsonPropertyExists -Object $manifest -Name 'githubActionsArtifacts') {
+                Assert-GitHubActionsArtifactSources -Source $manifest -Context $Path
+            }
             foreach ($artifact in Assert-ArrayValue -Object $manifest -Name 'artifacts' -Context $Path) {
                 [void](Assert-StringValue -Object $artifact -Name 'kind' -Context "$Path.artifacts")
                 $fileName = Assert-StringValue -Object $artifact -Name 'fileName' -Context "$Path.artifacts"
@@ -929,6 +969,10 @@ function Assert-OptionalManifestFile {
                     Assert-Sha256 -Value $assetOpenApiHash -Context "$Path.assets.source.openapiSnapshotHash"
                     if ($assetOpenApiHash -ne $releaseOpenApiSnapshotHash) {
                         throw "$Path.assets.source.openapiSnapshotHash 必须等于 release openapiSnapshotHash：期望 $releaseOpenApiSnapshotHash，实际 $assetOpenApiHash"
+                    }
+                    if (Test-JsonPropertyExists -Object $source -Name 'githubActions') {
+                        $githubActions = Get-JsonPropertyValue -Object $source -Name 'githubActions'
+                        Assert-GitHubActionsObject -GitHubActions $githubActions -Context "$Path.assets.source.githubActions"
                     }
                     if (Test-JsonPropertyExists -Object $source -Name 'backendNativeFingerprint') {
                         $platform = Assert-StringValue -Object $asset -Name 'platform' -Context "$Path.assets"

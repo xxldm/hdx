@@ -27,10 +27,11 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
   -ScanPath path/to/backend-native-or-services-package
 ```
 
-主仓库当前已有两个最小 draft Release 资产整理入口：
+主仓库当前已有三个 draft Release 资产整理入口：
 
 - `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产。该脚本会为后端 native asset 写入 `backendNativeFingerprint`，供后续历史 Release asset 复用校验。
 - `scripts/release-draft-reuse-backend-assets.ps1`：消费主仓库指定历史 Release 中已经公开的 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset。该脚本校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成本次后端 native 来源为 `historical-release-asset` 的最小 Release 资产。
+- `scripts/release-assemble-backend-assets.ps1`：消费多个已下载的后端私有仓库 Actions artifact 目录，逐个复用后端 artifact 校验后，聚合生成统一 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和多个后端 native Release asset。
 
 历史复用入口当前不重命名复用的后端 native asset。原因是历史 `backend-native-manifest.json` 会记录原始 archive 文件名；若要把复用 archive 改成新版本文件名，需要先设计 manifest rewrite 和对应校验规则。
 
@@ -59,6 +60,8 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - sha256 字段均使用 64 位小写十六进制。
 - `openapiSnapshotHash` 表示参与本次发布的 OpenAPI 快照集合 hash，后续 workflow 实现时必须由主仓库和后端 CI 使用同一算法生成。
 - `backendNativeManifest.source.type` 显式记录 `backend-native-manifest.json` 的来源：本次后端 Actions artifact 使用 `github-actions-artifact`，历史主仓库 Release asset 复用使用 `historical-release-asset`。
+- `githubActionsArtifacts` 用于记录多个后端 Actions artifact 聚合时每个 backend asset 对应的 workflow run、run attempt、artifact name 和可选 artifact id。
+- `assets[].source.githubActions` 用于记录单个 backend asset 来自哪个后端 Actions artifact。
 - `assets[].source.type=historical-release-asset` 只允许用于 `backend-full` 或 `backend-services`，并必须记录历史 release tag、历史 asset 名称、sha256、size、历史 release manifest sha256、历史构建 root/backend/OpenAPI 上下文和 `backendNativeFingerprint`。
 - `backendNativeFingerprint.algorithm` 当前固定为 `hdx-backend-native-fingerprint-v1`；它记录后端 commit、artifact kind、platform、服务列表、OpenAPI hash、打包脚本版本、Java/GraalVM 版本、Maven native profile、native-image 参数、Spring AOT、RuntimeHints、reachability metadata 和 native metadata 输入。
 - `backend-full` 表示 Desktop Full 使用的本地完整后端 native archive。
@@ -85,8 +88,9 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 
 ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。
 
-当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验：
+当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1`、`scripts/release-assemble-backend-assets.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验：
 
+- 多个后端 Actions artifact 聚合时的逐资产来源。
 - 历史 release tag、asset name、sha256 和 size。
 - backend native fingerprint。
 - 历史后端 asset 构建来源。

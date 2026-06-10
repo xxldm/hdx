@@ -24,14 +24,14 @@ on:
         required: true
         type: string
       backend_source_mode:
-        description: "后端 native 来源。第一版只支持单个来源条目。"
+        description: "后端 native 来源；Actions artifact 可多项，历史 Release asset 第一版仍单项。"
         required: true
         type: choice
         options:
           - github-actions-artifact
           - historical-release-asset
       backend_sources_json:
-        description: "后端 native 来源 JSON，格式为 {\"sources\":[...]}，第一版 sources 必须只有 1 项。"
+        description: "后端 native 来源 JSON，格式为 {\"sources\":[...]}。"
         required: true
         type: string
       release_intent_id:
@@ -64,9 +64,6 @@ jobs:
       backend_repo: ${{ steps.validate.outputs.backend_repo }}
       backend_owner: ${{ steps.validate.outputs.backend_owner }}
       backend_name: ${{ steps.validate.outputs.backend_name }}
-      backend_run_id: ${{ steps.validate.outputs.backend_run_id }}
-      backend_run_attempt: ${{ steps.validate.outputs.backend_run_attempt }}
-      backend_artifact_name: ${{ steps.validate.outputs.backend_artifact_name }}
       historical_release_repo: ${{ steps.validate.outputs.historical_release_repo }}
       historical_release_tag: ${{ steps.validate.outputs.historical_release_tag }}
       historical_backend_asset_name: ${{ steps.validate.outputs.historical_backend_asset_name }}
@@ -141,14 +138,19 @@ jobs:
           $payload = $env:BACKEND_SOURCES_JSON | ConvertFrom-Json -Depth 100
           $sourcesProperty = $payload.PSObject.Properties['sources']
           $sources = if ($null -ne $sourcesProperty) { @($sourcesProperty.Value) } else { @($payload) }
-          if ($sources.Count -ne 1) {
-            throw "release.yml 第一版只支持一个 backend_sources_json.sources 条目，当前数量：$($sources.Count)"
+          if ($sources.Count -lt 1) {
+            throw 'backend_sources_json 至少需要一个 sources 条目。'
+          }
+          if ($backendSourceMode -eq 'historical-release-asset' -and $sources.Count -ne 1) {
+            throw "historical-release-asset 模式第一版只支持一个 sources 条目，当前数量：$($sources.Count)"
           }
 
           $source = $sources[0]
-          $modeFromJson = Get-OptionalString $source 'type' $backendSourceMode
-          if ($modeFromJson -ne $backendSourceMode) {
-            throw "backend_sources_json.sources[0].type 必须等于 backend_source_mode：期望 $backendSourceMode，实际 $modeFromJson"
+          for ($index = 0; $index -lt $sources.Count; $index++) {
+            $modeFromJson = Get-OptionalString $sources[$index] 'type' $backendSourceMode
+            if ($modeFromJson -ne $backendSourceMode) {
+              throw "backend_sources_json.sources[$index].type 必须等于 backend_source_mode：期望 $backendSourceMode，实际 $modeFromJson"
+            }
           }
 
           "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -161,25 +163,38 @@ jobs:
           "release_intent_id=$releaseIntentId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           if ($backendSourceMode -eq 'github-actions-artifact') {
-            $backendRepo = Get-RequiredString $source 'backendRepository'
-            $backendRunId = Get-RequiredString $source 'runId'
-            $backendRunAttempt = Get-OptionalString $source 'runAttempt' '1'
-            $backendArtifactName = Get-RequiredString $source 'artifactName'
+            $backendRepo = ''
+            $seenArtifacts = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
+            foreach ($item in $sources) {
+              $itemBackendRepo = Get-RequiredString $item 'backendRepository'
+              $backendRunId = Get-RequiredString $item 'runId'
+              $backendRunAttempt = Get-OptionalString $item 'runAttempt' '1'
+              $backendArtifactName = Get-RequiredString $item 'artifactName'
 
-            Assert-Pattern 'backendRepository' $backendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
-            Assert-Pattern 'runId' $backendRunId '^[1-9][0-9]*$' '必须是大于 0 的整数。'
-            Assert-Pattern 'runAttempt' $backendRunAttempt '^[1-9][0-9]*$' '必须是大于 0 的整数。'
-            Assert-Pattern 'artifactName' $backendArtifactName '^[A-Za-z0-9][A-Za-z0-9._+@=-]*$' '必须是单个 Release artifact 名称。'
-            Assert-NoLatest 'backendRepository' $backendRepo
-            Assert-NoLatest 'artifactName' $backendArtifactName
+              Assert-Pattern 'backendRepository' $itemBackendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+              Assert-Pattern 'runId' $backendRunId '^[1-9][0-9]*$' '必须是大于 0 的整数。'
+              Assert-Pattern 'runAttempt' $backendRunAttempt '^[1-9][0-9]*$' '必须是大于 0 的整数。'
+              Assert-Pattern 'artifactName' $backendArtifactName '^[A-Za-z0-9][A-Za-z0-9._+@=-]*$' '必须是单个 Release artifact 名称。'
+              Assert-NoLatest 'backendRepository' $itemBackendRepo
+              Assert-NoLatest 'artifactName' $backendArtifactName
+
+              if ([string]::IsNullOrWhiteSpace($backendRepo)) {
+                $backendRepo = $itemBackendRepo
+              }
+              elseif ($backendRepo -ne $itemBackendRepo) {
+                throw "github-actions-artifact 多来源必须来自同一个后端仓库：期望 $backendRepo，实际 $itemBackendRepo"
+              }
+
+              $artifactKey = "$backendRunId/$backendArtifactName"
+              if (-not $seenArtifacts.Add($artifactKey)) {
+                throw "backend_sources_json 中重复的后端 artifact：$artifactKey"
+              }
+            }
 
             $backendParts = $backendRepo -split '/', 2
             "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "backend_run_id=$backendRunId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "backend_run_attempt=$backendRunAttempt" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "backend_artifact_name=$backendArtifactName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
           else {
             $historicalReleaseRepo = Get-RequiredString $source 'historicalReleaseRepository'
@@ -226,6 +241,7 @@ jobs:
       BACKEND_COMMIT: ${{ needs.validate-inputs.outputs.backend_commit }}
       BACKEND_SOURCE_MODE: ${{ needs.validate-inputs.outputs.backend_source_mode }}
       BACKEND_REPO: ${{ needs.validate-inputs.outputs.backend_repo }}
+      BACKEND_SOURCES_JSON: ${{ inputs.backend_sources_json }}
       OPENAPI_SNAPSHOT_HASH: ${{ needs.validate-inputs.outputs.openapi_snapshot_hash }}
       RELEASE_INTENT_ID: ${{ needs.validate-inputs.outputs.release_intent_id }}
       ASSET_ROOT: target/release/assets
@@ -268,85 +284,86 @@ jobs:
           repositories: ${{ needs.validate-inputs.outputs.backend_name }}
           permission-actions: read
 
-      - name: 定位后端 Actions artifact
-        id: backend-artifact
+      - name: 下载并解析后端 Actions artifacts
         if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'github-actions-artifact' }}
         env:
           GH_TOKEN: ${{ steps.backend-token.outputs.token }}
-          BACKEND_RUN_ID: ${{ needs.validate-inputs.outputs.backend_run_id }}
-          BACKEND_ARTIFACT_NAME: ${{ needs.validate-inputs.outputs.backend_artifact_name }}
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $payload = gh api "repos/$env:BACKEND_REPO/actions/runs/$env:BACKEND_RUN_ID/artifacts"
-          if ($LASTEXITCODE -ne 0) {
-            throw '读取后端 artifact 列表失败。'
+          $payload = $env:BACKEND_SOURCES_JSON | ConvertFrom-Json -Depth 100
+          $sourcesProperty = $payload.PSObject.Properties['sources']
+          $sources = if ($null -ne $sourcesProperty) { @($sourcesProperty.Value) } else { @($payload) }
+          $resolvedSources = @()
+
+          for ($index = 0; $index -lt $sources.Count; $index++) {
+            $source = $sources[$index]
+            $runId = [string]$source.runId
+            $artifactName = [string]$source.artifactName
+            $artifactListPayload = gh api "repos/$env:BACKEND_REPO/actions/runs/$runId/artifacts"
+            if ($LASTEXITCODE -ne 0) {
+              throw "读取后端 artifact 列表失败：run=$runId"
+            }
+
+            $artifacts = ($artifactListPayload | ConvertFrom-Json -Depth 20).artifacts
+            $matched = @($artifacts | Where-Object { $_.name -eq $artifactName })
+            if ($matched.Count -ne 1) {
+              $names = @($artifacts | ForEach-Object { $_.name }) -join ', '
+              throw "无法唯一定位 artifact：$artifactName；run=$runId；当前 artifacts：$names"
+            }
+
+            $artifact = $matched[0]
+            if ($artifact.expired -eq $true) {
+              throw "后端 artifact 已过期，需要重跑后端 native workflow：$($artifact.name)"
+            }
+
+            $downloadRoot = "target/release/download/source-$index"
+            $artifactRoot = "target/release/backend-artifacts/source-$index"
+            New-Item -ItemType Directory -Path $downloadRoot -Force | Out-Null
+            New-Item -ItemType Directory -Path $artifactRoot -Force | Out-Null
+            $zipPath = Join-Path $downloadRoot 'backend-artifact.zip'
+
+            gh api `
+              -H 'Accept: application/vnd.github+json' `
+              "repos/$env:BACKEND_REPO/actions/artifacts/$($artifact.id)/zip" `
+              > $zipPath
+            if ($LASTEXITCODE -ne 0) {
+              throw "下载后端 artifact 失败：$artifactName"
+            }
+
+            Expand-Archive -LiteralPath $zipPath -DestinationPath $artifactRoot -Force
+
+            $resolved = [ordered]@{}
+            foreach ($property in $source.PSObject.Properties) {
+              $resolved[$property.Name] = $property.Value
+            }
+            $resolved['artifactId'] = [long]$artifact.id
+            $resolved['artifactRoot'] = $artifactRoot
+            $resolvedSources += $resolved
+
+            Write-Host "artifact 下载完成：run=$runId name=$artifactName id=$($artifact.id) root=$artifactRoot"
           }
 
-          $artifacts = ($payload | ConvertFrom-Json -Depth 20).artifacts
-          $matched = @($artifacts | Where-Object { $_.name -eq $env:BACKEND_ARTIFACT_NAME })
-          if ($matched.Count -ne 1) {
-            $names = @($artifacts | ForEach-Object { $_.name }) -join ', '
-            throw "无法唯一定位 artifact：$env:BACKEND_ARTIFACT_NAME；当前 run artifacts：$names"
+          $resolvedPayload = [ordered]@{
+            sources = $resolvedSources
           }
+          New-Item -ItemType Directory -Path 'target/release' -Force | Out-Null
+          $resolvedPayload | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath 'target/release/backend-sources.resolved.json'
 
-          $artifact = $matched[0]
-          if ($artifact.expired -eq $true) {
-            throw "后端 artifact 已过期，需要重跑后端 native workflow：$($artifact.name)"
-          }
-
-          "artifact_id=$($artifact.id)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          "artifact_expires_at=$($artifact.expires_at)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          Write-Host "artifact 定位通过：name=$($artifact.name) id=$($artifact.id) size=$($artifact.size_in_bytes) expires_at=$($artifact.expires_at)"
-
-      - name: 下载后端 Actions artifact zip
-        if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'github-actions-artifact' }}
-        shell: bash
-        env:
-          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
-          BACKEND_REPO: ${{ needs.validate-inputs.outputs.backend_repo }}
-          ARTIFACT_ID: ${{ steps.backend-artifact.outputs.artifact_id }}
-        run: |
-          set -euo pipefail
-          mkdir -p target/release/download
-          gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${BACKEND_REPO}/actions/artifacts/${ARTIFACT_ID}/zip" \
-            > target/release/download/backend-artifact.zip
-
-      - name: 解包后端 Actions artifact
+      - name: 生成并校验 Actions artifacts 聚合资产
         if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'github-actions-artifact' }}
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $artifactRoot = 'target/release/backend-artifact'
-          if (Test-Path -LiteralPath $artifactRoot) {
-            Remove-Item -LiteralPath $artifactRoot -Recurse -Force
-          }
-          New-Item -ItemType Directory -Path $artifactRoot | Out-Null
-          Expand-Archive -LiteralPath 'target/release/download/backend-artifact.zip' -DestinationPath $artifactRoot -Force
-
-          Write-Host '后端 Actions artifact 解包完成：'
-          Get-ChildItem -LiteralPath $artifactRoot -File | Select-Object Name, Length | Format-Table | Out-String | Write-Host
-
-      - name: 生成并校验 Actions artifact 来源资产
-        if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'github-actions-artifact' }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          pwsh -NoLogo -NoProfile -File scripts/release-draft-minimal-assets.ps1 `
-            -ArtifactRoot 'target/release/backend-artifact' `
+          pwsh -NoLogo -NoProfile -File scripts/release-assemble-backend-assets.ps1 `
+            -SourcesJsonPath 'target/release/backend-sources.resolved.json' `
             -Version $env:VERSION `
             -RootRepository $env:ROOT_REPOSITORY `
             -RootRef $env:ROOT_REF `
             -RootCommit $env:ROOT_COMMIT `
             -BackendRepository $env:BACKEND_REPO `
             -BackendCommit $env:BACKEND_COMMIT `
-            -BackendRunId '${{ needs.validate-inputs.outputs.backend_run_id }}' `
-            -BackendRunAttempt '${{ needs.validate-inputs.outputs.backend_run_attempt }}' `
-            -BackendArtifactName '${{ needs.validate-inputs.outputs.backend_artifact_name }}' `
             -OpenApiSnapshotHash $env:OPENAPI_SNAPSHOT_HASH `
-            -BackendArtifactId '${{ steps.backend-artifact.outputs.artifact_id }}' `
             -OutputDirectory $env:ASSET_ROOT `
             -ExtractRoot 'target/release/extracted-actions-artifact'
 
@@ -547,8 +564,6 @@ jobs:
         env:
           RELEASE_URL: ${{ steps.draft-release.outputs.release_url }}
           JOB_STATUS: ${{ job.status }}
-          ARTIFACT_ID: ${{ steps.backend-artifact.outputs.artifact_id }}
-          ARTIFACT_EXPIRES_AT: ${{ steps.backend-artifact.outputs.artifact_expires_at }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -578,8 +593,6 @@ jobs:
           - backend_commit: ``$env:BACKEND_COMMIT``
           - backend_source_mode: ``$env:BACKEND_SOURCE_MODE``
           - release_intent_id: ``$env:RELEASE_INTENT_ID``
-          - artifact_id: ``$env:ARTIFACT_ID``
-          - artifact_expires_at: ``$env:ARTIFACT_EXPIRES_AT``
           - release_url: ``$env:RELEASE_URL``
 
           ## 已执行
@@ -593,7 +606,8 @@ jobs:
 
           ## 当前限制
 
-          - 第一版只支持单个后端 native asset 来源。
+          - ``github-actions-artifact`` 模式支持多个后端 native asset 来源。
+          - ``historical-release-asset`` 模式仍只支持单个后端 native asset 来源。
           - 第一版不构建 Web、Desktop 或 App。
           - 第一版不自动 publish；校验通过后仍保持 draft。
 

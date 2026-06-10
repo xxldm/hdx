@@ -24,8 +24,8 @@
 - Web 位于 `apps/web/`，采用 Nuxt 4 SSR + Nuxt server BFF；浏览器不直接访问后端，token 和敏感配置留在 Nuxt server 边界内。
 - Web 当前已有 `pnpm build`，第一版 Release 产物形态已确认为 Nuxt SSR server bundle archive；因为存在 BFF/session/CSRF，不能按纯静态 `dist` 包处理。
 - Web 运行时尊重 Nuxt/Nitro 设计，以环境变量为事实源；不在 Nuxt 应用内新增独立配置文件读取层。
-- Web Linux tar 包通过 `.output` 根目录下的 `sh` 启动脚本读取同目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `.output/server/index.mjs`。
-- 后续如需 Docker 镜像，直接在 Dockerfile 或容器运行环境声明所需环境变量，不提供 `sh` 启动脚本和配置文件。
+- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；脚本可选读取包根目录 `.env`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
+- Docker 镜像不要求 `.env` 文件存在，配置由容器环境变量注入；`start.sh` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
 - 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
@@ -36,14 +36,16 @@
 - Web asset 名称采用 Linux 友好的 `hdx-web-node-server-<version>.tar.gz`。
 - 正式生产包禁止包含 sourcemap。
 - Web 包只包含整理后的运行产物，不直接把默认 `.output` 原样当成发布标准。
-- Web Linux tar 包不新增 `config/` 目录；默认配置文件为 `.output` 根目录下的 `config.yml`。
-- `.output` 根目录新增 `sh` 启动脚本，负责把 `config.yml` 注入临时环境变量并启动 Nuxt/Nitro server。
-- Docker 镜像不使用该 `sh` 脚本和配置文件，直接通过 Dockerfile 或容器环境变量声明运行配置。
+- Web 发布包移除 `.output` 外层隐藏目录，把 `.output` 内的 `public/`、`server/` 和 `nitro.json` 整理到包根目录。
+- Web Linux tar 包不新增 `config/` 目录；可选配置文件为包根目录下的 `.env`，示例文件为 `.env.example`。
+- 包根目录新增 `start.sh`，负责可选读取 `.env`、注入临时环境变量、校验关键变量并启动 Nuxt/Nitro server。
+- Docker 镜像同样使用 `start.sh` 作为入口，但不要求 `.env` 存在；Dockerfile、Compose、Kubernetes 或运行命令注入的环境变量是 Docker 场景的配置来源。
+- `start.sh` 加载 `.env` 时不得覆盖外部已存在的环境变量，配置优先级为环境变量 > `.env` > 内置默认值。
 
 ## 待确认问题
 
-- Web `config.yml` 字段清单和字段到环境变量的映射规则。
-- Web `sh` 启动脚本文件名、执行权限和缺失配置时的失败策略。
+- Web `.env.example` 字段清单。
+- `start.sh` 的变量校验规则、执行权限和 Linux/Docker 共用入口细节。
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。

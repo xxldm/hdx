@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有正式 `release.yml` draft assemble 第一版，仍缺完整 tag-only 自动链路、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有正式 `release.yml` draft assemble 第一版和多后端 Actions artifact 聚合，仍缺完整 tag-only 自动链路、签名/公证/自动更新、release notes 和版本号策略。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-10
@@ -95,13 +95,13 @@
 
 - 公开主仓库 Apache-2.0、后端私有和禁止后端源码/JAR/WAR/`.class` 进入公开仓库，详见 ADR 0011。
 - GitHub Releases 产物边界、后端 native artifact 临时交接、release manifest schema、本地 release 校验脚本、dry-run / check / debug 验证 workflow、GitHub App token 策略、后端 native 构建额度和历史 Release asset 复用策略，详见 ADR 0012、ADR 0013、ADR 0014 和 release 相关 completed plans。
-- 正式 `release.yml` 第一版 draft assemble 骨架，支持单个后端 native Actions artifact 或历史 Release asset 来源，创建并远端校验 draft Release；完整能力仍需后续扩展。
+- 正式 `release.yml` 第一版 draft assemble 骨架，支持多个后端 native Actions artifact 聚合或单个历史 Release asset 来源，创建并远端校验 draft Release；完整能力仍需后续扩展。
 - tag-only 日常发布操作手册，详见 `docs/RELEASE_RUNBOOK.md`。
 - PowerShell 7+ / `pwsh` 运行边界已收口，详见 `docs/AGENT_WORKFLOW.md`。
 
 仍未完成：
 
-- 主仓库 tag start、后端 release resolve、多后端资产聚合、Web/Desktop/App 构建、publish 和失败清理的完整自动链路。
+- 主仓库 tag start、后端 release resolve、历史 Release asset 多资产聚合、Web/Desktop/App 构建、publish 和失败清理的完整自动链路。
 - `backend-services-windows-x64` 真实发布验证。
 - 安装器签名、公证、自动更新、release notes 和版本号策略。
 
@@ -135,6 +135,7 @@
   - `docs/plans/completed/2026-06-09-release-draft-minimal-workflow.md`
   - `docs/plans/completed/2026-06-09-backend-native-artifact-expanded.md`
   - `docs/plans/completed/2026-06-10-release-yml-first-slice.md`
+  - `docs/plans/completed/2026-06-10-release-multi-backend-assets.md`
 
 ## 验收标准
 
@@ -153,7 +154,7 @@
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop 的 all-in-one sidecar 启动、本机 token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 第 9 步完整 tag-only GitHub Release workflow、`backend-services-windows-x64`、多后端资产聚合、Web/Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步完整 tag-only GitHub Release workflow、`backend-services-windows-x64`、历史 Release asset 多资产聚合、Web/Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

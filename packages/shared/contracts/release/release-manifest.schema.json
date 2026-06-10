@@ -188,6 +188,32 @@
         }
       }
     },
+    "githubActionsArtifactSource": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "platform",
+        "githubActions"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "backend-full",
+            "backend-services"
+          ]
+        },
+        "platform": {
+          "enum": [
+            "windows-x64",
+            "linux-x64"
+          ]
+        },
+        "githubActions": {
+          "$ref": "#/$defs/githubActionsSource"
+        }
+      }
+    },
     "historicalReleaseAsset": {
       "type": "object",
       "additionalProperties": false,
@@ -268,6 +294,13 @@
         },
         "githubActions": {
           "$ref": "#/$defs/githubActionsSource"
+        },
+        "githubActionsArtifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/githubActionsArtifactSource"
+          }
         },
         "historicalRelease": {
           "$ref": "#/$defs/historicalReleaseAsset"
@@ -544,6 +577,9 @@
             },
             "openapiSnapshotHash": {
               "$ref": "#/$defs/sha256"
+            },
+            "githubActions": {
+              "$ref": "#/$defs/githubActionsSource"
             },
             "historicalRelease": {
               "$ref": "#/$defs/historicalReleaseAsset"

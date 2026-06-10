@@ -25,7 +25,7 @@
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
 - `.github/workflows/release.yml` 已提供正式入口第一版，可手动接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
-- 当前 `release.yml` 只支持单个后端 native asset 来源，不构建 Web、Desktop 或 App，不自动 publish。
+- 当前 `release.yml` 支持多个后端 Actions artifact 聚合，历史 Release asset 仍只支持单个来源；不构建 Web、Desktop 或 App，不自动 publish。
 - 本手册描述目标流程，不表示当前已经可以只推 tag 发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
@@ -113,16 +113,31 @@ on:
 
 当前第一版限制：
 
-- 只支持一个 `backend_sources_json.sources` 条目。
+- `github-actions-artifact` 模式支持多个 `backend_sources_json.sources` 条目。
+- `historical-release-asset` 模式第一版仍只支持一个 `backend_sources_json.sources` 条目。
 - 只创建并校验 draft Release。
 - 不构建 Web、Desktop 或 App。
 - 不自动 publish。
 
-第一版 `github-actions-artifact` 来源示例：
+第一版 `github-actions-artifact` 多来源示例：
 
 ```json
 {
   "sources": [
+    {
+      "type": "github-actions-artifact",
+      "backendRepository": "xxldm/hdx-backend",
+      "runId": 123456789,
+      "runAttempt": 1,
+      "artifactName": "hdx-backend-full-native-v0.1.0-linux-x64"
+    },
+    {
+      "type": "github-actions-artifact",
+      "backendRepository": "xxldm/hdx-backend",
+      "runId": 123456789,
+      "runAttempt": 1,
+      "artifactName": "hdx-backend-full-native-v0.1.0-windows-x64"
+    },
     {
       "type": "github-actions-artifact",
       "backendRepository": "xxldm/hdx-backend",

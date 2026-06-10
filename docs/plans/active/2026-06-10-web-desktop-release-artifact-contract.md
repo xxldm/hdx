@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive 方向已确认，Desktop build 尚未实测
+- 当前状态：Web node-server archive 与配置字段清单已确认，Desktop build 尚未实测
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -24,8 +24,8 @@
 - Web 位于 `apps/web/`，采用 Nuxt 4 SSR + Nuxt server BFF；浏览器不直接访问后端，token 和敏感配置留在 Nuxt server 边界内。
 - Web 当前已有 `pnpm build`，第一版 Release 产物形态已确认为 Nuxt SSR server bundle archive；因为存在 BFF/session/CSRF，不能按纯静态 `dist` 包处理。
 - Web 运行时尊重 Nuxt/Nitro 设计，以环境变量为事实源；不在 Nuxt 应用内新增独立配置文件读取层。
-- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；脚本可选读取包根目录 `.env`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
-- Docker 镜像不要求 `.env` 文件存在，配置由容器环境变量注入；`start.sh` 仍负责默认值、关键变量校验和启动。
+- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
+- Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
 - 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
@@ -37,15 +37,43 @@
 - 正式生产包禁止包含 sourcemap。
 - Web 包只包含整理后的运行产物，不直接把默认 `.output` 原样当成发布标准。
 - Web 发布包移除 `.output` 外层隐藏目录，把 `.output` 内的 `public/`、`server/` 和 `nitro.json` 整理到包根目录。
-- Web Linux tar 包不新增 `config/` 目录；可选配置文件为包根目录下的 `.env`，示例文件为 `.env.example`。
-- 包根目录新增 `start.sh`，负责可选读取 `.env`、注入临时环境变量、校验关键变量并启动 Nuxt/Nitro server。
-- Docker 镜像同样使用 `start.sh` 作为入口，但不要求 `.env` 存在；Dockerfile、Compose、Kubernetes 或运行命令注入的环境变量是 Docker 场景的配置来源。
-- `start.sh` 加载 `.env` 时不得覆盖外部已存在的环境变量，配置优先级为环境变量 > `.env` > 内置默认值。
+- Web Linux tar 包不新增 `config/` 目录；可选配置文件为包根目录下的 `config.yml`，示例文件为 `config.example.yml`。
+- 包根目录新增 `start.sh` 和 `start-web.mjs`。`start.sh` 只作为 Linux/Docker 统一入口，实际配置读取、环境变量注入、关键变量校验和 Nuxt/Nitro server 启动由 `start-web.mjs` 完成。
+- Docker 镜像同样使用 `start.sh` 作为入口，但不要求 `config.yml` 存在；Dockerfile、Compose、Kubernetes 或运行命令注入的环境变量是 Docker 场景的配置来源。
+- 本地 dev 复用同一套配置 schema 和字段映射，使用 `config.local.yml` 作为本地配置文件；本地命令通过 Node runner 注入环境变量后再启动 Nuxt dev/build/preview。
+- 配置优先级为环境变量 > `config.yml` / `config.local.yml` > 内置默认值。
+
+## Web 配置字段清单
+
+| 配置字段 | 环境变量 | 必填 | 默认值 |
+| --- | --- | --- | --- |
+| `server.host` | `NITRO_HOST` | 否 | `0.0.0.0` |
+| `server.port` | `NITRO_PORT` | 否 | `3000` |
+| `backend.gatewayBaseUrl` | `NUXT_BACKEND_BASE_URL` | 否 | `http://localhost:18080` |
+| `backend.authBaseUrl` | `NUXT_AUTH_BASE_URL` | 否 | `http://localhost:18082` |
+| `auth.sessionSecret` | `NUXT_AUTH_SESSION_SECRET` | 生产必填 | 无安全默认值 |
+| `auth.cookieSecure` | `NUXT_AUTH_COOKIE_SECURE` | 否 | 生产 `true`，开发 `false` |
+| `auth.sessionCookieName` | `NUXT_AUTH_SESSION_COOKIE_NAME` | 否 | `hdx_web_session` |
+| `auth.csrfCookieName` | `NUXT_AUTH_CSRF_COOKIE_NAME` | 否 | `hdx_csrf` |
+| `auth.csrfHeaderName` | `NUXT_AUTH_CSRF_HEADER_NAME` | 否 | `X-HDX-CSRF` |
+| `auth.sessionMaxAgeSeconds` | `NUXT_AUTH_SESSION_MAX_AGE_SECONDS` | 否 | `604800` |
+| `auth.refreshSkewSeconds` | `NUXT_AUTH_REFRESH_SKEW_SECONDS` | 否 | `60` |
+| `localBackend.tokenHeader` | `NUXT_BACKEND_LOCAL_TOKEN_HEADER` | 否 | 无 |
+| `localBackend.token` | `NUXT_BACKEND_LOCAL_TOKEN` | 否 | 无 |
+
+字段校验规则：
+
+- `auth.sessionSecret` 在生产必须存在，长度至少 32。
+- `auth.sessionSecret` 不能等于示例值。
+- `server.port` 必须是 `1..65535`。
+- `backend.gatewayBaseUrl` 和 `backend.authBaseUrl` 必须是 `http://` 或 `https://` URL。
+- `auth.sessionMaxAgeSeconds` 必须大于 0。
+- `auth.refreshSkewSeconds` 必须大于等于 0。
+- `localBackend.tokenHeader` 和 `localBackend.token` 要么都为空，要么都填写。
 
 ## 待确认问题
 
-- Web `.env.example` 字段清单。
-- `start.sh` 的变量校验规则、执行权限和 Linux/Docker 共用入口细节。
+- `start.sh` / `start-web.mjs` 的文件名、执行权限、YAML 解析方式和 Linux/Docker 共用入口细节。
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。
@@ -56,6 +84,7 @@
 - [x] 扫描 `apps/web` 的 build 命令、输出目录、运行时配置和当前质量门禁。
 - [ ] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
 - [x] 提出 Web 第一版发布产物契约。
+- [x] 确认 Web 配置字段清单。
 - [ ] 提出 Desktop Online 第一版发布产物契约。
 - [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。

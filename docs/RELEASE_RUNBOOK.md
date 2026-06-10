@@ -1,6 +1,6 @@
 # Release 操作手册
 
-本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release.yml` 第一版，但只覆盖手动触发的主仓库 draft assemble 骨架；完整 tag-only 自动发布仍待后续实现。
+本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，但完整 tag-only 自动发布仍待后续补齐 Web/Desktop/App 构建、publish 和失败清理。
 
 ## 目标
 
@@ -24,10 +24,11 @@
 截至 2026-06-10：
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
-- `.github/workflows/release.yml` 已提供正式入口第一版，可手动接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
+- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。
+- `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；不构建 Web、Desktop 或 App，不自动 publish。
 - 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml` assemble。
-- 本手册描述目标流程，不表示当前已经可以只推 tag 发版。
+- 本手册描述目标流程；当前还不能完成“只推 tag 到 publish”的完整发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
 
@@ -50,9 +51,15 @@ on:
 - 确认 tag 指向的 root commit 存在。
 - checkout tag 对应的 root commit。
 - 读取 `services/backend`、`apps/web`、`apps/desktop` 和后续 `apps/mobile` 的子模块指针。
-- 计算 OpenAPI snapshot hash。
+- 通过 `scripts/openapi-snapshot-hash.ps1` 计算 OpenAPI snapshot hash。
 - 生成 `releaseIntentId`，推荐格式为 `<version>:<rootCommit>`。
 - 触发后端私有仓库 release resolve workflow。
+
+当前第一版限制：
+
+- 真实 tag push 会显式开启后端 `allow_native_build_fallback` 与 `trigger_release_assemble`。
+- 手动 `workflow_dispatch` 默认 `dry_run=true`，只验证上下文计算，不触发后端 resolver。
+- 第一版要求 `services/backend` 子模块 commit 等于后端仓库 `main` 指针；后续如需发布非 main 后端 commit，需要单独扩展 backend ref 策略。
 
 ### 后端 release resolve
 
@@ -84,7 +91,7 @@ on:
 触发方式：
 
 - 由后端私有仓库自动触发。
-- 当前第一版 `release.yml` 暂时通过 `workflow_dispatch` 手动触发，用于验证 assemble 骨架；后续再接入后端自动触发。
+- 当前第一版 `release.yml` 仍保留 `workflow_dispatch` 手动入口，用于排障或重跑 assemble。
 
 输入：
 

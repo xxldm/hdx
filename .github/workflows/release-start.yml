@@ -1,0 +1,283 @@
+name: Release Start
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "dry-run 发布版本，例如 v0.1.0；禁止 latest。"
+        required: true
+        default: "v0.0.0-start-smoke.1"
+        type: string
+      root_ref:
+        description: "dry-run 主仓库发布事实源 ref；禁止 latest。"
+        required: true
+        default: "refs/heads/main"
+        type: string
+      backend_repository:
+        description: "后端私有仓库，格式 owner/repo。"
+        required: true
+        default: "xxldm/hdx-backend"
+        type: string
+      dry_run:
+        description: "手动入口默认只验证上下文，不触发后端 resolver。"
+        required: true
+        default: true
+        type: boolean
+      trigger_backend_resolve:
+        description: "手动入口是否触发后端 resolver；dry_run=true 时强制跳过。"
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-start-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  start:
+    name: Start release chain
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      DEFAULT_BACKEND_REPOSITORY: xxldm/hdx-backend
+      DISPATCH_VERSION: ${{ inputs.version }}
+      DISPATCH_ROOT_REF: ${{ inputs.root_ref }}
+      DISPATCH_BACKEND_REPOSITORY: ${{ inputs.backend_repository }}
+      DISPATCH_DRY_RUN: ${{ inputs.dry_run }}
+      DISPATCH_TRIGGER_BACKEND_RESOLVE: ${{ inputs.trigger_backend_resolve }}
+    steps:
+      - name: 解析 release start 输入
+        id: start-context
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          function Assert-Pattern([string]$Name, [string]$Value, [string]$Pattern, [string]$Message) {
+            if ($Value -notmatch $Pattern) {
+              throw "$Name 无效：$Message"
+            }
+          }
+
+          function Assert-NoLatest([string]$Name, [string]$Value) {
+            if ($Value -match '(?i)latest') {
+              throw "$Name 不能包含 latest：$Value"
+            }
+          }
+
+          $eventName = $env:GITHUB_EVENT_NAME
+          $version = ''
+          $rootRef = ''
+          $backendRepository = ''
+          $dryRun = $true
+          $triggerBackendResolve = $false
+
+          if ($eventName -eq 'push') {
+            $rootRef = $env:GITHUB_REF.Trim()
+            if ($rootRef -notmatch '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$') {
+              throw "release-start.yml 只接受 v* release tag push：$rootRef"
+            }
+            $version = $env:GITHUB_REF_NAME.Trim()
+            $backendRepository = $env:DEFAULT_BACKEND_REPOSITORY
+            $dryRun = $false
+            $triggerBackendResolve = $true
+          }
+          else {
+            $version = $env:DISPATCH_VERSION.Trim()
+            $rootRef = $env:DISPATCH_ROOT_REF.Trim()
+            $backendRepository = $env:DISPATCH_BACKEND_REPOSITORY.Trim()
+            $dryRun = $env:DISPATCH_DRY_RUN -eq 'true'
+            $triggerBackendResolve = ($env:DISPATCH_TRIGGER_BACKEND_RESOLVE -eq 'true') -and (-not $dryRun)
+          }
+
+          Assert-Pattern 'version' $version '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
+          Assert-Pattern 'backend_repository' $backendRepository '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+          Assert-NoLatest 'version' $version
+          Assert-NoLatest 'root_ref' $rootRef
+          Assert-NoLatest 'backend_repository' $backendRepository
+
+          $isCommit = $rootRef -match '^[0-9a-f]{40}$'
+          $isHeadRef = $rootRef -match '^refs/heads/[A-Za-z0-9._/-]+$'
+          $isTagRef = $rootRef -match '^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$'
+          if (-not ($isCommit -or $isHeadRef -or $isTagRef)) {
+            throw "root_ref 必须是 40 位 root commit、refs/heads/* 或 release tag：$rootRef"
+          }
+
+          $backendParts = $backendRepository -split '/', 2
+
+          "version=$version" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "root_ref=$rootRef" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_repository=$backendRepository" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "dry_run=$($dryRun.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "trigger_backend_resolve=$($triggerBackendResolve.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "release start 输入通过：version=$version root_ref=$rootRef backend=$backendRepository dry_run=$dryRun trigger_backend_resolve=$triggerBackendResolve"
+
+      - name: Checkout 主仓库发布事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ steps.start-context.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 准备发布上下文
+        id: release-context
+        env:
+          VERSION: ${{ steps.start-context.outputs.version }}
+          ROOT_REF: ${{ steps.start-context.outputs.root_ref }}
+          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = (git rev-parse HEAD).Trim()
+          if ($rootCommit -notmatch '^[0-9a-f]{40}$') {
+            throw "无法解析 root commit：$rootCommit"
+          }
+
+          if ($env:ROOT_REF -match '^[0-9a-f]{40}$' -and $rootCommit -ne $env:ROOT_REF) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_REF，实际 $rootCommit"
+          }
+
+          $backendTree = git ls-tree HEAD services/backend
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($backendTree)) {
+            throw '读取 services/backend 子模块指针失败。'
+          }
+          if ($backendTree -notmatch '^160000 commit ([0-9a-f]{40})\s+services/backend$') {
+            throw "services/backend 不是预期的 gitlink：$backendTree"
+          }
+          $backendCommit = $Matches[1]
+
+          $openApiSnapshotHash = (pwsh -NoLogo -NoProfile -File scripts/openapi-snapshot-hash.ps1 -Quiet | Select-Object -Last 1).Trim()
+          if ($openApiSnapshotHash -notmatch '^[0-9a-f]{64}$') {
+            throw "OpenAPI snapshot hash 无效：$openApiSnapshotHash"
+          }
+
+          $requiredAssets = [ordered]@{
+            assets = @(
+              [ordered]@{ kind = 'backend-full'; platform = 'linux-x64' },
+              [ordered]@{ kind = 'backend-full'; platform = 'windows-x64' },
+              [ordered]@{ kind = 'backend-services'; platform = 'linux-x64' }
+            )
+          }
+          $requiredAssetsJson = $requiredAssets | ConvertTo-Json -Depth 20 -Compress
+          $releaseIntentId = "$env:VERSION`:$rootCommit"
+
+          "root_commit=$rootCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_commit=$backendCommit" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "openapi_snapshot_hash=$openApiSnapshotHash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "required_assets_json=$requiredAssetsJson" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_intent_id=$releaseIntentId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+          Write-Host "root commit：$rootCommit"
+          Write-Host "backend commit：$backendCommit"
+          Write-Host "OpenAPI snapshot hash：$openApiSnapshotHash"
+          Write-Host "required_assets_json：$requiredAssetsJson"
+          Write-Host "release_intent_id：$releaseIntentId"
+
+      - name: 生成后端仓库 GitHub App token
+        id: backend-token
+        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ steps.start-context.outputs.backend_owner }}
+          repositories: ${{ steps.start-context.outputs.backend_name }}
+          permission-actions: write
+          permission-contents: read
+
+      - name: 校验后端 main 指针
+        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
+          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $mainRef = gh api "repos/$env:BACKEND_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取后端 main 指针失败：$env:BACKEND_REPOSITORY"
+          }
+          $mainSha = $mainRef.Trim()
+          if ($mainSha -ne $env:BACKEND_COMMIT) {
+            throw "第一版 release start 要求 services/backend 子模块 commit 等于后端 main：main=$mainSha submodule=$env:BACKEND_COMMIT"
+          }
+
+          Write-Host "后端 main 指针校验通过：$mainSha"
+
+      - name: 触发后端 release resolve
+        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        env:
+          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
+          VERSION: ${{ steps.start-context.outputs.version }}
+          ROOT_REF: ${{ steps.start-context.outputs.root_ref }}
+          ROOT_COMMIT: ${{ steps.release-context.outputs.root_commit }}
+          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
+          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
+          OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
+          REQUIRED_ASSETS_JSON: ${{ steps.release-context.outputs.required_assets_json }}
+          RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          gh workflow run backend-release-resolve.yml `
+            --repo $env:BACKEND_REPOSITORY `
+            --ref main `
+            -f "version=$env:VERSION" `
+            -f "root_repository=${{ github.repository }}" `
+            -f "root_ref=$env:ROOT_REF" `
+            -f "root_commit=$env:ROOT_COMMIT" `
+            -f "backend_commit=$env:BACKEND_COMMIT" `
+            -f "openapi_snapshot_hash=$env:OPENAPI_SNAPSHOT_HASH" `
+            -f "required_assets_json=$env:REQUIRED_ASSETS_JSON" `
+            -f "historical_release_tag=" `
+            -f "allow_native_build_fallback=true" `
+            -f "trigger_release_assemble=true" `
+            -f "release_intent_id=$env:RELEASE_INTENT_ID"
+          if ($LASTEXITCODE -ne 0) {
+            throw "触发后端 release resolve 失败：$env:BACKEND_REPOSITORY"
+          }
+
+          Write-Host "已触发后端 release resolve：$env:BACKEND_REPOSITORY version=$env:VERSION"
+
+      - name: 输出 release start 摘要
+        if: always()
+        env:
+          JOB_STATUS: ${{ job.status }}
+          VERSION: ${{ steps.start-context.outputs.version }}
+          ROOT_REF: ${{ steps.start-context.outputs.root_ref }}
+          ROOT_COMMIT: ${{ steps.release-context.outputs.root_commit }}
+          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
+          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
+          OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
+          DRY_RUN: ${{ steps.start-context.outputs.dry_run }}
+          TRIGGER_BACKEND_RESOLVE: ${{ steps.start-context.outputs.trigger_backend_resolve }}
+          RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+        run: |
+          @"
+          # HDX Release Start
+
+          - status: ``$env:JOB_STATUS``
+          - version: ``$env:VERSION``
+          - root_ref: ``$env:ROOT_REF``
+          - root_commit: ``$env:ROOT_COMMIT``
+          - backend_repository: ``$env:BACKEND_REPOSITORY``
+          - backend_commit: ``$env:BACKEND_COMMIT``
+          - openapi_snapshot_hash: ``$env:OPENAPI_SNAPSHOT_HASH``
+          - dry_run: ``$env:DRY_RUN``
+          - trigger_backend_resolve: ``$env:TRIGGER_BACKEND_RESOLVE``
+          - release_intent_id: ``$env:RELEASE_INTENT_ID``
+
+          真实 tag push 会触发后端 ``backend-release-resolve.yml``，并显式开启 ``allow_native_build_fallback`` 与 ``trigger_release_assemble``。
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

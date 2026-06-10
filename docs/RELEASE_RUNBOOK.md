@@ -1,6 +1,6 @@
 # Release 操作手册
 
-本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，但完整 tag-only 自动发布仍待后续补齐 Web/Desktop/App 构建、publish 和失败清理。
+本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，Web node-server asset 已接入 assemble；完整 tag-only 自动发布仍待后续补齐 Desktop/App 构建、publish 和失败清理。
 
 ## 目标
 
@@ -25,8 +25,8 @@
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
 - `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。
-- `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
-- 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；不构建 Web、Desktop 或 App，不自动 publish。
+- `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，构建 Web node-server asset，创建 draft Release、上传资产并远端回读校验。
+- 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；已接入 Web node-server 构建，不构建 Desktop 或 App，不自动 publish。
 - 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml` assemble。
 - 本手册描述目标流程；当前还不能完成“只推 tag 到 publish”的完整发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
@@ -127,7 +127,7 @@ on:
 - 后端 release resolve 第一版可解析指定历史 Release asset；未指定时只检查最新一个合格已发布 Release，不排除 prerelease；匹配失败时可通过 `allow_native_build_fallback=true` 显式运行后端 native build fallback。
 - 后端 release resolve 可通过 `trigger_release_assemble=true` 显式回调主仓库 `release.yml`；手动排障默认关闭，避免误创建 draft Release。
 - 只创建并校验 draft Release。
-- 不构建 Web、Desktop 或 App。
+- 已构建 Web node-server asset；不构建 Desktop 或 App。
 - 不自动 publish。
 
 第一版 `github-actions-artifact` 多来源示例：

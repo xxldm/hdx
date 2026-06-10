@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -31,7 +31,7 @@
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
-- 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
+- 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 已接入 assemble，仍缺 Desktop/App 构建、正式 publish 和失败清理。
 
 ## 已确认结论
 
@@ -111,6 +111,7 @@
 - Desktop Linux AppImage 需要在 Linux runner 上验证 Online/Full flavor 构建、启动和桌面集成。
 - Release workflow 需要在上传前把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit。
 - Release workflow 后续需要从 Desktop 安装包/AppImage 和 `.sig` 文件派生 Tauri updater JSON，禁止手写 updater URL 或 signature 内容。
+- Release workflow 已接入 Web node-server asset 构建；后续仍需接入 Desktop/App 构建、正式 publish 和失败清理。
 
 ## 本地任务清单
 
@@ -125,7 +126,8 @@
 - [x] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [x] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
 - [x] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
-- [ ] 运行 docs 范围质量门禁。
+- [x] 将 Web node-server asset 接入正式 `release.yml` assemble。
+- [x] 运行 docs 范围质量门禁。
 
 ## 验收标准
 
@@ -164,10 +166,15 @@
 - 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，避免安装包默认文件名前缀包含空格；Windows 裸 EXE 的 `mainBinaryName` 允许使用空格，例如 `HDX Desktop Online.exe`。已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过；后续实际运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --no-bundle`，通过，生成 `src-tauri/target/release/HDX Desktop Online.exe`，验证后已清理 `src-tauri/target`。本条为改名 Full 前的历史记录。
 - 2026-06-10：Desktop Release asset 命名改为应用名前缀保留大小写与点分隔、使用 `_` 分组，例如 `HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe`；已运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 - 2026-06-10：Desktop 用户可见本地完整模式与构建 flavor 从 Local 收敛为 Full；`tauri.local.conf.json` 更名为 `tauri.full.conf.json`，脚本改为 `dev:full` / `build:full`，Rust feature 改为 `flavor-full`，状态面板字段改为 `includesFullBackend`。已运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`node_modules\.bin\tsc.CMD --noEmit`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-full` 和 `cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`，均通过；验证产生的 `src-tauri/target` 已清理。
+- 2026-06-10：正式 `.github/workflows/release.yml` 接入 Web node-server asset：assemble job 初始化根仓库锁定的 `apps/web` 子模块，使用 Node 24 + pnpm 10 构建 `hdx-web-node-server-<version>.tar.gz`，再通过 `scripts/release-append-web-asset.ps1` 追加 `sources.web`、`web-node-server` asset 并重算 `SHA256SUMS`。本地用 `target/release-append-web-fixture` 生成假后端 tar、假 Web tar 和最小 release manifest，运行 `pwsh -NoLogo -NoProfile -File scripts/release-append-web-asset.ps1 ...` 通过，脚本内部完成 release manifest schema、sha256/size 和禁止文件扫描；临时 fixture 已清理。
+- 2026-06-10：Web `scripts/package-node-server.mjs` 允许 `--version` 包含 SemVer build metadata 加号，避免 `release.yml` 已允许的 `v1.2.3+build` 版本在 Web 打包阶段失败。已在 `apps/web/` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.1.0+build.test --out-dir dist/package-plus-test`，通过；测试输出已清理。
+- 2026-06-10：运行 `actionlint .github/workflows/release.yml`，通过。
+- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
+- Web node-server 已接入正式 release assemble，但尚未做 GitHub-hosted release.yml 端到端实跑；需要后续用后端 resolver 回调或手动 workflow_dispatch 验证真实 Actions 环境中的 submodule checkout、pnpm install、cache 和 asset 上传。
 - Desktop 打包可能暴露 Tauri bundler、平台依赖或 runner 环境问题，需要在后续实现切片中单独验证。
 - Desktop Full sidecar 未实现前，不应发布让用户误以为可离线使用的 Full 安装包。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
@@ -177,6 +184,7 @@
 - `apps/web`：`80e164c` 功能：新增 Web 启动配置入口。
 - `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
 - `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
+- `apps/web`：`e479bc3` 构建：兼容 Web 发布包 build metadata 版本。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - 根仓库：本次提交更新客户端子模块指针与本计划状态。

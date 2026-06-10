@@ -200,7 +200,7 @@ validate-inputs
 
 - 创建 `HDX Backend Actions Bot` 和 `HDX Main Workflow Bot`，确认安装范围、最小权限和 secrets 命名。
 - 设计后端私有仓库 native CI：生成 artifact、manifest、sha256，设置 `retention-days: 1`，并触发主仓库 workflow。
-- 主仓库真实 `release-start.yml` 已完成 tag start 第一片：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：支持手动输入多个后端 Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。后端私有仓库已完成 release resolve 第一片，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml`。后续仍需补齐 Web/Desktop/App 构建、publish 和失败清理。
+- 主仓库真实 `release-start.yml` 已完成 tag start 第一片：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：支持手动输入多个后端 Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset，完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。后端私有仓库已完成 release resolve 第一片，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml`。后续仍需补齐 Desktop/App 构建、publish 和失败清理。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -211,3 +211,4 @@ validate-inputs
 - 2026-06-10：新增 `scripts/release-resolve-backend-sources.ps1` 和后端私有仓库 `.github/workflows/backend-release-resolve.yml`，提供后端来源解析第一片：从指定历史主仓库 Release，或未指定时从最新一个合格已发布 Release，生成可交给主仓库 `release.yml` 的 `backend_sources_json`。
 - 2026-06-10：`backend-release-resolve.yml` 增加可选 native build fallback 和可选主仓库 `release.yml` assemble 回调。手动排障默认不启用这两个开关，完整 tag-only release start 后续应显式开启。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 和 `.github/workflows/release-start.yml`。`release-start.yml` 的真实 `v*` tag push 路径会计算 root commit、后端子模块 commit、OpenAPI snapshot hash 和默认后端必需资产，并触发后端 resolver；手动入口默认 dry-run。
+- 2026-06-10：`release.yml` 接入 Web node-server asset 构建：只初始化根仓库锁定的 `apps/web` 子模块，不 checkout 后端私有源码；构建 `hdx-web-node-server-<version>.tar.gz` 后追加到 `release-manifest.json` 并重算 `SHA256SUMS`。Desktop/App 构建和自动 publish 仍待后续切片。

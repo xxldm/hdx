@@ -24,7 +24,7 @@ on:
         required: true
         type: string
       backend_source_mode:
-        description: "后端 native 来源；Actions artifact 可多项，历史 Release asset 第一版仍单项。"
+        description: "后端 native 来源；Actions artifact 与历史 Release asset 均可多项。"
         required: true
         type: choice
         options:
@@ -66,7 +66,6 @@ jobs:
       backend_name: ${{ steps.validate.outputs.backend_name }}
       historical_release_repo: ${{ steps.validate.outputs.historical_release_repo }}
       historical_release_tag: ${{ steps.validate.outputs.historical_release_tag }}
-      historical_backend_asset_name: ${{ steps.validate.outputs.historical_backend_asset_name }}
       openapi_snapshot_hash: ${{ steps.validate.outputs.openapi_snapshot_hash }}
       release_intent_id: ${{ steps.validate.outputs.release_intent_id }}
     steps:
@@ -141,11 +140,6 @@ jobs:
           if ($sources.Count -lt 1) {
             throw 'backend_sources_json 至少需要一个 sources 条目。'
           }
-          if ($backendSourceMode -eq 'historical-release-asset' -and $sources.Count -ne 1) {
-            throw "historical-release-asset 模式第一版只支持一个 sources 条目，当前数量：$($sources.Count)"
-          }
-
-          $source = $sources[0]
           for ($index = 0; $index -lt $sources.Count; $index++) {
             $modeFromJson = Get-OptionalString $sources[$index] 'type' $backendSourceMode
             if ($modeFromJson -ne $backendSourceMode) {
@@ -197,27 +191,55 @@ jobs:
             "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
           else {
-            $historicalReleaseRepo = Get-RequiredString $source 'historicalReleaseRepository'
-            $historicalReleaseTag = Get-RequiredString $source 'historicalReleaseTag'
-            $historicalBackendAssetName = Get-RequiredString $source 'historicalBackendAssetName'
-            $backendRepo = Get-RequiredString $source 'backendRepository'
+            $backendRepo = ''
+            $historicalReleaseRepo = ''
+            $historicalReleaseTag = ''
+            $seenHistoricalAssets = [System.Collections.Generic.HashSet[string]]::new([System.StringComparer]::OrdinalIgnoreCase)
 
-            Assert-Pattern 'historicalReleaseRepository' $historicalReleaseRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
-            Assert-Pattern 'historicalReleaseTag' $historicalReleaseTag '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3。'
-            Assert-Pattern 'historicalBackendAssetName' $historicalBackendAssetName '^[A-Za-z0-9][A-Za-z0-9._+@=-]*$' '必须是单个 Release asset 文件名。'
-            Assert-Pattern 'backendRepository' $backendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
-            Assert-NoLatest 'historicalReleaseRepository' $historicalReleaseRepo
-            Assert-NoLatest 'historicalReleaseTag' $historicalReleaseTag
-            Assert-NoLatest 'historicalBackendAssetName' $historicalBackendAssetName
-            Assert-NoLatest 'backendRepository' $backendRepo
+            foreach ($item in $sources) {
+              $itemHistoricalReleaseRepo = Get-RequiredString $item 'historicalReleaseRepository'
+              $itemHistoricalReleaseTag = Get-RequiredString $item 'historicalReleaseTag'
+              $itemHistoricalBackendAssetName = Get-RequiredString $item 'historicalBackendAssetName'
+              $itemAssetSha256 = Get-RequiredString $item 'assetSha256'
+              $itemAssetSizeBytes = Get-RequiredString $item 'assetSizeBytes'
+              $itemBackendRepo = Get-RequiredString $item 'backendRepository'
 
-            if ($historicalReleaseRepo -ne $rootRepository) {
-              throw "历史 Release asset 复用来源必须是当前主仓库：期望 $rootRepository，实际 $historicalReleaseRepo"
+              Assert-Pattern 'historicalReleaseRepository' $itemHistoricalReleaseRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+              Assert-Pattern 'historicalReleaseTag' $itemHistoricalReleaseTag '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3。'
+              Assert-Pattern 'historicalBackendAssetName' $itemHistoricalBackendAssetName '^[A-Za-z0-9][A-Za-z0-9._+@=-]*$' '必须是单个 Release asset 文件名。'
+              Assert-Pattern 'assetSha256' $itemAssetSha256 '^[0-9a-f]{64}$' '必须是 64 位小写 SHA-256。'
+              Assert-Pattern 'assetSizeBytes' $itemAssetSizeBytes '^[1-9][0-9]*$' '必须是大于 0 的整数。'
+              Assert-Pattern 'backendRepository' $itemBackendRepo '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' '必须形如 owner/repo。'
+              Assert-NoLatest 'historicalReleaseRepository' $itemHistoricalReleaseRepo
+              Assert-NoLatest 'historicalReleaseTag' $itemHistoricalReleaseTag
+              Assert-NoLatest 'historicalBackendAssetName' $itemHistoricalBackendAssetName
+              Assert-NoLatest 'backendRepository' $itemBackendRepo
+
+              if ($itemHistoricalReleaseRepo -ne $rootRepository) {
+                throw "历史 Release asset 复用来源必须是当前主仓库：期望 $rootRepository，实际 $itemHistoricalReleaseRepo"
+              }
+
+              if ([string]::IsNullOrWhiteSpace($backendRepo)) {
+                $backendRepo = $itemBackendRepo
+                $historicalReleaseRepo = $itemHistoricalReleaseRepo
+                $historicalReleaseTag = $itemHistoricalReleaseTag
+              }
+              else {
+                if ($backendRepo -ne $itemBackendRepo) {
+                  throw "historical-release-asset 多来源必须使用同一个后端仓库：期望 $backendRepo，实际 $itemBackendRepo"
+                }
+                if ($historicalReleaseRepo -ne $itemHistoricalReleaseRepo -or $historicalReleaseTag -ne $itemHistoricalReleaseTag) {
+                  throw "historical-release-asset 多来源第一版必须来自同一个历史 Release：期望 $historicalReleaseRepo@$historicalReleaseTag，实际 $itemHistoricalReleaseRepo@$itemHistoricalReleaseTag"
+                }
+              }
+
+              if (-not $seenHistoricalAssets.Add($itemHistoricalBackendAssetName)) {
+                throw "backend_sources_json 中重复的历史 Release asset：$itemHistoricalBackendAssetName"
+              }
             }
 
             "historical_release_repo=$historicalReleaseRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "historical_release_tag=$historicalReleaseTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            "historical_backend_asset_name=$historicalBackendAssetName" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
@@ -373,7 +395,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           HISTORICAL_RELEASE_REPO: ${{ needs.validate-inputs.outputs.historical_release_repo }}
           HISTORICAL_RELEASE_TAG: ${{ needs.validate-inputs.outputs.historical_release_tag }}
-          HISTORICAL_BACKEND_ASSET_NAME: ${{ needs.validate-inputs.outputs.historical_backend_asset_name }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -383,30 +404,57 @@ jobs:
           }
           New-Item -ItemType Directory -Path $historicalRoot | Out-Null
 
-          gh release download $env:HISTORICAL_RELEASE_TAG `
-            --repo $env:HISTORICAL_RELEASE_REPO `
-            --dir $historicalRoot `
-            --pattern 'release-manifest.json' `
-            --pattern 'backend-native-manifest.json' `
-            --pattern $env:HISTORICAL_BACKEND_ASSET_NAME
-          if ($LASTEXITCODE -ne 0) {
-            throw '下载历史 Release asset 失败。'
+          $payload = $env:BACKEND_SOURCES_JSON | ConvertFrom-Json -Depth 100
+          $sourcesProperty = $payload.PSObject.Properties['sources']
+          $sources = if ($null -ne $sourcesProperty) { @($sourcesProperty.Value) } else { @($payload) }
+          $resolvedSources = @()
+
+          for ($index = 0; $index -lt $sources.Count; $index++) {
+            $source = $sources[$index]
+            $assetName = [string]$source.historicalBackendAssetName
+            $sourceRoot = Join-Path $historicalRoot "source-$index"
+            New-Item -ItemType Directory -Path $sourceRoot -Force | Out-Null
+
+            gh release download $env:HISTORICAL_RELEASE_TAG `
+              --repo $env:HISTORICAL_RELEASE_REPO `
+              --dir $sourceRoot `
+              --pattern 'release-manifest.json' `
+              --pattern 'backend-native-manifest.json' `
+              --pattern $assetName
+            if ($LASTEXITCODE -ne 0) {
+              throw "下载历史 Release asset 失败：$assetName"
+            }
+
+            foreach ($name in @('release-manifest.json', 'backend-native-manifest.json', $assetName)) {
+              $path = Join-Path $sourceRoot $name
+              if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+                throw "历史 Release asset 下载后缺失：$name"
+              }
+            }
+
+            $resolved = [ordered]@{}
+            foreach ($property in $source.PSObject.Properties) {
+              $resolved[$property.Name] = $property.Value
+            }
+            $resolved['historicalAssetRoot'] = $sourceRoot
+            $resolvedSources += $resolved
+
+            Write-Host "历史 asset 下载完成：tag=$env:HISTORICAL_RELEASE_TAG name=$assetName root=$sourceRoot"
           }
 
-          foreach ($name in @('release-manifest.json', 'backend-native-manifest.json', $env:HISTORICAL_BACKEND_ASSET_NAME)) {
-            $path = Join-Path $historicalRoot $name
-            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
-              throw "历史 Release asset 下载后缺失：$name"
-            }
+          $resolvedPayload = [ordered]@{
+            sources = $resolvedSources
           }
+          New-Item -ItemType Directory -Path 'target/release' -Force | Out-Null
+          $resolvedPayload | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath 'target/release/historical-sources.resolved.json'
 
       - name: 生成并校验历史复用来源资产
         if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'historical-release-asset' }}
         run: |
           $ErrorActionPreference = 'Stop'
 
-          pwsh -NoLogo -NoProfile -File scripts/release-draft-reuse-backend-assets.ps1 `
-            -HistoricalAssetRoot 'target/release/historical' `
+          pwsh -NoLogo -NoProfile -File scripts/release-assemble-historical-backend-assets.ps1 `
+            -SourcesJsonPath 'target/release/historical-sources.resolved.json' `
             -Version $env:VERSION `
             -RootRepository $env:ROOT_REPOSITORY `
             -RootRef $env:ROOT_REF `
@@ -414,9 +462,6 @@ jobs:
             -BackendRepository $env:BACKEND_REPO `
             -BackendCommit $env:BACKEND_COMMIT `
             -OpenApiSnapshotHash $env:OPENAPI_SNAPSHOT_HASH `
-            -HistoricalReleaseRepository '${{ needs.validate-inputs.outputs.historical_release_repo }}' `
-            -HistoricalReleaseTag '${{ needs.validate-inputs.outputs.historical_release_tag }}' `
-            -HistoricalBackendAssetName '${{ needs.validate-inputs.outputs.historical_backend_asset_name }}' `
             -OutputDirectory $env:ASSET_ROOT
 
       - name: 创建 draft Release
@@ -607,7 +652,7 @@ jobs:
           ## 当前限制
 
           - ``github-actions-artifact`` 模式支持多个后端 native asset 来源。
-          - ``historical-release-asset`` 模式仍只支持单个后端 native asset 来源。
+          - ``historical-release-asset`` 模式支持同一个历史 Release 中的多个后端 native asset 来源。
           - 第一版不构建 Web、Desktop 或 App。
           - 第一版不自动 publish；校验通过后仍保持 draft。
 

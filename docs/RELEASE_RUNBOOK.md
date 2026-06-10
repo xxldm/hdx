@@ -25,7 +25,7 @@
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
 - `.github/workflows/release.yml` 已提供正式入口第一版，可手动接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
-- 当前 `release.yml` 支持多个后端 Actions artifact 聚合，历史 Release asset 仍只支持单个来源；不构建 Web、Desktop 或 App，不自动 publish。
+- 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；不构建 Web、Desktop 或 App，不自动 publish。
 - 本手册描述目标流程，不表示当前已经可以只推 tag 发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
@@ -73,7 +73,7 @@ on:
 
 - checkout 指定 `backend_commit`。
 - 计算 backend native fingerprint。
-- 查找主仓库历史 Release 中是否存在完全匹配的后端 native asset。
+- 查找主仓库历史 Release 中是否存在完全匹配的后端 native asset 集合。
 - 如果匹配，生成 `backend_source_mode=historical-release-asset`。
 - 如果不匹配，运行后端 native build，上传 `retention-days: 1` 的 Actions artifact，并生成 `backend_source_mode=github-actions-artifact`。
 - 触发主仓库 release assemble workflow。
@@ -114,7 +114,7 @@ on:
 当前第一版限制：
 
 - `github-actions-artifact` 模式支持多个 `backend_sources_json.sources` 条目。
-- `historical-release-asset` 模式第一版仍只支持一个 `backend_sources_json.sources` 条目。
+- `historical-release-asset` 模式支持多个 `backend_sources_json.sources` 条目，但第一版要求这些条目来自同一个历史主仓库 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
 - 只创建并校验 draft Release。
 - 不构建 Web、Desktop 或 App。
 - 不自动 publish。
@@ -149,7 +149,7 @@ on:
 }
 ```
 
-第一版 `historical-release-asset` 来源示例：
+第一版 `historical-release-asset` 多来源示例：
 
 ```json
 {
@@ -158,7 +158,18 @@ on:
       "type": "historical-release-asset",
       "historicalReleaseRepository": "xxldm/hdx",
       "historicalReleaseTag": "v0.1.0",
+      "historicalBackendAssetName": "hdx-backend-full-linux-x64-v0.1.0.tar.gz",
+      "assetSha256": "385875b7627f16e4a43293ef76e22665bdf6131bc1ebda1708b6d416c41177e0",
+      "assetSizeBytes": 161,
+      "backendRepository": "xxldm/hdx-backend"
+    },
+    {
+      "type": "historical-release-asset",
+      "historicalReleaseRepository": "xxldm/hdx",
+      "historicalReleaseTag": "v0.1.0",
       "historicalBackendAssetName": "hdx-backend-services-linux-x64-v0.1.0.tar.gz",
+      "assetSha256": "d1d245c11070d78478d598d73ab59ab312474931b1c5c1b16db1d22600362e39",
+      "assetSizeBytes": 220,
       "backendRepository": "xxldm/hdx-backend"
     }
   ]

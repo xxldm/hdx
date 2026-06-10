@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中
+- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release.yml` 已有手动 draft assemble 第一版，仍缺 tag-only start、后端 release resolve、Web/Desktop/App 构建、正式 publish 和失败清理。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-09
+- 最后更新：2026-06-10
 
 ## 目标
 
@@ -65,7 +65,7 @@
 - [x] GitHub-hosted 实跑手动最小 draft 复用入口。
 - [x] 设计正式 `release.yml` 第一版输入、job 图、后端来源解析、draft/publish 和失败处理边界。
 - [x] 新增 tag-only 日常发布操作手册，记录发版前检查、推 tag、观察自动化、失败处理和禁止事项；GitHub App 权限配置属于一次性外部配置，不写入仓库手册。
-- [ ] 后续实现 `.github/workflows/release.yml`，把后端 artifact 新建分支、历史 Release asset 复用分支、Web/Desktop/App 构建和正式 publish 整合成完整真实 GitHub Release workflow。
+- [ ] 后续完善 `.github/workflows/release.yml`，把 tag-only start、后端 release resolve、Web/Desktop/App 构建、正式 publish 和失败清理整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
 
@@ -93,11 +93,11 @@
 ## 风险与阻塞
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- `release-manifest.json` schema、校验脚本和手动最小 draft workflow 已能表达、校验、下载并重新上传历史 Release asset；ADR 0013/0014 已补齐 tag-only 目标发布设计，但完整真实 release workflow 仍未实现。
+- `release-manifest.json` schema、校验脚本、手动最小 draft workflow 和主仓库 `release.yml` draft assemble 第一版已能表达、校验、下载并重新上传历史 Release asset；ADR 0013/0014 已补齐 tag-only 目标发布设计，但完整 tag-only 自动发布链路仍未实现。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口，避免不同 workflow 用不同算法误判 native 输入是否变化。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 - 当前历史复用入口为保持 `backend-native-manifest.json` provenance，不重命名复用的后端 native asset；如需按新版本重命名，需要先设计 manifest rewrite 和校验规则。
-- 正式 tag-only 发布 workflow 尚不存在；后续实现时必须按 ADR 0013/0014 拆出主仓库 tag start、后端 release resolve、主仓库 release assemble、构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
+- 正式 tag-only 自动发布链路尚不存在；后续实现时必须按 ADR 0013/0014 拆出主仓库 tag start、后端 release resolve、主仓库 release assemble、构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
 
 ## 状态记录
 

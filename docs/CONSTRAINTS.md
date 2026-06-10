@@ -18,17 +18,10 @@
 
 ## 2. 框架与选型约束
 
-- 后端第一阶段已绑定 Java 25（GraalVM）、Maven 3.8.8、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x，详见 `docs/adr/0002-backend-java-spring-cloud-alibaba-architecture.md`。
-- Web 第一阶段已绑定 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm，详见 `docs/adr/0003-web-nuxt-architecture.md`。
-- Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段，Local/Online 通过构建 flavor 和安装包内容区分；详见 `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`。
-- App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI，首版 Online only，第二阶段只规划离线缓存/离线草稿；详见 `docs/adr/0009-mobile-native-online-first.md`。
-- 缓存、对象存储与队列第一阶段已绑定边界：服务端使用 Redis、S3-compatible 对象存储和 RabbitMQ；对象存储默认本地候选 RustFS；Desktop all-in-one 不内置 Redis/RabbitMQ，通过 H2 outbox 和 local worker 降级；详见 `docs/adr/0010-cache-object-storage-queue-boundary.md`。
-- 公开许可与后端私有边界已绑定：公开主仓库采用 Apache-2.0；后端仓库维持私有；公开主仓库禁止提交后端源码、JAR/WAR 和 `.class` 构建产物；详见 `docs/adr/0011-public-license-and-backend-private-boundary.md`。
-- GitHub Releases 产物边界已绑定：
-  - 主仓库是唯一公开发布入口。
-  - 公开 Release 不得包含后端源码、JAR/WAR、`.class` 或后端构建中间产物。
-  - 后端 native 只能通过受校验的 artifact/asset 交接与复用。
-  - 具体边界见 ADR 0012、ADR 0013、ADR 0014 和 `docs/RELEASE_RUNBOOK.md`。
+- 已由 ADR 接受的技术基线不得绕过或悄悄替换；当前基线索引见 `docs/ARCHITECTURE.md` 和 `docs/adr/`。
+- 后端、Web、Desktop、App、缓存/对象存储/队列、公开许可、后端私有边界和 GitHub Releases 产物边界均已有 ADR 约束。
+- 公开主仓库不得提交后端源码、JAR/WAR、`.class` 或后端构建中间产物。
+- 公开主仓库 GitHub Releases 是唯一公开发布入口；后端 native 只能通过受校验的 artifact/asset 交接与复用。
 - 引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - ADR 至少说明：背景、决策、备选方案、影响范围、验证方式、回滚条件。
 - 默认选择可读、稳定、生态成熟、容易被工具和智能体检查的技术。

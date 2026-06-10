@@ -169,11 +169,11 @@ validate-inputs
 
 ## 验证方式
 
-本轮文档决策验证：
+通用文档验证按 `docs/QUALITY.md` 和 `docs/AGENT_WORKFLOW.md` 执行。
 
-- 使用 PowerShell 7+ / `pwsh` 读取本 ADR、ADR 0012、架构、约束、README 和总纲。
-- 使用 `rg` 检查 `GitHub App token`、`retention-days: 1`、`run_id`、`draft`、`fine-grained PAT`、`latest` 和跨 Release 旧资产复用策略是否可发现。
-- 执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
+本 ADR 特有检查：
+
+- `GitHub App token`、`retention-days: 1`、`run_id`、`draft`、`fine-grained PAT`、`latest` 和跨 Release 旧资产复用策略在相关文档中可发现。
 
 后续实现验证：
 

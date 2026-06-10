@@ -94,7 +94,7 @@ backend native fingerprint 至少包含：
 - 使用 `actionlint services/backend/.github/workflows/backend-native-artifact.yml` 检查 workflow 语法。
 - 使用后端打包脚本 dummy dry-run 验证 `backend-services` 聚合打包仍可从显式 executable 路径生成 archive。
 - 使用根仓库 `scripts/release-manifest-check.ps1` 校验生成的 `backend-native-manifest.json` 和 `backend-services-manifest.json`。
-- 执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
+- 通用文档验证按 `docs/QUALITY.md` 和 `docs/AGENT_WORKFLOW.md` 执行。
 
 后续真实发布 workflow 实现复用时还必须验证：
 

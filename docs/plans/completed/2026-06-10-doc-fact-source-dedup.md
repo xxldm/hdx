@@ -20,7 +20,7 @@
 
 ## 非目标
 
-- 不压缩 active plan 中用于交接的状态、验证命令、失败记录和剩余风险。
+- 不压缩仍作为具体实施交接的 active plan；总纲类 active plan 可以收敛为入口、当前状态、剩余风险和链接。
 - 不重写 completed plan 的历史验证记录；历史命令即使包含旧写法，也只作为当时执行记录保留。
 - 不改动子模块源码或发布 workflow 行为。
 
@@ -31,8 +31,14 @@
 - `docs/README.md`
 - `docs/CONSTRAINTS.md`
 - `docs/ARCHITECTURE.md`
+- `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`
+- `docs/adr/0009-mobile-native-online-first.md`
+- `docs/adr/0010-cache-object-storage-queue-boundary.md`
+- `docs/adr/0011-public-license-and-backend-private-boundary.md`
+- `docs/adr/0012-github-releases-artifact-boundary.md`
 - `docs/adr/0013-release-workflow-token-and-artifact-policy.md`
 - `docs/adr/0014-release-native-build-budget-and-reuse-strategy.md`
+- `docs/plans/active/2026-06-05-hdx-follow-up-roadmap.md`
 - `packages/shared/contracts/release/README.md`
 
 ## 完成内容
@@ -46,6 +52,10 @@
 - 调整 ADR 0013 的 Release 资产来源表述，使当前策略明确为“非后端资产不自动复用；后端 native 受 ADR 0014 管控复用”。
 - 调整 ADR 0014 的后续事项，记录 Linux services 并行 workflow 已实跑，Windows services 仍按需验证。
 - 拆分 `packages/shared/contracts/release/README.md` 中 release 契约的长段说明。
+- 二次扫描处理语义重复，不只处理超长行。
+- 将 `docs/CONSTRAINTS.md` 的技术基线段从 ADR 摘要合集收敛为硬约束和 ADR 索引。
+- 将 ADR 0008 至 ADR 0014 的通用验证样板收敛到 `docs/QUALITY.md` 和 `docs/AGENT_WORKFLOW.md`，ADR 内只保留自身需要确认的状态点。
+- 将 HDX 后续事项总纲压缩为当前状态、步骤入口、剩余风险和链接，移除已归档切片的 run id、artifact id、验证命令和历史流水账复述。
 
 ## 验证结果
 
@@ -54,15 +64,17 @@
   - 未发现 `docs/GIT.md` 仍作为权限失败规则事实源的当前指示。
   - 未发现“第一版真实 release workflow 不做跨 Release 旧资产自动复用”仍作为当前策略。
 - 已执行长行扫描：剩余超长行主要位于 active/completed plan 的历史命令、run 记录、`WORKFLOW.md` 的 YAML 命令行、`services/backend/README.md` 的 Windows 验证命令和 `docs/ENVIRONMENT.md` 的环境变量说明；本轮按事实源分工保留。
+- 已执行 ADR 验证样板扫描：ADR 0008 至 ADR 0014 不再重复记录“使用 PowerShell 7+ / `pwsh` 读取文档”“使用 `rg` 检查文档状态”“执行 docs 质量门禁”等通用步骤。
 - 已执行 `git diff --check`：通过，仅出现 Git for Windows 行尾提示。
 - 已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，覆盖关键文档读取、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
 ## 剩余风险
 
-- Active plan 和 completed plan 中仍有长行、旧命令和历史状态描述；这些属于交接或历史验证记录，本轮不为了格式统一而删除。
+- 具体实施型 active plan 和 completed plan 中仍有长行、旧命令和历史状态描述；这些属于交接或历史验证记录，本轮不为了格式统一而删除。
 - `services/backend/README.md` 中存在较长的 Windows `cmd.exe` 验证命令，属于后端子仓库文档，本轮未改动。
 - `docs/ENVIRONMENT.md` 中仍有较长环境变量分层说明；该文件是环境配置事实源，本轮只处理明显重复和过期入口。
 
 ## 相关 commit
 
-- 本提交：`杂项：整理文档事实源边界`。
+- `杂项：整理文档事实源边界`
+- `杂项：收敛文档重复职责`

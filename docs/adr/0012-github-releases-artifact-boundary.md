@@ -112,11 +112,11 @@ manifest/
 
 ## 验证方式
 
-本轮文档决策验证：
+通用文档验证按 `docs/QUALITY.md` 和 `docs/AGENT_WORKFLOW.md` 执行。
 
-- 使用 PowerShell 7+ / `pwsh` 读取本 ADR、约束、架构、README 和计划。
-- 使用 `rg` 检查 GitHub Releases、Actions artifact、backend-services、backend-full、`latest`、App 不内置后端和后端源码禁止项是否可发现。
-- 执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
+本 ADR 特有检查：
+
+- GitHub Releases、Actions artifact、backend-services、backend-full、`latest` 禁止、App 不内置后端和后端源码禁止项在相关文档中可发现。
 
 当前根仓库已提供本地脚本 `scripts/release-manifest-check.ps1`，用于校验 release manifest schema、manifest 核心字段、样例、可选真实文件 sha256/size 和禁止文件扫描。脚本不引入外部 schema 校验依赖，只覆盖当前 release schema 使用到的 JSON Schema 子集。后续 workflow 实现时必须接入该脚本或等价校验，并补齐发布上下文一致性：
 

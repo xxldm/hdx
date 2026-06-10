@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证，Desktop build 尚未实测
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Local exe build 已验证，Online NSIS 中英双语安装包已验证，绿色包边界待确认
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -28,6 +28,7 @@
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
+- Desktop Windows 当前可生成 `hdx-desktop-online.exe`、`hdx-desktop-local.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
 
 ## 已确认结论
@@ -79,6 +80,12 @@
 
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
+- Desktop Windows 安装包和绿色包是否都先只发 Online；Full/Local 是否继续只作为内部验证产物，直到 sidecar 和本地 Web 启动完成。
+- Desktop Windows 绿色包内容：只放单 exe，还是放 `exe + README/LICENSE/NOTICE + 默认配置模板`。
+- Desktop Windows 安装包安装范围：默认当前用户安装，还是提供 per-machine 安装选项。
+- Desktop Windows 安装包和绿色包是否需要发布前重命名为无空格文件名，例如 `hdx-desktop-online-windows-x64-<version>-setup.exe` 和 `hdx-desktop-online-windows-x64-<version>.zip`。
+- Desktop Windows 是否接受首版未签名；如果不接受，需要先确定代码签名证书和 CI secret。
+- Desktop Windows 是否需要配置 WebView2 runtime 安装/检测策略。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。
 - `release-manifest.json` 是否需要新增 Web/Desktop asset 的固定字段，还是先沿用通用 `assets[]` 来源记录。
 
@@ -90,6 +97,7 @@
 - [x] 确认 Web 配置字段清单。
 - [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 client/public sourcemap 关闭。
 - [x] 实现 Web `hdx-web-node-server-<version>.tar.gz` 打包脚本和包结构检查。
+- [x] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
 - [ ] 提出 Desktop Online 第一版发布产物契约。
 - [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
@@ -118,6 +126,12 @@
 - 2026-06-10：同一 tar 包在 Windows Node 下解压后运行 `node start-web.mjs` 并请求 `/login`，通过。
 - 2026-06-10：WSL 需要沙盒外执行；通过提权路径运行 `wsl bash /mnt/d/Project/hdx/apps/web/dist/web-smoke-run.sh`，脚本解压 `dist/hdx-web-node-server-dev.tar.gz`、检查 `start.sh` 可执行、使用 `./start.sh` 启动并请求 `/login`，通过。
 - 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `public/` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
+- 2026-06-10：在 `apps/desktop/` 普通权限运行 `node_modules\.bin\tsc.CMD --noEmit` 和 `node_modules\.bin\vite.CMD build`，均通过。
+- 2026-06-10：在 `apps/desktop/` 普通权限运行 Tauri build 时，`beforeBuildCommand` 调用 `pnpm run build:web` 触发已知 Codex sandbox `EPERM: lstat C:\Users\zengl`；随后按规则使用提权路径重跑通过。
+- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online`，通过，生成 `src-tauri/target/release/hdx-desktop-online.exe`。
+- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.local.conf.json --features flavor-local`，通过，生成 `src-tauri/target/release/hdx-desktop-local.exe`。
+- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过，生成 `src-tauri/target/release/bundle/nsis/HDX Desktop Online_0.1.0_x64-setup.exe`。
+- 2026-06-10：Desktop NSIS 正式配置加入 `SimpChinese`、`English` 和 `displayLanguageSelector` 后重打 Online NSIS，通过；生成的 `installer.nsi` 包含 `MUI_LANGUAGE "SimpChinese"`、`MUI_LANGUAGE "English"` 和 `MUI_LANGDLL_DISPLAY`。
 
 ## 剩余风险
 
@@ -131,4 +145,5 @@
 - `apps/web`：`80e164c` 功能：新增 Web 启动配置入口。
 - `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
 - `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
-- 根仓库：本次提交更新 `apps/web` 子模块指针与本计划状态。
+- `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
+- 根仓库：本次提交更新客户端子模块指针与本计划状态。

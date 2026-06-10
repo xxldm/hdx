@@ -150,13 +150,12 @@ jobs:
             throw 'Web 依赖安装失败。'
           }
 
-          pnpm package:node-server -- --version $env:VERSION --out-dir '../../target/public-release-assets/web'
+          node scripts/package-node-server.mjs --version $env:VERSION --out-dir 'dist/public-release-assets'
           if ($LASTEXITCODE -ne 0) {
             throw 'Web node-server 打包失败。'
           }
 
-          $repoRoot = (Resolve-Path '../..').Path
-          $archivePath = Join-Path $repoRoot "target/public-release-assets/web/hdx-web-node-server-$env:VERSION.tar.gz"
+          $archivePath = Join-Path (Get-Location).Path "dist/public-release-assets/hdx-web-node-server-$env:VERSION.tar.gz"
           if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
             throw "Web node-server 打包完成后未找到资产：$archivePath"
           }
@@ -166,7 +165,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: public-release-assets-web
-          path: target/public-release-assets/web/*
+          path: apps/web/dist/public-release-assets/*
           if-no-files-found: error
           retention-days: 1
 
@@ -177,8 +176,8 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
 
-          $assets = if (Test-Path -LiteralPath 'target/public-release-assets/web') {
-            (Get-ChildItem -LiteralPath 'target/public-release-assets/web' -File | Sort-Object Name | ForEach-Object { "- ``$($_.Name)`` ($($_.Length) bytes)" }) -join [Environment]::NewLine
+          $assets = if (Test-Path -LiteralPath 'apps/web/dist/public-release-assets') {
+            (Get-ChildItem -LiteralPath 'apps/web/dist/public-release-assets' -File | Sort-Object Name | ForEach-Object { "- ``$($_.Name)`` ($($_.Length) bytes)" }) -join [Environment]::NewLine
           }
           else {
             '未生成'

@@ -692,13 +692,18 @@ jobs:
             throw 'Web 依赖安装失败。'
           }
 
-          pnpm package:node-server -- --version $env:VERSION --out-dir "../../$($env:ASSET_ROOT)"
+          $webAssetOutDir = 'dist/release-assets'
+          node scripts/package-node-server.mjs --version $env:VERSION --out-dir $webAssetOutDir
           if ($LASTEXITCODE -ne 0) {
             throw 'Web node-server 打包失败。'
           }
 
           $repoRoot = (Resolve-Path '../..').Path
-          $archivePath = Join-Path $repoRoot (Join-Path $env:ASSET_ROOT "hdx-web-node-server-$env:VERSION.tar.gz")
+          $sourceArchivePath = Join-Path (Get-Location).Path (Join-Path $webAssetOutDir "hdx-web-node-server-$env:VERSION.tar.gz")
+          $assetRootPath = Join-Path $repoRoot $env:ASSET_ROOT
+          New-Item -ItemType Directory -Path $assetRootPath -Force | Out-Null
+          $archivePath = Join-Path $assetRootPath "hdx-web-node-server-$env:VERSION.tar.gz"
+          Copy-Item -LiteralPath $sourceArchivePath -Destination $archivePath -Force
           if (-not (Test-Path -LiteralPath $archivePath -PathType Leaf)) {
             throw "Web node-server 打包完成后未找到资产：$archivePath"
           }

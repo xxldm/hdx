@@ -50,10 +50,13 @@
 - `git -C services/backend diff --check`
 - `git -C services/backend diff --cached --check`
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
+- GitHub Actions smoke run `27256705032`：失败，默认 `github.token` 无法在后端私有仓库 workflow 中 checkout 主仓库，报错 `repository 'https://github.com/xxldm/hdx/' not found`。
+- GitHub Actions smoke run `27257119592`：失败，已进入 `actions/create-github-app-token@v3.2.0`，但 `HDX Main Workflow Bot` 当前安装未授予 `Contents: read`，报错 `The permissions requested are not granted to this installation.`。
+- smoke 使用的两个临时主仓库 draft Release `v0.0.0-resolver-smoke.20260610140148` 和 `v0.0.0-resolver-smoke.20260610141215` 已清理；`gh release list --repo xxldm/hdx --limit 20 --json tagName,name,isDraft,isPrerelease` 返回 `[]`。
 
 ## 剩余风险
 
-- `backend-release-resolve.yml` 首次 GitHub Actions smoke run `27256705032` 失败于默认 `github.token` 无法跨私有仓库 checkout 主仓库，后续已改为使用 `HDX Main Workflow Bot` 的 `Contents: read` token；修复后仍需复跑确认。
+- `backend-release-resolve.yml` 真实 GitHub Actions smoke 当前阻塞在外部 GitHub App 安装权限：`HDX Main Workflow Bot` 需要在主仓库安装中授予 `Contents: read`，并在权限变更后重新批准或重新安装；完成后需要复跑同一 smoke。
 - 历史 Release 仍由人工指定；自动搜索可复用历史 Release 需要后续切片。
 - 匹配失败后尚未自动触发后端 native-image workflow。
 - 后端 resolver 尚未用 GitHub App token 回调主仓库正式 assemble。

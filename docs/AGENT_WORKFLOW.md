@@ -7,6 +7,8 @@
 - 项目 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1。
 - 优先使用仓库内已有脚本入口，例如 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed`。
 - 可以用 `rg`、`git status`、`git diff`、`Get-Content` 等只读命令做排查；涉及 Git 写操作、网络、依赖下载或构建产物写入时，按本文件的权限规则处理。
+- 在 Windows/Codex 本地环境中，不使用 `git submodule foreach` 做常规子模块状态检查。该命令依赖 Git for Windows 的 shell 辅助环境，已多次稳定失败为 `basename: command not found`、`sed: command not found` 或 `git-sh-setup: file not found`，容易浪费排查时间。
+- 检查全部子模块状态时使用 `pwsh -NoLogo -NoProfile -File scripts/git-submodule-status.ps1 -RepoRoot <repo>`；检查单个子模块时使用 `git -C <submodule-path> status --short --branch`、`git -C <submodule-path> rev-parse HEAD` 等直接命令。
 
 ## Windows PowerShell 运行环境
 

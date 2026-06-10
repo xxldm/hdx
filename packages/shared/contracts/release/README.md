@@ -68,7 +68,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `assets[].kind` 优先使用发布物粒度：`web-node-server`、`desktop-installer`、`desktop-portable`、`desktop-appimage`、`desktop-updater-manifest`、`desktop-update-signature`、`backend-full`、`backend-services`、`android-online`、`harmonyos-online` 或 `metadata`。旧值 `web`、`desktop-online` 和 `desktop-full` 仅作为兼容入口保留，后续正式生成逻辑不应继续新增。
 - `assets[].flavor` 用于区分 Desktop `online` 与 `full`；`assets[].packaging` 用于区分 `tar.gz`、`zip`、`nsis`、`appimage`、`tauri-updater-json`、`tauri-updater-signature` 等发布包形态；`assets[].channel` 用于区分 `stable`、`preview`、`nightly` 或 `manual`。
 - `desktop-updater-manifest` 表示 Tauri v2 updater 使用的静态 JSON 文件。它不是 `release-manifest.json` 本身，而是由 Release asset、`.sig` 文件和发布上下文生成的小型更新入口。
-- Tauri updater JSON 的 Release asset 文件名不得包含 `latest`；稳定版建议使用 `hdx-desktop-online-stable.json` / `hdx-desktop-full-stable.json`。客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
+- Tauri updater JSON 的 Release asset 文件名不得包含 `latest`；稳定版建议使用 `HDX.Desktop.Online_stable.json` / `HDX.Desktop.Full_stable.json`。客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
 - `assets[].updater.format` 当前固定为 `tauri-v2-static-json`，`signatureRequired` 固定为 `true`。Tauri updater 签名与 Windows 安装包代码签名不是同一件事：首版 Windows 安装包可以未签名，但自动更新 artifact 仍必须有 Tauri updater signature。
 - `backendNativeFingerprint.algorithm` 当前固定为 `hdx-backend-native-fingerprint-v1`；它记录后端 commit、artifact kind、platform、服务列表、OpenAPI hash、打包脚本版本、Java/GraalVM 版本、Maven native profile、native-image 参数、Spring AOT、RuntimeHints、reachability metadata 和 native metadata 输入。
 - `backend-full` 表示 Desktop Full 使用的本地完整后端 native archive。

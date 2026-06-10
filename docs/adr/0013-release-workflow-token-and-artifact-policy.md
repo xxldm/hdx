@@ -200,7 +200,7 @@ validate-inputs
 
 - 创建 `HDX Backend Actions Bot` 和 `HDX Main Workflow Bot`，确认安装范围、最小权限和 secrets 命名。
 - 设计后端私有仓库 native CI：生成 artifact、manifest、sha256，设置 `retention-days: 1`，并触发主仓库 workflow。
-- 主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：支持手动输入多个后端 Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。后续仍需补齐 tag-only start、后端 release resolve 自动触发、Web/Desktop/App 构建、publish 和失败清理。
+- 主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：支持手动输入多个后端 Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。后端私有仓库已完成 release resolve 第一片，可手动解析指定历史主仓库 Release 是否可复用并生成 `backend_sources_json`。后续仍需补齐 tag-only start、后端 release resolve 自动触发/构建分支、Web/Desktop/App 构建、publish 和失败清理。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -208,3 +208,4 @@ validate-inputs
 - 2026-06-10：新增 `.github/workflows/release.yml` 第一版。该版本是正式命名入口，但仍为 `workflow_dispatch` draft assemble 骨架；不 checkout 后端私有源码，不使用 `latest`，不构建 Web/Desktop/App，不自动 publish。
 - 2026-06-10：`release.yml` 扩展为支持多个后端 Actions artifact 聚合；`backend_sources_json.sources[]` 可列出同一后端仓库、同一后端 workflow run 的多个 artifact。当时历史 Release asset 来源仍保持单资产限制。
 - 2026-06-10：`release.yml` 扩展为支持多个历史主仓库 Release asset 复用；`historical-release-asset` 第一版要求多个来源来自同一个历史 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
+- 2026-06-10：新增 `scripts/release-resolve-backend-sources.ps1` 和后端私有仓库 `.github/workflows/backend-release-resolve.yml`，提供后端来源解析第一片：从指定历史主仓库 Release 生成可交给主仓库 `release.yml` 的 `backend_sources_json`；暂不自动触发 native-image 或回调主仓库 assemble。

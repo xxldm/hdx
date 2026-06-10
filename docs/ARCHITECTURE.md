@@ -121,6 +121,7 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
 - `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema 位于 `packages/shared/contracts/release/`。
 - 当前已有 `check-*` 与 `debug-*` 手动验证 workflow；它们不是正式发布入口，具体用途见 `.github/workflows/README.md`。
 - `.github/workflows/release.yml` 已提供正式发布入口第一版：手动接收后端来源 payload，支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，创建并远端校验 draft Release；尚不 publish。
+- `services/backend/.github/workflows/backend-release-resolve.yml` 已提供后端来源解析第一版：手动解析指定历史主仓库 Release 是否可复用并生成 `backend_sources_json`；尚不自动触发后端 native-image 或回调主仓库 assemble。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
 正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把主仓库 tag start、后端 release resolve、Web/Desktop/App 构建、正式 publish 和失败清理串联起来。

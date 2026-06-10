@@ -27,12 +27,13 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
   -ScanPath path/to/backend-native-or-services-package
 ```
 
-主仓库当前已有四个 draft Release 资产整理入口：
+主仓库当前已有五个 release 资产整理或解析入口：
 
 - `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产。该脚本会为后端 native asset 写入 `backendNativeFingerprint`，供后续历史 Release asset 复用校验。
 - `scripts/release-draft-reuse-backend-assets.ps1`：消费主仓库指定历史 Release 中已经公开的 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset。该脚本校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成本次后端 native 来源为 `historical-release-asset` 的最小 Release 资产。
 - `scripts/release-assemble-backend-assets.ps1`：消费多个已下载的后端私有仓库 Actions artifact 目录，逐个复用后端 artifact 校验后，聚合生成统一 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和多个后端 native Release asset。
 - `scripts/release-assemble-historical-backend-assets.ps1`：消费多个已下载的历史主仓库 Release asset 目录，校验每个历史 asset 的显式 sha256/size、fingerprint、历史构建上下文和禁止文件扫描后，聚合生成当前版本的 `release-manifest.json`、`SHA256SUMS` 和多个复用后端 native Release asset。该脚本第一版要求多个来源来自同一个历史 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
+- `scripts/release-resolve-backend-sources.ps1`：消费候选历史主仓库 Release asset 目录和 required assets 列表，校验 sha256/size、OpenAPI hash 和 backend native fingerprint 后，输出可直接交给主仓库 `release.yml` 的 `backend_sources_json`。当前只覆盖历史 Release asset 可复用路径，匹配失败时要求后续运行后端 native workflow。
 
 历史复用入口当前不重命名复用的后端 native asset。原因是历史 `backend-native-manifest.json` 会记录原始 archive 文件名；若要把复用 archive 改成新版本文件名，需要先设计 manifest rewrite 和对应校验规则。
 
@@ -89,10 +90,11 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 
 ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。
 
-当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1`、`scripts/release-assemble-backend-assets.ps1`、`scripts/release-assemble-historical-backend-assets.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验：
+当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1`、`scripts/release-assemble-backend-assets.ps1`、`scripts/release-assemble-historical-backend-assets.ps1`、`scripts/release-resolve-backend-sources.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验：
 
 - 多个后端 Actions artifact 聚合时的逐资产来源。
 - 多个历史主仓库 Release asset 复用时的逐资产来源。
+- 指定历史主仓库 Release 可复用时的 `backend_sources_json` 生成。
 - 历史 release tag、asset name、sha256 和 size。
 - backend native fingerprint。
 - 历史后端 asset 构建来源。

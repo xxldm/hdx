@@ -122,7 +122,7 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - `backend-services` Linux 并行 workflow 已完成 GitHub-hosted 实跑验证；Windows services 包仍默认不跑，后续需要发布时再显式验证。
-- `.github/workflows/release.yml` 第一版已支持多个后端 Actions artifact 聚合，并支持从同一个历史主仓库 Release 复用多个后端 native asset；完整 `resolve-backend-native` 自动 fingerprint 匹配和后端 release resolve 触发仍待后续实现。
+- `.github/workflows/release.yml` 第一版已支持多个后端 Actions artifact 聚合，并支持从同一个历史主仓库 Release 复用多个后端 native asset；后端私有仓库已提供手动 release resolve 第一片，可从指定历史主仓库 Release 生成复用 payload。完整 tag-only 触发、自动搜索历史 Release、匹配失败后的后端 native build 分支和主仓库 assemble 回调仍待后续实现。
 - 补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
@@ -136,3 +136,4 @@ backend native fingerprint 至少包含：
 - 2026-06-10：`.github/workflows/release.yml` 第一版复用既有最小 draft 脚本，支持手动输入单个后端 native Actions artifact 或历史主仓库 Release asset 来源，并创建、上传、远端校验 draft Release。
 - 2026-06-10：新增 `scripts/release-assemble-backend-assets.ps1`，支持把多个后端 Actions artifact 聚合为统一 `backend-native-manifest.json`、`release-manifest.json`、`SHA256SUMS` 和多个后端 native Release asset。当时历史 Release asset 多资产复用与自动 fingerprint 匹配仍未实现。
 - 2026-06-10：新增 `scripts/release-assemble-historical-backend-assets.ps1`，支持从同一个历史主仓库 Release 复用多个后端 native asset；第一版要求显式输入每个历史 asset 的 sha256/size，并要求来源覆盖历史 `backend-native-manifest.json` 中的全部后端 native asset。
+- 2026-06-10：新增 `scripts/release-resolve-backend-sources.ps1` 和后端私有仓库 `backend-release-resolve.yml`，先覆盖指定历史 Release 的复用解析：校验 required assets、sha256/size、OpenAPI hash 和 backend native fingerprint 后输出 `backend_sources_json`。

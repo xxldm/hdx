@@ -30,7 +30,7 @@
 - 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml` assemble。
 - 本手册描述目标流程；当前还不能完成“只推 tag 到 publish”的完整发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
-- 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
+- 安装器代码签名、公证、自动更新运行时接入、release notes 和版本号策略仍待单独确认；Tauri updater 静态 JSON 与 `release-manifest.json` 的清单边界已在 release 契约中确认。
 
 ## 目标 workflow
 
@@ -113,6 +113,7 @@ on:
 - 构建 Desktop Online。
 - 构建 Desktop Full，并内置同平台 `backend-full`。
 - 后续 App 可打包后构建 App Online。
+- 从 Desktop 安装包/AppImage 和 Tauri `.sig` 文件生成 flavor/channel 专用 updater JSON，例如 `hdx-desktop-online-stable.json` 和 `hdx-desktop-full-stable.json`。
 - 生成 `release-manifest.json` 和 `SHA256SUMS`。
 - 创建 draft Release。
 - 上传全部资产。

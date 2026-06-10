@@ -31,7 +31,8 @@
   },
   "assets": [
     {
-      "kind": "web",
+      "kind": "web-node-server",
+      "packaging": "zip",
       "fileName": "hdx-web-v0.1.0.zip",
       "sha256": "e1f6ba286ed70dd081672027a9711efd54b9fd1437babd413cb130c2d35c18ec",
       "sizeBytes": 35,

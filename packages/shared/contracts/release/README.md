@@ -65,6 +65,11 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `githubActionsArtifacts` 用于记录多个后端 Actions artifact 聚合时每个 backend asset 对应的 workflow run、run attempt、artifact name 和可选 artifact id。
 - `assets[].source.githubActions` 用于记录单个 backend asset 来自哪个后端 Actions artifact。
 - `assets[].source.type=historical-release-asset` 只允许用于 `backend-full` 或 `backend-services`，并必须记录历史 release tag、历史 asset 名称、sha256、size、历史 release manifest sha256、历史构建 root/backend/OpenAPI 上下文和 `backendNativeFingerprint`。
+- `assets[].kind` 优先使用发布物粒度：`web-node-server`、`desktop-installer`、`desktop-portable`、`desktop-appimage`、`desktop-updater-manifest`、`desktop-update-signature`、`backend-full`、`backend-services`、`android-online`、`harmonyos-online` 或 `metadata`。旧值 `web`、`desktop-online` 和 `desktop-full` 仅作为兼容入口保留，后续正式生成逻辑不应继续新增。
+- `assets[].flavor` 用于区分 Desktop `online` 与 `full`；`assets[].packaging` 用于区分 `tar.gz`、`zip`、`nsis`、`appimage`、`tauri-updater-json`、`tauri-updater-signature` 等发布包形态；`assets[].channel` 用于区分 `stable`、`preview`、`nightly` 或 `manual`。
+- `desktop-updater-manifest` 表示 Tauri v2 updater 使用的静态 JSON 文件。它不是 `release-manifest.json` 本身，而是由 Release asset、`.sig` 文件和发布上下文生成的小型更新入口。
+- Tauri updater JSON 的 Release asset 文件名不得包含 `latest`；稳定版建议使用 `hdx-desktop-online-stable.json` / `hdx-desktop-full-stable.json`。客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
+- `assets[].updater.format` 当前固定为 `tauri-v2-static-json`，`signatureRequired` 固定为 `true`。Tauri updater 签名与 Windows 安装包代码签名不是同一件事：首版 Windows 安装包可以未签名，但自动更新 artifact 仍必须有 Tauri updater signature。
 - `backendNativeFingerprint.algorithm` 当前固定为 `hdx-backend-native-fingerprint-v1`；它记录后端 commit、artifact kind、platform、服务列表、OpenAPI hash、打包脚本版本、Java/GraalVM 版本、Maven native profile、native-image 参数、Spring AOT、RuntimeHints、reachability metadata 和 native metadata 输入。
 - `backend-full` 表示 Desktop Full 使用的本地完整后端 native archive。
 - `backend-services` 表示服务端微服务部署用平台聚合包；Release asset 不按微服务拆分，微服务粒度记录在 `backend-services-manifest.json` 的 `services` 字段中。
@@ -84,6 +89,8 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 
 - `backend-native-manifest.json` 的 `version`、`root.ref`、`root.commit`、`openapiSnapshotHash` 与主仓库发布上下文一致。
 - `release-manifest.json` 中所有 asset 的 sha256 与真实上传文件一致。
+- `desktop-updater-manifest` asset 的 sha256 与真实 Tauri updater JSON 一致；其 `updater.targets[]` 只引用同一 Release 中存在且已签名的 Desktop 安装包或 AppImage。
+- Tauri updater JSON 中的 `version`、平台 key、下载 URL 和 signature 内容必须由 release workflow 从已生成 asset 与 `.sig` 文件派生，禁止手写。
 - Desktop Full 内置 `backend-build.json` 中的 `archiveSha256` 与公开 Release 中对应 `backend-full` asset 的 sha256 一致。
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制和配置示例；`manifest/SHA256SUMS` 覆盖除自身外的包内文件。manifest 自身不写入 `files`，避免自引用 hash。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。

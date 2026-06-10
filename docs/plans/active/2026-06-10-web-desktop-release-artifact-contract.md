@@ -54,6 +54,8 @@
 - Desktop Release asset 文件名统一使用无空格命名。
 - Desktop Windows 首版允许未签名；release notes 需要提示 Windows SmartScreen 或系统安全提示风险。
 - Desktop 绿色包包含可运行程序、`README`、`LICENSE`、`NOTICE` 和 release manifest 摘要；不包含另一套默认配置模板。
+- `release-manifest.json` 作为 Release 总账，记录所有 Web/Desktop/后端 asset 的 sha256、size、来源、platform、flavor、packaging 和 channel；Tauri updater 使用的静态 JSON 作为 `desktop-updater-manifest` asset 记录在总账中，但不直接复用 `release-manifest.json` 作为客户端 updater endpoint。
+- Tauri updater JSON 按 Desktop flavor/channel 分开生成，例如 `hdx-desktop-online-stable.json` 与 `hdx-desktop-full-stable.json`；文件名不使用 `latest`，客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
 
 ## Desktop 第一版 Release asset 命名
 
@@ -108,7 +110,7 @@
 - Desktop Windows 需要补绿色 zip 打包脚本，确保包含 exe、`README`、`LICENSE`、`NOTICE` 和 manifest 摘要，并拒绝包含源码、构建缓存或额外配置模板。
 - Desktop Linux AppImage 需要在 Linux runner 上验证 Online/Full flavor 构建、启动和桌面集成。
 - Release workflow 需要在上传前把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit。
-- `release-manifest.json` 是否需要新增 Web/Desktop asset 的固定字段，还是先沿用通用 `assets[]` 来源记录。
+- Release workflow 后续需要从 Desktop 安装包/AppImage 和 `.sig` 文件派生 Tauri updater JSON，禁止手写 updater URL 或 signature 内容。
 
 ## 本地任务清单
 
@@ -121,8 +123,8 @@
 - [x] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
 - [x] 提出 Desktop Online 第一版发布产物契约。
 - [x] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
-- [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
-- [ ] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
+- [x] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
+- [x] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
 - [ ] 运行 docs 范围质量门禁。
 
 ## 验收标准
@@ -156,6 +158,9 @@
 - 2026-06-10：Desktop NSIS 配置显式加入 `installMode: currentUser`，Windows `webviewInstallMode` 显式设为 `embedBootstrapper` 且 `silent: false`；已用 `ConvertFrom-Json` 确认 `apps/desktop/src-tauri/tauri.conf.json` 可解析。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过。
+- 2026-06-10：扩展 `release-manifest.json` schema，新增 Web/Desktop 发布物粒度 kind、flavor、packaging、channel 和 Tauri updater 静态 JSON 引用字段；样例已覆盖 `web-node-server`、`desktop-installer`、`desktop-update-signature` 和 `desktop-updater-manifest`。
+- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`，通过。
+- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过，覆盖新增 release manifest schema、样例、ADR、runbook 和 debug dry-run 资产清单。
 
 ## 剩余风险
 

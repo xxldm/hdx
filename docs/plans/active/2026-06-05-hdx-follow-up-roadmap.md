@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有正式 `release.yml` draft assemble 第一版、多后端 Actions artifact 聚合、多历史 Release asset 复用和后端来源解析第一片，仍缺完整 tag-only 自动链路、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release draft assemble、多后端 artifact 聚合、多历史 asset 复用、后端来源解析和最新合格 Release 自动选择，仍缺完整 tag-only 自动链路、签名/公证/自动更新、release notes 和版本号策略。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-10
@@ -139,6 +139,7 @@
   - `docs/plans/completed/2026-06-10-release-multi-backend-assets.md`
   - `docs/plans/completed/2026-06-10-release-historical-multi-assets.md`
   - `docs/plans/completed/2026-06-10-release-backend-source-resolver.md`
+  - `docs/plans/completed/2026-06-10-release-latest-qualified-backend-reuse.md`
 
 ## 验收标准
 
@@ -157,7 +158,7 @@
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop 的 all-in-one sidecar 启动、本机 token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 第 9 步完整 tag-only GitHub Release workflow、`backend-services-windows-x64`、后端来源解析的构建/回调、Web/Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
+- 第 9 步完整 tag-only GitHub Release workflow、`backend-services-windows-x64`、后端来源解析的 native build fallback/回调、Web/Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略尚未实现。
 
 ## 相关 commit
 

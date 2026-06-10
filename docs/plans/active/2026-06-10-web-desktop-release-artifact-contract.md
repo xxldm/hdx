@@ -179,6 +179,7 @@
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 - 2026-06-11：GitHub Actions `Check Public Release Assets` 的 Web job 失败在 `构建 Web node-server 资产`。原因是主仓库 workflow 使用 `pnpm package:node-server -- --version ...`，pnpm 10 会把额外的 `--` 原样传给 `scripts/package-node-server.mjs`，触发 `未知参数：--`；同时 workflow 试图把 `--out-dir` 指向 `../../target/...`，不符合 Web 打包脚本“输出目录必须位于 apps/web 内”的安全边界。已改为直接调用 `node scripts/package-node-server.mjs --version ... --out-dir dist/...`，check workflow 直接上传 `apps/web/dist/...`，正式 release workflow 再复制 archive 到根仓库 asset 目录。
 - 2026-06-11：同一次 Actions run 暴露 Desktop Linux job 失败：Tauri `generate_context!` 找不到 `apps/desktop/src-tauri/icons/icon.png`。已按用户指定把 `D:\SynologyDrive\主题\图标\png\3.png` 复制为 `apps/desktop/src-tauri/icons/icon.png`，并运行 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 通过，确认 Tauri 宏不再因缺 PNG 图标失败。
+- 2026-06-11：推送上述修复后重跑 `Check Public Release Assets`，Web job 进入真实 Nuxt build 后失败在 `scripts/package-node-server.mjs` 的符号链接检查：Linux runner 上 Nitro server `node_modules` 内存在 pnpm/Nitro 生成的 symlink。已在 `apps/web` 子模块中让打包脚本先物化 package tree 内的 symlink，再执行“发布包不含 symlink/Junction”校验和压缩；同时更新 Web README，避免继续使用 `pnpm ... -- --version` 示例。已在 `apps/web` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.0.0 --out-dir dist/workflow-arg-test`、`node_modules\.bin\eslint.CMD scripts/package-node-server.mjs` 和 `node_modules\.bin\vitest.CMD run`，均通过；测试输出已清理。
 
 ## 剩余风险
 
@@ -194,6 +195,7 @@
 - `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
 - `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
 - `apps/web`：`e479bc3` 构建：兼容 Web 发布包 build metadata 版本。
+- `apps/web`：`be49be5` 修复：物化 Web 发布包符号链接。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。

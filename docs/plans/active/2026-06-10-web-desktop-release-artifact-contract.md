@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Local exe build 已验证，Online NSIS 中英双语安装包已验证，绿色包边界待确认
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Local exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -29,6 +29,8 @@
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
 - Desktop Windows 当前可生成 `hdx-desktop-online.exe`、`hdx-desktop-local.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
+- Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
+- Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
 
 ## 已确认结论
@@ -47,6 +49,29 @@
 - `start-web.mjs` 可以使用 YAML 解析依赖，但该依赖必须随 Web 发布产物一起打入包内，不能要求用户在部署机器上执行 `npm install`。
 - 正式生产包不通过事后手工删除 client/public sourcemap 来达成，而是在 Nuxt/Vite/Nitro 构建配置中关闭 client sourcemap；打包脚本仍应检查 `public/` 下不存在 `*.map`。
 - Linux 启动 smoke 可在本机 WSL 中执行；当前 WSL 已有 Node.js `v24.16.0`，Web node-server 包运行时不应再要求额外安装 npm 依赖。
+- Desktop 第一版正式 Release 需要同时提供 Online 与 Full；Full 只有在真实 sidecar、本机 token 注入和本地 Web 启动闭环完成后才能作为用户可用产物发布。
+- Desktop Windows 同时发布 NSIS 安装包和绿色 zip 包；Linux 第一版优先发布 AppImage。
+- Desktop Release asset 文件名统一使用无空格命名。
+- Desktop Windows 首版允许未签名；release notes 需要提示 Windows SmartScreen 或系统安全提示风险。
+- Desktop 绿色包包含可运行程序、`README`、`LICENSE`、`NOTICE` 和 release manifest 摘要；不包含另一套默认配置模板。
+
+## Desktop 第一版 Release asset 命名
+
+| 平台 | Flavor | 产物 | 命名 |
+| --- | --- | --- | --- |
+| Windows x64 | Online | NSIS 安装包 | `hdx-desktop-online-windows-x64-<version>-setup.exe` |
+| Windows x64 | Online | 绿色包 | `hdx-desktop-online-windows-x64-<version>.zip` |
+| Windows x64 | Full | NSIS 安装包 | `hdx-desktop-full-windows-x64-<version>-setup.exe` |
+| Windows x64 | Full | 绿色包 | `hdx-desktop-full-windows-x64-<version>.zip` |
+| Linux x64 | Online | AppImage | `hdx-desktop-online-linux-x64-<version>.AppImage` |
+| Linux x64 | Full | AppImage | `hdx-desktop-full-linux-x64-<version>.AppImage` |
+
+说明：
+
+- `<version>` 使用 release tag 对应版本，不包含空格。
+- Windows 安装包内部显示名称仍可保留 `HDX Desktop Online` / `HDX Desktop Full`；无空格要求只约束 Release asset 文件名。
+- 绿色包不是另一套配置模型，只是免安装交付形态；远端地址、本机模式状态和用户偏好仍写入用户级 app config。
+- Linux 如后续 AppImage 在 WebKitGTK 或桌面集成上出现不可接受兼容问题，再补 `.deb` / `.rpm`，不在第一版默认增加包型。
 
 ## Web 配置字段清单
 
@@ -76,17 +101,13 @@
 - `auth.refreshSkewSeconds` 必须大于等于 0。
 - `localBackend.tokenHeader` 和 `localBackend.token` 要么都为空，要么都填写。
 
-## 待确认问题
+## 待实现问题
 
-- Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
-- Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
-- Desktop Windows 安装包和绿色包是否都先只发 Online；Full/Local 是否继续只作为内部验证产物，直到 sidecar 和本地 Web 启动完成。
-- Desktop Windows 绿色包内容：只放单 exe，还是放 `exe + README/LICENSE/NOTICE + 默认配置模板`。
-- Desktop Windows 安装包安装范围：默认当前用户安装，还是提供 per-machine 安装选项。
-- Desktop Windows 安装包和绿色包是否需要发布前重命名为无空格文件名，例如 `hdx-desktop-online-windows-x64-<version>-setup.exe` 和 `hdx-desktop-online-windows-x64-<version>.zip`。
-- Desktop Windows 是否接受首版未签名；如果不接受，需要先确定代码签名证书和 CI secret。
-- Desktop Windows 是否需要配置 WebView2 runtime 安装/检测策略。
-- Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。
+- Desktop Online 需要实现远端地址填写、校验、用户级持久化和登录前连接检查。
+- Desktop Full 需要实现同平台 `backend-full` sidecar 打包、启动、健康检查、本机 token 注入和退出清理。
+- Desktop Windows 需要补绿色 zip 打包脚本，确保包含 exe、`README`、`LICENSE`、`NOTICE` 和 manifest 摘要，并拒绝包含源码、构建缓存或额外配置模板。
+- Desktop Linux AppImage 需要在 Linux runner 上验证 Online/Full flavor 构建、启动和桌面集成。
+- Release workflow 需要在上传前把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit。
 - `release-manifest.json` 是否需要新增 Web/Desktop asset 的固定字段，还是先沿用通用 `assets[]` 来源记录。
 
 ## 本地任务清单
@@ -98,8 +119,8 @@
 - [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 client/public sourcemap 关闭。
 - [x] 实现 Web `hdx-web-node-server-<version>.tar.gz` 打包脚本和包结构检查。
 - [x] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
-- [ ] 提出 Desktop Online 第一版发布产物契约。
-- [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
+- [x] 提出 Desktop Online 第一版发布产物契约。
+- [x] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
 - [ ] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
 - [ ] 运行 docs 范围质量门禁。
@@ -132,6 +153,9 @@
 - 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.local.conf.json --features flavor-local`，通过，生成 `src-tauri/target/release/hdx-desktop-local.exe`。
 - 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过，生成 `src-tauri/target/release/bundle/nsis/HDX Desktop Online_0.1.0_x64-setup.exe`。
 - 2026-06-10：Desktop NSIS 正式配置加入 `SimpChinese`、`English` 和 `displayLanguageSelector` 后重打 Online NSIS，通过；生成的 `installer.nsi` 包含 `MUI_LANGUAGE "SimpChinese"`、`MUI_LANGUAGE "English"` 和 `MUI_LANGDLL_DISPLAY`。
+- 2026-06-10：Desktop NSIS 配置显式加入 `installMode: currentUser`，Windows `webviewInstallMode` 显式设为 `embedBootstrapper` 且 `silent: false`；已用 `ConvertFrom-Json` 确认 `apps/desktop/src-tauri/tauri.conf.json` 可解析。
+- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
+- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过。
 
 ## 剩余风险
 

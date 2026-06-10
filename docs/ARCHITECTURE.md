@@ -156,7 +156,7 @@ Web 浏览器代码不直接访问后端地址。
 - 对象存储上传下载业务接口、文件生命周期、消息 topic、consumer 拓扑和具体业务接入点。
 - 真实 GitHub Actions release workflow 的完整实现、失败重试策略和人工发布确认体验；跨仓库凭据与 artifact 策略已由 ADR 0013 约束，当前仅有 release dry-run workflow 骨架。
 - Release notes 和版本号策略。
-- Desktop 安装器签名、公证、自动更新、发布渠道和 Local/Online 数据导入导出格式。
+- Desktop 自动更新、发布渠道、Local/Online 数据导入导出格式，以及从首版未签名发布切换到签名发布的条件。
 - App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的存储、同步队列、冲突处理和加密策略。
 
 ## 后端第一阶段架构

@@ -514,8 +514,14 @@
         "kind": {
           "enum": [
             "web",
+            "web-node-server",
             "desktop-online",
             "desktop-full",
+            "desktop-installer",
+            "desktop-portable",
+            "desktop-appimage",
+            "desktop-updater-manifest",
+            "desktop-update-signature",
             "backend-full",
             "backend-services",
             "android-online",
@@ -529,6 +535,36 @@
             "linux-x64",
             "android",
             "harmonyos"
+          ]
+        },
+        "flavor": {
+          "enum": [
+            "online",
+            "full"
+          ]
+        },
+        "packaging": {
+          "enum": [
+            "tar.gz",
+            "zip",
+            "nsis",
+            "msi",
+            "appimage",
+            "apk",
+            "aab",
+            "hap",
+            "app",
+            "tauri-updater-json",
+            "tauri-updater-signature",
+            "json"
+          ]
+        },
+        "channel": {
+          "enum": [
+            "stable",
+            "preview",
+            "nightly",
+            "manual"
           ]
         },
         "fileName": {
@@ -591,6 +627,81 @@
               "$ref": "#/$defs/backendNativeFingerprint"
             }
           }
+        },
+        "updater": {
+          "$ref": "#/$defs/tauriUpdaterInfo"
+        }
+      }
+    },
+    "tauriUpdaterInfo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format",
+        "endpoint",
+        "signatureRequired",
+        "targets"
+      ],
+      "properties": {
+        "format": {
+          "const": "tauri-v2-static-json"
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "signatureRequired": {
+          "const": true
+        },
+        "publicKeyId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "targets": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/tauriUpdaterTarget"
+          }
+        }
+      }
+    },
+    "tauriUpdaterTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "platform",
+        "assetName",
+        "signatureFileName",
+        "url"
+      ],
+      "properties": {
+        "platform": {
+          "enum": [
+            "windows-x64",
+            "linux-x64"
+          ]
+        },
+        "assetName": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "signatureFileName": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "pattern": "latest"
+          }
+        },
+        "signatureSha256": {
+          "$ref": "#/$defs/sha256"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
         }
       }
     }

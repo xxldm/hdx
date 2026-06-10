@@ -123,11 +123,15 @@ jobs:
 
           $version = $env:HDX_RELEASE_VERSION
           $assets = @(
-            "hdx-web-$version.zip",
-            "hdx-desktop-online-windows-x64-$version.msi",
+            "hdx-web-node-server-$version.tar.gz",
+            "hdx-desktop-online-windows-x64-$version-setup.exe",
+            "hdx-desktop-online-windows-x64-$version.zip",
             "hdx-desktop-online-linux-x64-$version.AppImage",
-            "hdx-desktop-full-windows-x64-$version.msi",
+            "hdx-desktop-online-stable.json",
+            "hdx-desktop-full-windows-x64-$version-setup.exe",
+            "hdx-desktop-full-windows-x64-$version.zip",
             "hdx-desktop-full-linux-x64-$version.AppImage",
+            "hdx-desktop-full-stable.json",
             "hdx-backend-full-windows-x64-$version.zip",
             "hdx-backend-full-linux-x64-$version.tar.gz",
             "hdx-backend-services-windows-x64-$version.zip",

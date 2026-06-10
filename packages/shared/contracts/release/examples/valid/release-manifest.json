@@ -9,6 +9,16 @@
     "commit": "1111111111111111111111111111111111111111"
   },
   "sources": {
+    "web": {
+      "repository": "xxldm/hdx-web",
+      "commit": "3333333333333333333333333333333333333333",
+      "path": "apps/web"
+    },
+    "desktop": {
+      "repository": "xxldm/hdx-desktop",
+      "commit": "4444444444444444444444444444444444444444",
+      "path": "apps/desktop"
+    },
     "backend": {
       "repository": "xxldm/hdx-backend",
       "commit": "2222222222222222222222222222222222222222"
@@ -31,13 +41,74 @@
   },
   "assets": [
     {
-      "kind": "web",
-      "fileName": "hdx-web-v0.1.0.zip",
+      "kind": "web-node-server",
+      "packaging": "tar.gz",
+      "fileName": "hdx-web-node-server-v0.1.0.tar.gz",
+      "contentType": "application/gzip",
       "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
       "sizeBytes": 1,
       "source": {
-        "type": "root",
+        "type": "web",
+        "commit": "3333333333333333333333333333333333333333"
+      }
+    },
+    {
+      "kind": "desktop-installer",
+      "platform": "windows-x64",
+      "flavor": "online",
+      "packaging": "nsis",
+      "channel": "stable",
+      "fileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe",
+      "contentType": "application/vnd.microsoft.portable-executable",
+      "sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+      "sizeBytes": 2,
+      "source": {
+        "type": "desktop",
+        "commit": "4444444444444444444444444444444444444444"
+      }
+    },
+    {
+      "kind": "desktop-update-signature",
+      "platform": "windows-x64",
+      "flavor": "online",
+      "packaging": "tauri-updater-signature",
+      "channel": "stable",
+      "fileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe.sig",
+      "contentType": "text/plain",
+      "sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+      "sizeBytes": 3,
+      "source": {
+        "type": "desktop",
+        "commit": "4444444444444444444444444444444444444444"
+      }
+    },
+    {
+      "kind": "desktop-updater-manifest",
+      "flavor": "online",
+      "packaging": "tauri-updater-json",
+      "channel": "stable",
+      "fileName": "hdx-desktop-online-stable.json",
+      "contentType": "application/json",
+      "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "sizeBytes": 4,
+      "source": {
+        "type": "generated",
         "commit": "1111111111111111111111111111111111111111"
+      },
+      "updater": {
+        "format": "tauri-v2-static-json",
+        "endpoint": "https://github.com/xxldm/hdx/releases/latest/download/hdx-desktop-online-stable.json",
+        "signatureRequired": true,
+        "publicKeyId": "hdx-desktop-updater-v1",
+        "targets": [
+          {
+            "platform": "windows-x64",
+            "assetName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe",
+            "signatureFileName": "hdx-desktop-online-windows-x64-v0.1.0-setup.exe.sig",
+            "signatureSha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "url": "https://github.com/xxldm/hdx/releases/download/v0.1.0/hdx-desktop-online-windows-x64-v0.1.0-setup.exe"
+          }
+        ]
       }
     }
   ]

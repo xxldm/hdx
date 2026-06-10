@@ -1,6 +1,6 @@
 # Release 操作手册
 
-本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前正式发布 workflow 尚未实现；本手册用于后续实现和真实发版时对齐常规操作步骤。
+本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release.yml` 第一版，但只覆盖手动触发的主仓库 draft assemble 骨架；完整 tag-only 自动发布仍待后续实现。
 
 ## 目标
 
@@ -24,7 +24,8 @@
 截至 2026-06-10：
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
-- 正式 tag-only release workflow 尚未实现。
+- `.github/workflows/release.yml` 已提供正式入口第一版，可手动接收后端来源 payload，创建 draft Release、上传资产并远端回读校验。
+- 当前 `release.yml` 只支持单个后端 native asset 来源，不构建 Web、Desktop 或 App，不自动 publish。
 - 本手册描述目标流程，不表示当前已经可以只推 tag 发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器签名、公证、自动更新、release notes 和版本号策略仍待单独确认。
@@ -82,6 +83,7 @@ on:
 触发方式：
 
 - 由后端私有仓库自动触发。
+- 当前第一版 `release.yml` 暂时通过 `workflow_dispatch` 手动触发，用于验证 assemble 骨架；后续再接入后端自动触发。
 
 输入：
 
@@ -108,6 +110,45 @@ on:
 - 上传全部资产。
 - 从远端 Release 回读全部资产并复验。
 - 校验通过后 publish Release。
+
+当前第一版限制：
+
+- 只支持一个 `backend_sources_json.sources` 条目。
+- 只创建并校验 draft Release。
+- 不构建 Web、Desktop 或 App。
+- 不自动 publish。
+
+第一版 `github-actions-artifact` 来源示例：
+
+```json
+{
+  "sources": [
+    {
+      "type": "github-actions-artifact",
+      "backendRepository": "xxldm/hdx-backend",
+      "runId": 123456789,
+      "runAttempt": 1,
+      "artifactName": "hdx-backend-services-native-v0.1.0-linux-x64"
+    }
+  ]
+}
+```
+
+第一版 `historical-release-asset` 来源示例：
+
+```json
+{
+  "sources": [
+    {
+      "type": "historical-release-asset",
+      "historicalReleaseRepository": "xxldm/hdx",
+      "historicalReleaseTag": "v0.1.0",
+      "historicalBackendAssetName": "hdx-backend-services-linux-x64-v0.1.0.tar.gz",
+      "backendRepository": "xxldm/hdx-backend"
+    }
+  ]
+}
+```
 
 ## 人工发版步骤
 

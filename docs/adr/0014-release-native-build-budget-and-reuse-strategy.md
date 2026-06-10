@@ -122,7 +122,7 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - `backend-services` Linux 并行 workflow 已完成 GitHub-hosted 实跑验证；Windows services 包仍默认不跑，后续需要发布时再显式验证。
-- 按 ADR 0013 的 `release.yml` job 设计，将当前手动最小 draft 复用入口并入 `resolve-backend-native` 后端来源解析分支。
+- `.github/workflows/release.yml` 第一版已支持从单个历史主仓库 Release asset 生成并校验 draft Release；完整 `resolve-backend-native` 多后端资产来源解析、自动 fingerprint 匹配和后端 release resolve 触发仍待后续实现。
 - 补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
@@ -133,3 +133,4 @@ backend native fingerprint 至少包含：
 - 2026-06-09：`scripts/release-draft-minimal-assets.ps1` 已为从后端 Actions artifact 整理出的后端 native asset 写入 `backendNativeFingerprint`，使该 draft Release 后续可作为历史 Release asset 复用来源。
 - 2026-06-09：GitHub-hosted run `27209181697` 已创建带 `backendNativeFingerprint` 的历史 draft Release `v0.0.0-services-parallel.2`；run `27209326174` 已成功复用该历史 Release asset 创建 draft Release `v0.0.0-services-parallel.3`，并完成远端资产 size/sha256 回读校验。
 - 2026-06-09：补充正式 `release.yml` 设计中的 `resolve-backend-native` 接入规则：后端 Actions artifact 和历史主仓库 Release asset 两种来源最终输出同一种已校验后端资产目录；历史复用第一版保留历史后端 native asset 文件名，不做 manifest rewrite。
+- 2026-06-10：`.github/workflows/release.yml` 第一版复用既有最小 draft 脚本，支持手动输入单个后端 native Actions artifact 或历史主仓库 Release asset 来源，并创建、上传、远端校验 draft Release；多后端资产聚合与自动 fingerprint 匹配仍未实现。

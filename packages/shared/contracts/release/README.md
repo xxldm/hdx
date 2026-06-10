@@ -10,7 +10,12 @@
 pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1
 ```
 
-默认校验本目录下的 schema 文件存在、可解析、`manifestKind` 与文件职责一致，并运行最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。后续有真实 manifest 或候选发布包时，可以传入参数做严格 schema 校验、核心字段校验、真实文件 sha256/size 校验和禁止文件扫描：
+默认校验：
+
+- 本目录下的 schema 文件存在、可解析，且 `manifestKind` 与文件职责一致。
+- 最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。
+
+后续有真实 manifest 或候选发布包时，可以传入参数做严格 schema 校验、核心字段校验、真实文件 sha256/size 校验和禁止文件扫描：
 
 ```powershell
 pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
@@ -24,8 +29,8 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 
 主仓库当前已有两个最小 draft Release 资产整理入口：
 
-- `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产，并为后端 native asset 写入 `backendNativeFingerprint`，供后续历史 Release asset 复用校验。
-- `scripts/release-draft-reuse-backend-assets.ps1`：消费主仓库指定历史 Release 中已经公开的 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset，校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成本次后端 native 来源为 `historical-release-asset` 的最小 Release 资产。
+- `scripts/release-draft-minimal-assets.ps1`：消费后端私有仓库 Actions artifact，生成本次后端 native 来源为 `github-actions-artifact` 的最小 Release 资产。该脚本会为后端 native asset 写入 `backendNativeFingerprint`，供后续历史 Release asset 复用校验。
+- `scripts/release-draft-reuse-backend-assets.ps1`：消费主仓库指定历史 Release 中已经公开的 `release-manifest.json`、`backend-native-manifest.json` 和后端 native asset。该脚本校验 fingerprint、sha256、size、历史构建上下文和禁止文件扫描后，生成本次后端 native 来源为 `historical-release-asset` 的最小 Release 资产。
 
 历史复用入口当前不重命名复用的后端 native asset。原因是历史 `backend-native-manifest.json` 会记录原始 archive 文件名；若要把复用 archive 改成新版本文件名，需要先设计 manifest rewrite 和对应校验规则。
 
@@ -78,4 +83,13 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `backend-services-manifest.json` 中 `files` 列表覆盖压缩包内应被追踪的二进制和配置示例；`manifest/SHA256SUMS` 覆盖除自身外的包内文件。manifest 自身不写入 `files`，避免自引用 hash。
 - 后端 native archive 和 `backend-services` 聚合包不得包含后端源码、JAR/WAR、`.class`、`target/classes` 或后端构建中间目录。
 
-ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验历史 release tag、asset name、sha256、size、backend native fingerprint 和历史构建来源；校验逻辑会区分当前发布事实源和历史后端 asset 的构建 `root.commit`。`.github/workflows/debug-release-draft-reuse-backend.yml` 提供手动最小 draft 复用闭环；完整真实 release workflow 仍需后续把后端 artifact 新建分支、历史 asset 复用分支、Web/Desktop/App 构建和正式 publish 串成统一发布链路。
+ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中已经公开的后端 native asset。
+
+当前 `release-manifest.schema.json`、样例、`scripts/release-manifest-check.ps1` 和 `scripts/release-draft-reuse-backend-assets.ps1` 已能记录并校验：
+
+- 历史 release tag、asset name、sha256 和 size。
+- backend native fingerprint。
+- 历史后端 asset 构建来源。
+- 当前发布事实源与历史后端 asset 构建 `root.commit` 的区别。
+
+`.github/workflows/debug-release-draft-reuse-backend.yml` 提供手动最小 draft 复用闭环。完整真实 release workflow 仍需后续把后端 artifact 新建分支、历史 asset 复用分支、Web/Desktop/App 构建和正式 publish 串成统一发布链路。

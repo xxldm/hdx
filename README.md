@@ -51,4 +51,10 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 ## 当前状态
 
-后端、Web、Desktop、App、基础设施、公开许可、GitHub Releases 产物边界、release manifest schema 和真实 release workflow 凭据/artifact 策略的第一阶段技术方向已由 ADR 和 shared 契约记录；主仓库已提供 release dry-run workflow 骨架并完成 GitHub-hosted 实跑验证，但真实 GitHub Release workflow 实现、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策或实施。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。
+第一阶段技术方向已由 ADR 和 shared 契约记录：
+
+- 后端、Web、Desktop、App 和基础设施边界已完成首轮决策。
+- 公开许可、后端私有边界、GitHub Releases 产物边界和 release manifest schema 已记录。
+- 主仓库已提供 release dry-run、后端 artifact 校验和最小 draft/reuse 验证入口。
+
+真实 GitHub Release workflow、安装器签名、公证、自动更新、release notes 和版本号策略仍待决策或实施。任何引入新技术栈或改变目录职责的动作，都应先更新 `docs/adr/` 中的决策记录。

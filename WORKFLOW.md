@@ -129,7 +129,7 @@ No description provided.
 
 - Workpad 使用“摘要 + 索引”结构：只保留当前计划、验收状态、验证摘要、最新 blocker、PR/commit、本地计划路径和最近检查戳；完整排障细节写入 `docs/plans/active/`，完成后移动到 `docs/plans/completed/`。
 - Workpad 必须包含 `详情位置`，指向本地计划文件；不要把完整命令输出、长日志或重复失败历史反复粘贴到 Linear。每个 blocker 在 workpad 保留一句可判断严重性的中文摘要，并引用本地计划路径。
-- 权限失败重试预算遵循 `docs/GIT.md` 的“智能体权限失败重试规则”，该规则适用于 Symphony、Codex Desktop、Codex CLI 和其他在本仓库工作的智能体；不要把它当作 Symphony 专用规则。
+- 权限失败重试预算遵循 `docs/AGENT_WORKFLOW.md`；Git 提交、推送和仓库写操作纪律遵循 `docs/GIT.md`。这些规则适用于 Symphony、Codex Desktop、Codex CLI 和其他在本仓库工作的智能体，不是 Symphony 专用规则。
 - 在 Symphony workpad 中只写权限失败的中文摘要和 `详情位置`；首次失败、历史证据、提权结果和 blocker 细节写入本地计划。已知会失败的同类命令直接走自动审批提权，提权后仍失败则写 blocker，不循环重试。
 - Git 网络命令防挂：`git push`、`git fetch`、`git ls-remote`、`gh` 命令如果缺少凭据、触发交互式认证或疑似挂在 `git-askpass` / `git-remote-https`，必须快速失败并写 blocker；不要等待不可见登录窗口。
 - 无新增信息即停止：如果分支已推送、PR 已存在、无新 Linear 评论/附件、无新 PR comments/reviews/checks、head SHA 未变，则只做一次轻量 workpad 摘要更新并停止本轮；禁止连续写入“续作 N 审计”重复段落。
@@ -305,6 +305,7 @@ No description provided.
 - `docs/CONSTRAINTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/QUALITY.md`
+- `docs/AGENT_WORKFLOW.md`
 - `docs/GIT.md`
 - `docs/adr/0001-harness-engineering-constraints.md`
 
@@ -313,16 +314,18 @@ No description provided.
 - 后端：`docs/adr/0002-backend-java-spring-cloud-alibaba-architecture.md`、`services/backend/README.md`
 - Web：`docs/adr/0003-web-nuxt-architecture.md`、`apps/web/README.md`
 - App / desktop：`docs/ARCHITECTURE.md`、`apps/mobile/README.md`、`apps/desktop/README.md`
+- 环境与发布：`docs/ENVIRONMENT.md`、`docs/RELEASE_RUNBOOK.md`
 - 计划和技术债：`docs/plans/README.md`、`docs/plans/tech-debt-tracker.md`
 
-使用 PowerShell 读取项目文档时，`Get-Content` 必须显式加 `-Encoding UTF8`。
+读取项目文档和运行仓库脚本时使用 PowerShell 7+ / `pwsh`；仓库不再支持 Windows PowerShell 5.1，也不再把 `Get-Content -Encoding UTF8` 作为强制规则。
 
 ## HDX 工程约束
 
 - 不改变已经由 ADR 固定的技术基线；引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - 后端第一阶段已绑定 Java 25（GraalVM）、Maven 3.8.8、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x。
 - Web 第一阶段已绑定 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm。
-- App 当前阶段仍不绑定框架；不要擅自固定 App 技术栈。
+- Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段；Local/Online 通过构建 flavor 和安装包内容区分。
+- App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI；首版 Online only，第二阶段只规划离线缓存/离线草稿。
 - 后台、Web、App 与共享能力之间的依赖方向必须清楚、单向、可检查。
 - Web 浏览器代码不得直接访问后端地址；浏览器只能调用 Nuxt server 暴露的 `/api/hdx/v1/**`。
 - 所有业务输入、外部 API、配置、环境变量、存储读写结果和跨端通信，都必须在边界处进行类型化解析或显式校验。
@@ -347,6 +350,7 @@ No description provided.
 
 ```powershell
 git status --short
+pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild
 ```
 
 后端变更，在 `services/backend/` 下执行：

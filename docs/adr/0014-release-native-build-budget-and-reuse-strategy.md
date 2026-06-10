@@ -121,8 +121,9 @@ backend native fingerprint 至少包含：
 
 ## 后续事项
 
-- 实跑新的 `backend-services` 并行 workflow，确认默认 Linux services artifact 可生成并被主仓库校验。
-- 按 ADR 0013 的 `release.yml` job 设计，将当前手动最小 draft 复用入口并入 `resolve-backend-native` 后端来源解析分支，并补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
+- `backend-services` Linux 并行 workflow 已完成 GitHub-hosted 实跑验证；Windows services 包仍默认不跑，后续需要发布时再显式验证。
+- 按 ADR 0013 的 `release.yml` job 设计，将当前手动最小 draft 复用入口并入 `resolve-backend-native` 后端来源解析分支。
+- 补齐 Web、Desktop、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录

@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口和 sourcemap 关闭已实现并验证，Desktop build 尚未实测
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口和 client/public sourcemap 关闭已实现并验证，Desktop build 尚未实测
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -34,7 +34,7 @@
 
 - Web 第一版 Release asset 采用 Nuxt SSR server bundle archive。
 - Web asset 名称采用 Linux 友好的 `hdx-web-node-server-<version>.tar.gz`。
-- 正式生产包禁止包含 sourcemap。
+- 公开 Web Release 包禁止包含 client/public sourcemap；server sourcemap 可保留在 `server/` 运行产物内，用于 Node SSR/BFF 报错定位。
 - Web 包只包含整理后的运行产物，不直接把默认 `.output` 原样当成发布标准。
 - Web 发布包移除 `.output` 外层隐藏目录，把 `.output` 内的 `public/`、`server/` 和 `nitro.json` 整理到包根目录。
 - Web Linux tar 包不新增 `config/` 目录；可选配置文件为包根目录下的 `config.yml`，示例文件为 `config.example.yml`。
@@ -43,7 +43,7 @@
 - 本地 dev 复用同一套配置 schema 和字段映射，使用 `config.local.yml` 作为本地配置文件；本地命令通过 Node runner 注入环境变量后再启动 Nuxt dev/build/preview。
 - 配置优先级为环境变量 > `config.yml` / `config.local.yml` > 内置默认值。
 - `start-web.mjs` 可以使用 YAML 解析依赖，但该依赖必须随 Web 发布产物一起打入包内，不能要求用户在部署机器上执行 `npm install`。
-- 正式生产包不通过事后手工删除 sourcemap 来达成，而是在 Nuxt/Vite/Nitro 构建配置中关闭 sourcemap；打包脚本仍应检查最终包内不存在 `*.map` 作为保险。
+- 正式生产包不通过事后手工删除 client/public sourcemap 来达成，而是在 Nuxt/Vite/Nitro 构建配置中关闭 client sourcemap；打包脚本仍应检查 `public/` 下不存在 `*.map`。
 - Linux 启动 smoke 可在本机 WSL 中执行；当前 WSL 已有 Node.js `v24.16.0`，Web node-server 包运行时不应再要求额外安装 npm 依赖。
 
 ## Web 配置字段清单
@@ -88,7 +88,7 @@
 - [ ] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
 - [x] 提出 Web 第一版发布产物契约。
 - [x] 确认 Web 配置字段清单。
-- [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 sourcemap 关闭。
+- [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 client/public sourcemap 关闭。
 - [ ] 提出 Desktop Online 第一版发布产物契约。
 - [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
@@ -110,8 +110,9 @@
 - 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\vitest.CMD run`，8 个测试文件、34 个测试通过。
 - 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\eslint.CMD .`，通过。
 - 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\nuxt.CMD typecheck`，通过。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/web-dev-runner.mjs build`，通过；`.output` 下 `*.map` 文件数量为 `0`。
-- 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `.output` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/web-dev-runner.mjs build`，通过；`.output/public` 下 `*.map` 文件数量为 `0`，`.output/server` 下 `*.map` 文件数量为 `26`。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `rg -n 'sourcesContent|NUXT_AUTH_SESSION_SECRET|NUXT_BACKEND_LOCAL_TOKEN' .output\server --glob '*.map'`，无匹配；当前 server sourcemap 不内嵌源码正文，也未匹配到敏感运行时变量名。
+- 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `public/` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
 
 ## 剩余风险
 
@@ -123,4 +124,5 @@
 ## 相关 commit
 
 - `apps/web`：`80e164c` 功能：新增 Web 启动配置入口。
+- `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
 - 根仓库：本次提交更新 `apps/web` 子模块指针与本计划状态。

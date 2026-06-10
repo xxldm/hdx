@@ -37,7 +37,7 @@
 
 - Web 第一版 Release asset 采用 Nuxt SSR server bundle archive。
 - Web asset 名称采用 Linux 友好的 `hdx-web-node-server-<version>.tar.gz`。
-- `apps/web` 使用 `pnpm package:node-server -- --version <version>` 生成 Web node-server tar 包；脚本默认先 build，本地调试可传 `--skip-build`。
+- `apps/web` 使用 `node scripts/package-node-server.mjs --version <version>` 生成 Web node-server tar 包；脚本默认先 build，本地调试可传 `--skip-build`。主仓库 workflow 直接调用 Node 脚本，避免 pnpm script 参数转发把 `--` 作为业务参数传给打包脚本。
 - 公开 Web Release 包禁止包含 client/public sourcemap；server sourcemap 可保留在 `server/` 运行产物内，用于 Node SSR/BFF 报错定位。
 - Web 包只包含整理后的运行产物，不直接把默认 `.output` 原样当成发布标准。
 - Web 发布包移除 `.output` 外层隐藏目录，把 `.output` 内的 `public/`、`server/` 和 `nitro.json` 整理到包根目录。
@@ -177,6 +177,8 @@
 - 2026-06-10：使用 `target/package-desktop-assets-fixture` 构造假 Tauri 输出，运行 `scripts/package-desktop-release-assets.ps1` 的 Windows Online 和 Linux Online 路径，通过；确认生成 setup、`_portable.zip` 和 AppImage，绿色包内包含 exe、`README.md`、`LICENSE`、`NOTICE` 和 `RELEASE.txt`；临时 fixture 已清理。
 - 2026-06-10：运行 `actionlint .github/workflows/release.yml .github/workflows/check-public-release-assets.yml .github/workflows/debug-release-dry-run.yml`，通过。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
+- 2026-06-11：GitHub Actions `Check Public Release Assets` 的 Web job 失败在 `构建 Web node-server 资产`。原因是主仓库 workflow 使用 `pnpm package:node-server -- --version ...`，pnpm 10 会把额外的 `--` 原样传给 `scripts/package-node-server.mjs`，触发 `未知参数：--`；同时 workflow 试图把 `--out-dir` 指向 `../../target/...`，不符合 Web 打包脚本“输出目录必须位于 apps/web 内”的安全边界。已改为直接调用 `node scripts/package-node-server.mjs --version ... --out-dir dist/...`，check workflow 直接上传 `apps/web/dist/...`，正式 release workflow 再复制 archive 到根仓库 asset 目录。
+- 2026-06-11：同一次 Actions run 暴露 Desktop Linux job 失败：Tauri `generate_context!` 找不到 `apps/desktop/src-tauri/icons/icon.png`。已按用户指定把 `D:\SynologyDrive\主题\图标\png\3.png` 复制为 `apps/desktop/src-tauri/icons/icon.png`，并运行 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 通过，确认 Tauri 宏不再因缺 PNG 图标失败。
 
 ## 剩余风险
 
@@ -194,4 +196,5 @@
 - `apps/web`：`e479bc3` 构建：兼容 Web 发布包 build metadata 版本。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
+- `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。
 - 根仓库：本次提交更新客户端子模块指针与本计划状态。

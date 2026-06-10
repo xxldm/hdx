@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Local exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -26,9 +26,9 @@
 - Web 运行时尊重 Nuxt/Nitro 设计，以环境变量为事实源；不在 Nuxt 应用内新增独立配置文件读取层。
 - Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`apps/web` 已新增 `start.sh`、`start-web.mjs`、`scripts/web-config-loader.mjs`、`scripts/package-node-server.mjs` 和 `config.example.yml`。`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
-- Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
-- Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
-- Desktop Windows 当前可生成 `hdx-desktop-online.exe`、`hdx-desktop-local.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
+- Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Full/Online flavor 配置和 `build:full`、`build:online` 脚本。
+- Desktop 当前仍是只读状态面板和 capability 空壳；Full 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
+- Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；仍缺 Web/Desktop/App 构建、正式 publish 和失败清理。
@@ -152,7 +152,7 @@
 - 2026-06-10：在 `apps/desktop/` 普通权限运行 `node_modules\.bin\tsc.CMD --noEmit` 和 `node_modules\.bin\vite.CMD build`，均通过。
 - 2026-06-10：在 `apps/desktop/` 普通权限运行 Tauri build 时，`beforeBuildCommand` 调用 `pnpm run build:web` 触发已知 Codex sandbox `EPERM: lstat C:\Users\zengl`；随后按规则使用提权路径重跑通过。
 - 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online`，通过，生成 `src-tauri/target/release/hdx-desktop-online.exe`。
-- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.local.conf.json --features flavor-local`，通过，生成 `src-tauri/target/release/hdx-desktop-local.exe`。
+- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.local.conf.json --features flavor-local`，通过，生成旧命名 `src-tauri/target/release/hdx-desktop-local.exe`；该记录是命名前的历史验证。
 - 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过，生成 `src-tauri/target/release/bundle/nsis/HDX Desktop Online_0.1.0_x64-setup.exe`。
 - 2026-06-10：Desktop NSIS 正式配置加入 `SimpChinese`、`English` 和 `displayLanguageSelector` 后重打 Online NSIS，通过；生成的 `installer.nsi` 包含 `MUI_LANGUAGE "SimpChinese"`、`MUI_LANGUAGE "English"` 和 `MUI_LANGDLL_DISPLAY`。
 - 2026-06-10：Desktop NSIS 配置显式加入 `installMode: currentUser`，Windows `webviewInstallMode` 显式设为 `embedBootstrapper` 且 `silent: false`；已用 `ConvertFrom-Json` 确认 `apps/desktop/src-tauri/tauri.conf.json` 可解析。
@@ -161,8 +161,9 @@
 - 2026-06-10：扩展 `release-manifest.json` schema，新增 Web/Desktop 发布物粒度 kind、flavor、packaging、channel 和 Tauri updater 静态 JSON 引用字段；样例已覆盖 `web-node-server`、`desktop-installer`、`desktop-update-signature` 和 `desktop-updater-manifest`。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`，通过。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过，覆盖新增 release manifest schema、样例、ADR、runbook 和 debug dry-run 资产清单。
-- 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，避免安装包默认文件名前缀包含空格；Windows 裸 EXE 的 `mainBinaryName` 允许使用空格，例如 `HDX Desktop Online.exe`。已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过；后续实际运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --no-bundle`，通过，生成 `src-tauri/target/release/HDX Desktop Online.exe`，验证后已清理 `src-tauri/target`。
+- 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，避免安装包默认文件名前缀包含空格；Windows 裸 EXE 的 `mainBinaryName` 允许使用空格，例如 `HDX Desktop Online.exe`。已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过；后续实际运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --no-bundle`，通过，生成 `src-tauri/target/release/HDX Desktop Online.exe`，验证后已清理 `src-tauri/target`。本条为改名 Full 前的历史记录。
 - 2026-06-10：Desktop Release asset 命名改为应用名前缀保留大小写与点分隔、使用 `_` 分组，例如 `HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe`；已运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
+- 2026-06-10：Desktop 用户可见本地完整模式与构建 flavor 从 Local 收敛为 Full；`tauri.local.conf.json` 更名为 `tauri.full.conf.json`，脚本改为 `dev:full` / `build:full`，Rust feature 改为 `flavor-full`，状态面板字段改为 `includesFullBackend`。已运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`node_modules\.bin\tsc.CMD --noEmit`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-full` 和 `cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`，均通过；验证产生的 `src-tauri/target` 已清理。
 
 ## 剩余风险
 
@@ -177,4 +178,5 @@
 - `apps/web`：`e2f59f6` 构建：保留 Web 服务端 sourcemap。
 - `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
+- `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - 根仓库：本次提交更新客户端子模块指针与本计划状态。

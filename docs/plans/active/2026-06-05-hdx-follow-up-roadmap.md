@@ -73,7 +73,7 @@
 
 目标：让 `apps/desktop` 从占位进入可实施设计和最小骨架。
 
-状态：已完成第一阶段设计、Tauri 骨架和 Rust 验证。Windows + Linux 并列一阶段；Local/Online 为同一代码库的构建 flavor 和安装包内容差异；Windows-only wallpaper mode 需要单独 spike。详见 ADR 0008。
+状态：已完成第一阶段设计、Tauri 骨架和 Rust 验证。Windows + Linux 并列一阶段；Full/Online 为同一代码库的构建 flavor 和安装包内容差异；Windows-only wallpaper mode 需要单独 spike。详见 ADR 0008。
 
 ### 7. App 技术栈
 

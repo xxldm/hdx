@@ -68,8 +68,8 @@ OpenAPI 与 shared 层边界见 ADR 0006 和 ADR 0007。
 Desktop 第一阶段技术与打包策略见 ADR 0008。
 
 - 技术栈为 Tauri + Rust + Vite + TypeScript，平台范围为 Windows + Linux 并列。
-- `apps/desktop` 只维护一套代码，Local/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分。
-- `HDX Desktop Local` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份。
+- `apps/desktop` 只维护一套代码，Full/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分。
+- `HDX Desktop Full` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份。
 - 本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。
 - `HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。
 - 自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability。
@@ -156,7 +156,7 @@ Web 浏览器代码不直接访问后端地址。
 - 对象存储上传下载业务接口、文件生命周期、消息 topic、consumer 拓扑和具体业务接入点。
 - 真实 GitHub Actions release workflow 的完整实现、失败重试策略和人工发布确认体验；跨仓库凭据与 artifact 策略已由 ADR 0013 约束，当前仅有 release dry-run workflow 骨架。
 - Release notes 和版本号策略。
-- Desktop 自动更新、发布渠道、Local/Online 数据导入导出格式，以及从首版未签名发布切换到签名发布的条件。
+- Desktop 自动更新、发布渠道、Full/Online 数据导入导出格式，以及从首版未签名发布切换到签名发布的条件。
 - App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的存储、同步队列、冲突处理和加密策略。
 
 ## 后端第一阶段架构

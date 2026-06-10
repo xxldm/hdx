@@ -324,7 +324,7 @@ No description provided.
 - 不改变已经由 ADR 固定的技术基线；引入或调整框架、运行时、包管理器、数据库、消息队列、状态管理、UI 组件库或跨端方案前，必须新增 ADR。
 - 后端第一阶段已绑定 Java 25（GraalVM）、Maven 3.8.8、Spring Boot 4.x、Spring Cloud Alibaba 2025.1.x。
 - Web 第一阶段已绑定 Nuxt 4.x、Nuxt UI 4.x、`@nuxtjs/i18n`、Pinia、Zod 与 pnpm。
-- Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段；Local/Online 通过构建 flavor 和安装包内容区分。
+- Desktop 第一阶段已绑定 Tauri + Rust + Vite + TypeScript，Windows + Linux 并列一阶段；Full/Online 通过构建 flavor 和安装包内容区分。
 - App 第一阶段已绑定 Android 原生 Kotlin + Jetpack Compose 与 HarmonyOS NEXT 原生 ArkTS + ArkUI；首版 Online only，第二阶段只规划离线缓存/离线草稿。
 - 后台、Web、App 与共享能力之间的依赖方向必须清楚、单向、可检查。
 - Web 浏览器代码不得直接访问后端地址；浏览器只能调用 Nuxt server 暴露的 `/api/hdx/v1/**`。

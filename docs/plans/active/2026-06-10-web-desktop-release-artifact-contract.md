@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online Windows/Linux asset 构建与 manifest 追加切片
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -31,7 +31,7 @@
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
-- 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 已接入 assemble，仍缺 Desktop/App 构建、正式 publish 和失败清理。
+- 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 与 Desktop Online asset 已接入 assemble，仍缺 Desktop Full/App 构建、正式 publish 和失败清理。
 
 ## 已确认结论
 
@@ -62,9 +62,9 @@
 | 平台 | Flavor | 产物 | 命名 |
 | --- | --- | --- | --- |
 | Windows x64 | Online | NSIS 安装包 | `HDX.Desktop.Online_windows-x64_<version>_setup.exe` |
-| Windows x64 | Online | 绿色包 | `HDX.Desktop.Online_windows-x64_<version>.zip` |
+| Windows x64 | Online | 绿色包 | `HDX.Desktop.Online_windows-x64_<version>_portable.zip` |
 | Windows x64 | Full | NSIS 安装包 | `HDX.Desktop.Full_windows-x64_<version>_setup.exe` |
-| Windows x64 | Full | 绿色包 | `HDX.Desktop.Full_windows-x64_<version>.zip` |
+| Windows x64 | Full | 绿色包 | `HDX.Desktop.Full_windows-x64_<version>_portable.zip` |
 | Linux x64 | Online | AppImage | `HDX.Desktop.Online_linux-x64_<version>.AppImage` |
 | Linux x64 | Full | AppImage | `HDX.Desktop.Full_linux-x64_<version>.AppImage` |
 
@@ -107,11 +107,11 @@
 
 - Desktop Online 需要实现远端地址填写、校验、用户级持久化和登录前连接检查。
 - Desktop Full 需要实现同平台 `backend-full` sidecar 打包、启动、健康检查、本机 token 注入和退出清理。
-- Desktop Windows 需要补绿色 zip 打包脚本，确保包含 exe、`README`、`LICENSE`、`NOTICE` 和 manifest 摘要，并拒绝包含源码、构建缓存或额外配置模板。
+- Desktop Online Windows 绿色 zip 整理已接入 release workflow，包含 exe、`README`、`LICENSE`、可选 `NOTICE` 和 `RELEASE.txt` 发布摘要；仍需要 GitHub-hosted 实跑确认产物内容，Desktop Full 后续沿用同一规则。
 - Desktop Linux AppImage 需要在 Linux runner 上验证 Online/Full flavor 构建、启动和桌面集成。
-- Release workflow 需要在上传前把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit。
+- Release workflow 已在 Desktop Online 切片中把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit；Desktop Full 后续沿用同一整理规则。
 - Release workflow 后续需要从 Desktop 安装包/AppImage 和 `.sig` 文件派生 Tauri updater JSON，禁止手写 updater URL 或 signature 内容。
-- Release workflow 已接入 Web node-server asset 构建；后续仍需接入 Desktop/App 构建、正式 publish 和失败清理。
+- Release workflow 已接入 Web node-server asset 和 Desktop Online asset 构建；后续仍需接入 Desktop Full/App 构建、正式 publish 和失败清理。
 
 ## 本地任务清单
 
@@ -127,6 +127,7 @@
 - [x] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
 - [x] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
 - [x] 将 Web node-server asset 接入正式 `release.yml` assemble。
+- [x] 将 Desktop Online Windows/Linux asset 接入正式 `release.yml` assemble。
 - [x] 运行 docs 范围质量门禁。
 
 ## 验收标准
@@ -168,14 +169,15 @@
 - 2026-06-10：Desktop 用户可见本地完整模式与构建 flavor 从 Local 收敛为 Full；`tauri.local.conf.json` 更名为 `tauri.full.conf.json`，脚本改为 `dev:full` / `build:full`，Rust feature 改为 `flavor-full`，状态面板字段改为 `includesFullBackend`。已运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`node_modules\.bin\tsc.CMD --noEmit`、`cargo check --manifest-path src-tauri/Cargo.toml --features flavor-full` 和 `cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`，均通过；验证产生的 `src-tauri/target` 已清理。
 - 2026-06-10：正式 `.github/workflows/release.yml` 接入 Web node-server asset：assemble job 初始化根仓库锁定的 `apps/web` 子模块，使用 Node 24 + pnpm 10 构建 `hdx-web-node-server-<version>.tar.gz`，再通过 `scripts/release-append-web-asset.ps1` 追加 `sources.web`、`web-node-server` asset 并重算 `SHA256SUMS`。本地用 `target/release-append-web-fixture` 生成假后端 tar、假 Web tar 和最小 release manifest，运行 `pwsh -NoLogo -NoProfile -File scripts/release-append-web-asset.ps1 ...` 通过，脚本内部完成 release manifest schema、sha256/size 和禁止文件扫描；临时 fixture 已清理。
 - 2026-06-10：Web `scripts/package-node-server.mjs` 允许 `--version` 包含 SemVer build metadata 加号，避免 `release.yml` 已允许的 `v1.2.3+build` 版本在 Web 打包阶段失败。已在 `apps/web/` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.1.0+build.test --out-dir dist/package-plus-test`，通过；测试输出已清理。
-- 2026-06-10：运行 `actionlint .github/workflows/release.yml`，通过。
+- 2026-06-10：正式 `.github/workflows/release.yml` 接入 Desktop Online asset：新增 Windows/Linux 分平台 build job，初始化公开 `apps/desktop` 子模块，构建 Online NSIS/绿色 zip/AppImage，上传 1 天保留期的临时 workflow artifact；assemble job 下载后通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop`、`desktop-installer`、`desktop-portable` 和 `desktop-appimage` assets 并重算 `SHA256SUMS`。本地用 fixture 验证脚本追加逻辑，脚本内部完成 release manifest schema、sha256/size 和禁止文件扫描；临时 fixture 已清理。
+- 2026-06-10：运行 `actionlint .github/workflows/release.yml .github/workflows/debug-release-dry-run.yml`，通过。
 - 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
-- Web node-server 已接入正式 release assemble，但尚未做 GitHub-hosted release.yml 端到端实跑；需要后续用后端 resolver 回调或手动 workflow_dispatch 验证真实 Actions 环境中的 submodule checkout、pnpm install、cache 和 asset 上传。
-- Desktop 打包可能暴露 Tauri bundler、平台依赖或 runner 环境问题，需要在后续实现切片中单独验证。
+- Web node-server 和 Desktop Online 已接入正式 release assemble，但尚未做 GitHub-hosted release.yml 端到端实跑；需要后续用后端 resolver 回调或手动 workflow_dispatch 验证真实 Actions 环境中的 submodule checkout、pnpm install、cache、Tauri bundler、Linux WebKitGTK 依赖和 asset 上传。
+- Desktop Online GitHub-hosted build 可能暴露 Tauri bundler、平台依赖或 runner 环境问题，尤其是 Linux AppImage 依赖和 Windows NSIS 默认输出命名。
 - Desktop Full sidecar 未实现前，不应发布让用户误以为可离线使用的 Full 安装包。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 

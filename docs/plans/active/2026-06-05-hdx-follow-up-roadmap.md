@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、后端来源解析、最新合格 Release 自动选择、可选 native fallback、可选 assemble 回调和 Web node-server asset 构建，仍缺 Desktop/App 构建、publish、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、后端来源解析、最新合格 Release 自动选择、可选 native fallback、可选 assemble 回调、Web node-server asset 构建和 Desktop Online asset 构建，仍缺 Desktop Full/App 构建、publish、签名/公证/自动更新、release notes 和版本号策略。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-10
@@ -95,7 +95,7 @@
 
 - 公开主仓库 Apache-2.0、后端私有和禁止后端源码/JAR/WAR/`.class` 进入公开仓库，详见 ADR 0011。
 - GitHub Releases 产物边界、后端 native artifact 临时交接、release manifest schema、本地 release 校验脚本、dry-run / check / debug 验证 workflow、GitHub App token 策略、后端 native 构建额度和历史 Release asset 复用策略，详见 ADR 0012、ADR 0013、ADR 0014 和 release 相关 completed plans。
-- 正式 `release.yml` 第一版 draft assemble 骨架，支持多个后端 native Actions artifact 聚合或从同一个历史主仓库 Release 复用多个后端 native asset，已接入 Web node-server asset 构建，创建并远端校验 draft Release；完整能力仍需后续扩展。
+- 正式 `release.yml` 第一版 draft assemble 骨架，支持多个后端 native Actions artifact 聚合或从同一个历史主仓库 Release 复用多个后端 native asset，已接入 Web node-server asset 和 Desktop Online asset 构建，创建并远端校验 draft Release；完整能力仍需后续扩展。
 - 正式 `release-start.yml` 第一版 tag start 骨架，真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。
 - 后端私有仓库 `backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml` assemble。
 - tag-only 日常发布操作手册，详见 `docs/RELEASE_RUNBOOK.md`。
@@ -103,7 +103,7 @@
 
 仍未完成：
 
-- Desktop/App 构建、publish 和失败清理的完整自动链路。
+- Desktop Full/App 构建、publish 和失败清理的完整自动链路。
 - `backend-services-windows-x64` 真实发布验证。
 - 安装器签名、公证、自动更新、release notes 和版本号策略。
 
@@ -161,7 +161,7 @@
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop 的 all-in-one sidecar 启动、本机 token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
+- 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、Desktop Full/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
 - 第 9 步当前新增子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`，先收口 Web/Desktop 发布产物契约和打包入口，再继续改正式 release workflow。
 
 ## 相关 commit

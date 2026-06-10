@@ -245,9 +245,242 @@ jobs:
 
           Write-Host "输入校验通过：version=$version mode=$backendSourceMode intent=$releaseIntentId"
 
+  build-desktop-online:
+    name: Build Desktop Online (${{ matrix.platform }})
+    needs: validate-inputs
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            bundle: nsis
+          - os: ubuntu-latest
+            platform: linux-x64
+            bundle: appimage
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      ROOT_COMMIT: ${{ needs.validate-inputs.outputs.root_commit }}
+      DESKTOP_FLAVOR: online
+      DESKTOP_PRODUCT: HDX.Desktop.Online
+      DESKTOP_BINARY: HDX Desktop Online
+      DESKTOP_PLATFORM: ${{ matrix.platform }}
+      TAURI_BUNDLE: ${{ matrix.bundle }}
+    steps:
+      - name: Checkout 主仓库发布事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验 root commit
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $actualRootCommit = (git rev-parse HEAD).Trim()
+          if ($actualRootCommit -ne $env:ROOT_COMMIT) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
+          }
+
+      - name: 初始化并校验 Desktop 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/desktop
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/desktop 子模块失败。'
+          }
+
+          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
+          if ($actualDesktopCommit -ne $desktopCommit) {
+            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
+          }
+
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块已初始化：$desktopCommit"
+
+      - name: 安装 Linux Tauri 依赖
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: 设置 Desktop pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Desktop Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: 准备 Desktop release Tauri 配置
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Tauri version 无效：$tauriVersion"
+          }
+
+          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
+          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
+          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
+
+          Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
+
+      - name: 构建 Desktop Online
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 依赖安装失败。'
+          }
+
+          $arguments = @(
+            'exec',
+            'tauri',
+            'build',
+            '--config',
+            "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json",
+            '--features',
+            "flavor-$env:DESKTOP_FLAVOR",
+            '--bundles',
+            $env:TAURI_BUNDLE,
+            '--ci'
+          )
+          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
+            $arguments += '--no-sign'
+          }
+
+          & pnpm @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "Desktop $env:DESKTOP_FLAVOR $env:DESKTOP_PLATFORM 构建失败。"
+          }
+
+      - name: 整理 Desktop Online Release asset
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $repoRoot = (Resolve-Path '../..').Path
+          $assetRoot = Join-Path $repoRoot 'target/release/desktop-assets'
+          New-Item -ItemType Directory -Path $assetRoot -Force | Out-Null
+
+          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
+            $setupCandidates = @(Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/nsis' -Filter '*setup.exe' -File)
+            if ($setupCandidates.Count -ne 1) {
+              $names = $setupCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
+              throw "无法唯一定位 NSIS 安装包，候选：$names"
+            }
+
+            $portableExePath = Join-Path 'src-tauri/target/release' "$env:DESKTOP_BINARY.exe"
+            if (-not (Test-Path -LiteralPath $portableExePath -PathType Leaf)) {
+              throw "无法定位 Desktop 裸 EXE：$portableExePath"
+            }
+
+            $setupAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION`_setup.exe"
+            $portableAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION`_portable.zip"
+            Copy-Item -LiteralPath $setupCandidates[0].FullName -Destination (Join-Path $assetRoot $setupAssetName) -Force
+
+            $portableRoot = Join-Path $repoRoot "target/release/desktop-portable/$env:DESKTOP_FLAVOR-$env:DESKTOP_PLATFORM"
+            if (Test-Path -LiteralPath $portableRoot) {
+              Remove-Item -LiteralPath $portableRoot -Recurse -Force
+            }
+            New-Item -ItemType Directory -Path $portableRoot -Force | Out-Null
+            Copy-Item -LiteralPath $portableExePath -Destination (Join-Path $portableRoot "$env:DESKTOP_BINARY.exe") -Force
+
+            foreach ($documentName in @('README.md', 'LICENSE', 'NOTICE')) {
+              $documentPath = Join-Path (Get-Location) $documentName
+              if (Test-Path -LiteralPath $documentPath -PathType Leaf) {
+                Copy-Item -LiteralPath $documentPath -Destination (Join-Path $portableRoot $documentName) -Force
+              }
+            }
+
+            @(
+              'HDX Desktop Online 绿色包'
+              ''
+              "version：$env:VERSION"
+              "platform：$env:DESKTOP_PLATFORM"
+              "root_commit：$env:ROOT_COMMIT"
+              "desktop_commit：$env:DESKTOP_COMMIT"
+              ''
+              '运行配置写入用户级应用配置位置。'
+              '本绿色包不包含另一套默认配置模板。'
+            ) | Set-Content -LiteralPath (Join-Path $portableRoot 'RELEASE.txt')
+
+            $portableArchivePath = Join-Path $assetRoot $portableAssetName
+            if (Test-Path -LiteralPath $portableArchivePath) {
+              Remove-Item -LiteralPath $portableArchivePath -Force
+            }
+            Compress-Archive -Path (Join-Path $portableRoot '*') -DestinationPath $portableArchivePath -CompressionLevel Optimal
+
+            Write-Host "Desktop Windows assets：$setupAssetName, $portableAssetName"
+          }
+          elseif ($env:DESKTOP_PLATFORM -eq 'linux-x64') {
+            $appImageCandidates = @(Get-ChildItem -LiteralPath 'src-tauri/target/release/bundle/appimage' -Filter '*.AppImage' -File)
+            if ($appImageCandidates.Count -ne 1) {
+              $names = $appImageCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
+              throw "无法唯一定位 AppImage，候选：$names"
+            }
+
+            $appImageAssetName = "$env:DESKTOP_PRODUCT`_$env:DESKTOP_PLATFORM`_$env:VERSION.AppImage"
+            Copy-Item -LiteralPath $appImageCandidates[0].FullName -Destination (Join-Path $assetRoot $appImageAssetName) -Force
+
+            Write-Host "Desktop Linux asset：$appImageAssetName"
+          }
+          else {
+            throw "未知 Desktop platform：$env:DESKTOP_PLATFORM"
+          }
+
+      - name: 上传 Desktop Online 临时资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-assets-online-${{ matrix.platform }}
+          path: target/release/desktop-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
   assemble-draft:
     name: Assemble draft release
-    needs: validate-inputs
+    needs:
+      - validate-inputs
+      - build-desktop-online
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
@@ -547,6 +780,50 @@ jobs:
             -WebCommit $env:WEB_COMMIT `
             -AssetRoot $env:ASSET_ROOT
 
+      - name: 校验 Desktop 子模块指针
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          $desktopUrl = (git config -f .gitmodules --get submodule.apps/desktop.url).Trim()
+          $desktopRepository = $desktopUrl `
+            -replace '^https://github\.com/', '' `
+            -replace '\.git$', ''
+          if ($desktopRepository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "apps/desktop 子模块 URL 无法解析为 GitHub 仓库：$desktopUrl"
+          }
+          if ($desktopRepository -match '(?i)latest') {
+            throw "apps/desktop repository 不能包含 latest：$desktopRepository"
+          }
+
+          "DESKTOP_REPOSITORY=$desktopRepository" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块指针：$desktopRepository@$desktopCommit"
+
+      - name: 下载 Desktop Online 临时资产
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-release-assets-online-*
+          path: target/release/desktop-assets
+          merge-multiple: true
+
+      - name: 追加 Desktop Online 资产到 Release manifest
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $releaseManifestPath = Join-Path $env:ASSET_ROOT 'release-manifest.json'
+          pwsh -NoLogo -NoProfile -File scripts/release-append-desktop-assets.ps1 `
+            -ReleaseManifestPath $releaseManifestPath `
+            -DesktopAssetsDirectory 'target/release/desktop-assets' `
+            -DesktopRepository $env:DESKTOP_REPOSITORY `
+            -DesktopCommit $env:DESKTOP_COMMIT `
+            -AssetRoot $env:ASSET_ROOT
+
       - name: 创建 draft Release
         id: draft-release
         env:
@@ -571,19 +848,19 @@ jobs:
           }
 
           $notesPath = 'target/release/release-notes.md'
-          @"
-          HDX $env:VERSION draft release.
-
-          This draft was generated by the first formal ``release.yml`` slice.
-
-          Current limitations:
-          - It assembles backend native asset sources and Web node-server asset.
-          - It does not build Desktop or App assets yet.
-          - It does not publish the draft Release automatically.
-
-          release_intent_id: ``$env:RELEASE_INTENT_ID``
-          backend_source_mode: ``$env:BACKEND_SOURCE_MODE``
-          "@ | Set-Content -LiteralPath $notesPath
+          @(
+            "HDX $env:VERSION 草稿发布"
+            ''
+            '本 draft 由正式 `release.yml` 第一阶段自动生成。'
+            ''
+            '当前限制：'
+            '- 已组装后端 native 来源、Web node-server asset 和 Desktop Online asset。'
+            '- 尚未构建 Desktop Full 或 App asset。'
+            '- 尚不自动 publish，校验通过后仍保持 draft。'
+            ''
+            "release_intent_id: $env:RELEASE_INTENT_ID"
+            "backend_source_mode: $env:BACKEND_SOURCE_MODE"
+          ) | Set-Content -LiteralPath $notesPath
 
           gh release create $env:VERSION `
             --repo $env:ROOT_REPOSITORY `
@@ -730,14 +1007,15 @@ jobs:
           - 不初始化、不 checkout 后端私有子模块源码。
           - 按显式 ``backend_sources_json`` 下载后端 native 来源。
           - 初始化根仓库锁定的 ``apps/web`` 子模块，构建 Web node-server 发布包。
-          - 生成并校验包含后端与 Web 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
+          - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
+          - 生成并校验包含后端、Web 与 Desktop Online 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
           - 创建 draft Release，上传资产，并从远端下载核对 size 与 sha256。
 
           ## 当前限制
 
           - ``github-actions-artifact`` 模式支持多个后端 native asset 来源。
           - ``historical-release-asset`` 模式支持同一个历史 Release 中的多个后端 native asset 来源。
-          - 第一版已构建 Web node-server asset，但不构建 Desktop 或 App。
+          - 第一版已构建 Web node-server asset 和 Desktop Online asset，但不构建 Desktop Full 或 App。
           - 第一版不自动 publish；校验通过后仍保持 draft。
 
           ## 子模块指针

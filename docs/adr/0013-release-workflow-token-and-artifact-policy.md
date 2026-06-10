@@ -207,12 +207,13 @@ validate-inputs
   - 支持手动输入多个后端 Actions artifact 聚合。
   - 支持从同一个历史主仓库 Release 复用多个后端 native asset。
   - 构建 Web node-server asset。
+  - 构建 Desktop Online Windows/Linux asset。
   - 完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。
 - 后端私有仓库已完成 release resolve 第一片：
   - 可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release。
   - 历史复用失败时可显式开启 native build fallback。
   - 解析完成后可显式回调主仓库 `release.yml`。
-- 后续仍需补齐 Desktop/App 构建、publish 和失败清理。
+- 后续仍需补齐 Desktop Full/App 构建、publish 和失败清理。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -224,3 +225,4 @@ validate-inputs
 - 2026-06-10：`backend-release-resolve.yml` 增加可选 native build fallback 和可选主仓库 `release.yml` assemble 回调。手动排障默认不启用这两个开关，完整 tag-only release start 后续应显式开启。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 和 `.github/workflows/release-start.yml`。`release-start.yml` 的真实 `v*` tag push 路径会计算 root commit、后端子模块 commit、OpenAPI snapshot hash 和默认后端必需资产，并触发后端 resolver；手动入口默认 dry-run。
 - 2026-06-10：`release.yml` 接入 Web node-server asset 构建：只初始化根仓库锁定的 `apps/web` 子模块，不 checkout 后端私有源码；构建 `hdx-web-node-server-<version>.tar.gz` 后追加到 `release-manifest.json` 并重算 `SHA256SUMS`。Desktop/App 构建和自动 publish 仍待后续切片。
+- 2026-06-10：`release.yml` 接入 Desktop Online asset 构建：Windows/Linux 分平台构建公开 `apps/desktop` 子模块，整理 Windows NSIS 安装包、Windows 绿色 zip 包和 Linux AppImage，通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop` 与 Desktop Online assets，并重算 `SHA256SUMS`。Desktop Full、App、updater JSON 和自动 publish 仍待后续切片。

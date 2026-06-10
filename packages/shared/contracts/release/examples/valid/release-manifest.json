@@ -68,6 +68,21 @@
       }
     },
     {
+      "kind": "desktop-portable",
+      "platform": "windows-x64",
+      "flavor": "online",
+      "packaging": "zip",
+      "channel": "stable",
+      "fileName": "HDX.Desktop.Online_windows-x64_v0.1.0_portable.zip",
+      "contentType": "application/zip",
+      "sha256": "9999999999999999999999999999999999999999999999999999999999999999",
+      "sizeBytes": 5,
+      "source": {
+        "type": "desktop",
+        "commit": "4444444444444444444444444444444444444444"
+      }
+    },
+    {
       "kind": "desktop-update-signature",
       "platform": "windows-x64",
       "flavor": "online",

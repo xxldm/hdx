@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset 已接入 assemble，仍缺 Desktop/App 构建、正式 publish 和失败清理。
+- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset 与 Desktop Online asset 已接入 assemble，仍缺 Desktop Full/App 构建、正式 publish 和失败清理。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
 - 最后更新：2026-06-10
@@ -67,7 +67,7 @@
 - [x] 新增 tag-only 日常发布操作手册，记录发版前检查、推 tag、观察自动化、失败处理和禁止事项；GitHub App 权限配置属于一次性外部配置，不写入仓库手册。
 - [x] 新增 OpenAPI snapshot hash 计算入口，避免 release start、后端 native 输入和复用校验继续依赖手动临时值。
 - [x] 新增 `.github/workflows/release-start.yml` 第一版，真实 `v*` tag push 会触发后端 release resolver；手动入口默认 dry-run。
-- [ ] 后续完善 `.github/workflows/release.yml`，把 Desktop/App 构建、正式 publish 和失败清理整合成完整真实 GitHub Release workflow。
+- [ ] 后续完善 `.github/workflows/release.yml`，把 Desktop Full/App 构建、正式 publish 和失败清理整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
 
@@ -99,7 +99,7 @@
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化；release start 使用该脚本生成后端 native 输入 hash。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 - 当前历史复用入口为保持 `backend-native-manifest.json` provenance，不重命名复用的后端 native asset；如需按新版本重命名，需要先设计 manifest rewrite 和校验规则。
-- 正式 tag-only 自动发布链路已有 start、后端 resolve、主仓库 assemble 第一片和 Web node-server asset 构建；后续实现时仍必须按 ADR 0013/0014 补齐 Desktop/App 构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
+- 正式 tag-only 自动发布链路已有 start、后端 resolve、主仓库 assemble 第一片、Web node-server asset 构建和 Desktop Online asset 构建；后续实现时仍必须按 ADR 0013/0014 补齐 Desktop Full/App 构建、组装、draft、远端校验和 publish，避免直接复制 debug workflow 拼接成正式发布。
 
 ## 状态记录
 
@@ -156,7 +156,7 @@
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 完整真实 tag-only 发布已有设计记录和日常操作手册；主仓库 tag start、后端 release resolve、主仓库 release assemble 和 Web node-server asset 构建已有第一片，Desktop/App 构建、正式 publish 和失败清理仍未串成完整 workflow。
+- 完整真实 tag-only 发布已有设计记录和日常操作手册；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset 构建和 Desktop Online asset 构建已有第一片，Desktop Full/App 构建、正式 publish 和失败清理仍未串成完整 workflow。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化，当前 hash 由 release start 自动计算。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
 - 测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3` 已清理；后续如果再次做远端 release 验证，仍需在完成后删除测试 draft 和确认 tag ref 不存在。

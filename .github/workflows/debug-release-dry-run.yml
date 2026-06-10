@@ -124,12 +124,12 @@ jobs:
           $version = $env:HDX_RELEASE_VERSION
           $assets = @(
             "hdx-web-node-server-$version.tar.gz",
-            "HDX.Desktop.Online_windows-x64_$version_setup.exe",
-            "HDX.Desktop.Online_windows-x64_$version.zip",
+            "HDX.Desktop.Online_windows-x64_${version}_setup.exe",
+            "HDX.Desktop.Online_windows-x64_${version}_portable.zip",
             "HDX.Desktop.Online_linux-x64_$version.AppImage",
             "HDX.Desktop.Online_stable.json",
-            "HDX.Desktop.Full_windows-x64_$version_setup.exe",
-            "HDX.Desktop.Full_windows-x64_$version.zip",
+            "HDX.Desktop.Full_windows-x64_${version}_setup.exe",
+            "HDX.Desktop.Full_windows-x64_${version}_portable.zip",
             "HDX.Desktop.Full_linux-x64_$version.AppImage",
             "HDX.Desktop.Full_stable.json",
             "hdx-backend-full-windows-x64-$version.zip",

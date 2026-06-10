@@ -88,7 +88,7 @@ backend native fingerprint 至少包含：
 - `packages/shared/contracts/release/`、`scripts/release-draft-reuse-backend-assets.ps1` 与主仓库 release workflow：
   - release manifest schema、样例、校验脚本和最小 draft 复用脚本已能表达并生成历史 Release asset 复用来源和 backend native fingerprint。
   - `.github/workflows/debug-release-draft-reuse-backend.yml` 已提供手动最小 draft 复用入口。
-  - 完整真实 release workflow 后续按 ADR 0013 的 `release.yml` job 设计，把后端 artifact 新建分支、历史 asset 复用分支、Web node-server asset、Desktop/App 构建和正式 publish 串成统一发布链路。
+  - 完整真实 release workflow 后续按 ADR 0013 的 `release.yml` job 设计，把后端 artifact 新建分支、历史 asset 复用分支、Web node-server asset、Desktop Online/Desktop Full/App 构建和正式 publish 串成统一发布链路。
 
 ## 验证方式
 
@@ -130,11 +130,12 @@ backend native fingerprint 至少包含：
   - 多个后端 Actions artifact 聚合。
   - 从同一个历史主仓库 Release 复用多个后端 native asset。
   - Web node-server asset 构建。
+  - Desktop Online Windows/Linux asset 构建。
 - 后端私有仓库已提供 release resolve 第一片：
   - 可从指定历史主仓库 Release 或最新一个合格已发布 Release 生成复用 payload。
   - 历史复用失败时，resolver 可显式开启 native build fallback。
   - resolver 可显式回调主仓库 assemble。
-- 补齐 Desktop、App 资产构建、统一 publish 和失败清理策略。
+- 补齐 Desktop Full、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录

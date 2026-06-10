@@ -162,6 +162,7 @@
 - 第 6 步 Desktop 的 all-in-one sidecar 启动、本机 token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
 - 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、Web/Desktop/App 真实打包、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
+- 第 9 步当前新增子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`，先收口 Web/Desktop 发布产物契约和打包入口，再继续改正式 release workflow。
 
 ## 相关 commit
 

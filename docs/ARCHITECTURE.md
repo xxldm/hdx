@@ -80,13 +80,11 @@ GitHub Releases 产物边界见 `docs/adr/0012-github-releases-artifact-boundary
 - 后端 native 输入未变化时，主仓库可以按 backend native fingerprint 复用指定历史主仓库 Release 中已经公开的后端 native asset。
 - 复用来源必须显式记录 release tag、asset name、sha256、size 和历史构建来源，不允许使用 `latest` 或后端临时 Actions artifact。
 
-当前验证入口：
+当前实现状态：
 
-- `.github/workflows/debug-release-dry-run.yml` 只做手动演练：校验输入、checkout 指定 root ref、记录子模块指针、运行 release manifest 校验并输出摘要；它不初始化私有后端子模块、不下载后端 artifact、不创建 GitHub Release、不上传 asset。
-- `.github/workflows/debug-release-draft-minimal.yml` 已提供从后端 Actions artifact 创建最小 draft Release 的手动闭环。
-- `.github/workflows/debug-release-draft-reuse-backend.yml` 已提供从历史主仓库 Release asset 复用后端 native 的手动最小 draft 闭环。
 - `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema 位于 `packages/shared/contracts/release/`。
-- 当前 `release-manifest.json` schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
+- 当前已有 `check-*` 与 `debug-*` 手动验证 workflow；它们不是正式发布入口，具体用途见 `.github/workflows/README.md`。
+- Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
 正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014；后续仍需实现 workflow，把主仓库 tag start、后端 release resolve、主仓库 release assemble、Web/Desktop/App 构建、正式 publish 和失败清理串联起来。
 

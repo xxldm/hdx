@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单和启动边界已确认，Desktop build 尚未实测
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口和 sourcemap 关闭已实现并验证，Desktop build 尚未实测
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -24,7 +24,7 @@
 - Web 位于 `apps/web/`，采用 Nuxt 4 SSR + Nuxt server BFF；浏览器不直接访问后端，token 和敏感配置留在 Nuxt server 边界内。
 - Web 当前已有 `pnpm build`，第一版 Release 产物形态已确认为 Nuxt SSR server bundle archive；因为存在 BFF/session/CSRF，不能按纯静态 `dist` 包处理。
 - Web 运行时尊重 Nuxt/Nitro 设计，以环境变量为事实源；不在 Nuxt 应用内新增独立配置文件读取层。
-- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
+- Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`apps/web` 已新增 `start.sh`、`start-web.mjs`、`scripts/web-config-loader.mjs` 和 `config.example.yml`。`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Local/Online flavor 配置和 `build:local`、`build:online` 脚本。
 - Desktop 当前仍是只读状态面板和 capability 空壳；Local 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
@@ -76,7 +76,7 @@
 
 ## 待确认问题
 
-- `start.sh` / `start-web.mjs` 的执行权限、YAML 依赖打包方式和 Linux/Docker 共用入口实现细节。
+- Web 发布打包脚本仍需把 `.output` 整理为 `hdx-web-node-server-<version>.tar.gz`，并把 `start.sh`、`start-web.mjs`、配置 loader 与 YAML runtime 依赖纳入运行产物。
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。
@@ -88,6 +88,7 @@
 - [ ] 扫描 `apps/desktop` 的 Tauri 配置、flavor build 命令、bundle 输出和当前质量门禁。
 - [x] 提出 Web 第一版发布产物契约。
 - [x] 确认 Web 配置字段清单。
+- [x] 实现 Web 本地/Release 共用配置 loader、启动入口和生产 sourcemap 关闭。
 - [ ] 提出 Desktop Online 第一版发布产物契约。
 - [ ] 提出 Desktop Full 第一版命名、manifest 和 sidecar 占位边界。
 - [ ] 检查 `release-manifest.json` schema 是否需要扩展客户端 asset 元数据。
@@ -106,10 +107,11 @@
 - 2026-06-10：在 `apps/web/` 普通权限运行 `pnpm build`，因 `pnpm` 读取 `C:\Users\zengl` 触发已知 Codex sandbox `EPERM` 失败；随后按权限规则用审批路径重跑同一命令通过。
 - `pnpm build` 的默认输出为 Nuxt/Nitro `node-server`，生成 `.output/public`、`.output/server` 和 `.output/nitro.json`，预览入口为 `node .output/server/index.mjs`。
 - 以上 build 输出只作为整理运行产物的输入；最终发布包使用整理后的 Nuxt SSR server bundle archive，不把默认 `.output` 原样当成发布标准。
-- `.output` 当前包含 367 个文件，总大小 `13527589` bytes；包含 26 个 `.map` 文件。
-- 最大产物为登录背景图 `.output/public/_nuxt/login-background.CpNlxion.bmp`，大小 `7056054` bytes。
-- 构建保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；当前不阻塞 build。
-- `git -C apps/web status --short --branch` 显示 Web 子模块工作树干净。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\vitest.CMD run`，8 个测试文件、34 个测试通过。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\eslint.CMD .`，通过。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\nuxt.CMD typecheck`，通过。
+- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/web-dev-runner.mjs build`，通过；`.output` 下 `*.map` 文件数量为 `0`。
+- 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `.output` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
 
 ## 剩余风险
 
@@ -120,4 +122,5 @@
 
 ## 相关 commit
 
-- 待补。
+- `apps/web`：`80e164c` 功能：新增 Web 启动配置入口。
+- 根仓库：本次提交更新 `apps/web` 子模块指针与本计划状态。

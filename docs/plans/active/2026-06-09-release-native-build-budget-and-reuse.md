@@ -155,7 +155,6 @@
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
 - 完整真实 tag-only 发布已有设计记录和日常操作手册，但尚未实现；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web/Desktop/App 构建、正式 publish 和失败清理仍未串成可运行 workflow。
-- 后端 release resolve GitHub Actions smoke 当前阻塞在 `HDX Main Workflow Bot` 安装权限：该 App 需要在主仓库安装中授予 `Contents: read`，并在权限变更后重新批准或重新安装；完成后复跑 `backend-release-resolve.yml`。
 - OpenAPI snapshot hash 当前仍使用既有临时值；后续实现复用分支前需要固定 hash 计算入口。
 - `backend-services-windows-x64` 仍默认不跑，本轮仅验证 workflow 静态结构和 Windows 聚合打包脚本路径。
 - 测试 draft Release `v0.0.0-services-parallel.2` 和 `v0.0.0-services-parallel.3` 已清理；后续如果再次做远端 release 验证，仍需在完成后删除测试 draft 和确认 tag ref 不存在。

@@ -180,12 +180,13 @@
 - 2026-06-11：GitHub Actions `Check Public Release Assets` 的 Web job 失败在 `构建 Web node-server 资产`。原因是主仓库 workflow 使用 `pnpm package:node-server -- --version ...`，pnpm 10 会把额外的 `--` 原样传给 `scripts/package-node-server.mjs`，触发 `未知参数：--`；同时 workflow 试图把 `--out-dir` 指向 `../../target/...`，不符合 Web 打包脚本“输出目录必须位于 apps/web 内”的安全边界。已改为直接调用 `node scripts/package-node-server.mjs --version ... --out-dir dist/...`，check workflow 直接上传 `apps/web/dist/...`，正式 release workflow 再复制 archive 到根仓库 asset 目录。
 - 2026-06-11：同一次 Actions run 暴露 Desktop Linux job 失败：Tauri `generate_context!` 找不到 `apps/desktop/src-tauri/icons/icon.png`。已按用户指定把 `D:\SynologyDrive\主题\图标\png\3.png` 复制为 `apps/desktop/src-tauri/icons/icon.png`，并运行 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 通过，确认 Tauri 宏不再因缺 PNG 图标失败。
 - 2026-06-11：推送上述修复后重跑 `Check Public Release Assets`，Web job 进入真实 Nuxt build 后失败在 `scripts/package-node-server.mjs` 的符号链接检查：Linux runner 上 Nitro server `node_modules` 内存在 pnpm/Nitro 生成的 symlink。已在 `apps/web` 子模块中让打包脚本先物化 package tree 内的 symlink，再执行“发布包不含 symlink/Junction”校验和压缩；同时更新 Web README，避免继续使用 `pnpm ... -- --version` 示例。已在 `apps/web` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.0.0 --out-dir dist/workflow-arg-test`、`node_modules\.bin\eslint.CMD scripts/package-node-server.mjs` 和 `node_modules\.bin\vitest.CMD run`，均通过；测试输出已清理。
+- 2026-06-11：再次重跑 `Check Public Release Assets` 后，Web node-server job 通过，Desktop Windows Online `nsis` job 通过，Desktop Linux Online `appimage` job 失败在 Tauri bundler：`couldn't find a square icon to use as AppImage icon`。已在 `apps/desktop` 使用用户指定的 `icon.png` 源图派生 Tauri 标准图标集，并在基础 `tauri.conf.json` 显式配置 `bundle.icon`。本地先以普通权限运行 Tauri NSIS build 时触发已知 pnpm/Codex sandbox `EPERM: lstat C:\Users\zengl`，随后按权限规则提权复跑 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过；Desktop Linux AppImage 仍需 GitHub-hosted Ubuntu runner 复跑验证。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
 - Web node-server 和 Desktop Online 已接入正式 release assemble，但尚未做 GitHub-hosted release.yml 端到端实跑；需要后续先运行 `check-public-release-assets.yml` 验证公开端构建，再用后端 resolver 回调或手动 workflow_dispatch 验证真实 Actions 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
-- Desktop Online GitHub-hosted build 可能暴露 Tauri bundler、平台依赖或 runner 环境问题，尤其是 Linux AppImage 依赖和 Windows NSIS 默认输出命名。
+- Desktop Online GitHub-hosted build 已确认 Web 与 Windows NSIS 路径可通过；Linux AppImage 图标集修复仍需在 GitHub-hosted Ubuntu runner 上复跑确认。
 - Desktop Full sidecar 未实现前，不应发布让用户误以为可离线使用的 Full 安装包。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 
@@ -199,4 +200,5 @@
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。
+- `apps/desktop`：`4240f6c` 修复：补齐 Tauri 打包图标集。
 - 根仓库：本次提交更新客户端子模块指针与本计划状态。

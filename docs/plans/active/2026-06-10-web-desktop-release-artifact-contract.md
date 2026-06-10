@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive 与配置字段清单已确认，Desktop build 尚未实测
+- 当前状态：Web node-server archive、配置字段清单和启动边界已确认，Desktop build 尚未实测
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -42,6 +42,9 @@
 - Docker 镜像同样使用 `start.sh` 作为入口，但不要求 `config.yml` 存在；Dockerfile、Compose、Kubernetes 或运行命令注入的环境变量是 Docker 场景的配置来源。
 - 本地 dev 复用同一套配置 schema 和字段映射，使用 `config.local.yml` 作为本地配置文件；本地命令通过 Node runner 注入环境变量后再启动 Nuxt dev/build/preview。
 - 配置优先级为环境变量 > `config.yml` / `config.local.yml` > 内置默认值。
+- `start-web.mjs` 可以使用 YAML 解析依赖，但该依赖必须随 Web 发布产物一起打入包内，不能要求用户在部署机器上执行 `npm install`。
+- 正式生产包不通过事后手工删除 sourcemap 来达成，而是在 Nuxt/Vite/Nitro 构建配置中关闭 sourcemap；打包脚本仍应检查最终包内不存在 `*.map` 作为保险。
+- Linux 启动 smoke 可在本机 WSL 中执行；当前 WSL 已有 Node.js `v24.16.0`，Web node-server 包运行时不应再要求额外安装 npm 依赖。
 
 ## Web 配置字段清单
 
@@ -73,7 +76,7 @@
 
 ## 待确认问题
 
-- `start.sh` / `start-web.mjs` 的文件名、执行权限、YAML 解析方式和 Linux/Docker 共用入口细节。
+- `start.sh` / `start-web.mjs` 的执行权限、YAML 依赖打包方式和 Linux/Docker 共用入口实现细节。
 - Desktop 是否先实现 Online 包，Full 包只先固定命名与 manifest 边界。
 - Desktop Windows/Linux 第一版 release asset 名称、目录结构和校验入口。
 - Desktop Full 如何记录同平台 `backend-full` 来源，以及 sidecar 尚未实现时如何避免假装可用。

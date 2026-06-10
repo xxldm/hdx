@@ -140,6 +140,7 @@
   - `docs/plans/completed/2026-06-10-release-historical-multi-assets.md`
   - `docs/plans/completed/2026-06-10-release-backend-source-resolver.md`
   - `docs/plans/completed/2026-06-10-release-latest-qualified-backend-reuse.md`
+  - `docs/plans/completed/2026-06-10-release-native-fallback-assemble-callback.md`
 
 ## 验收标准
 

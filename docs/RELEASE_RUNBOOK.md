@@ -9,7 +9,8 @@
 ```text
 人工推送主仓库 tag
   -> 主仓库启动 release
-  -> 后端私有仓库解析后端 native 来源
+  -> 主仓库判断后端历史 Release asset 是否可复用
+  -> 不可复用时后端私有仓库构建 native artifact
   -> 主仓库组装 Web/Desktop/App/后端资产
   -> draft Release
   -> 上传资产
@@ -21,13 +22,13 @@
 
 ## 当前状态
 
-截至 2026-06-10：
+截至 2026-06-11：
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
-- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，并触发后端私有仓库 release resolver；手动入口默认 dry-run。
+- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run。
 - `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，构建 Web node-server asset 和 Desktop Online Windows/Linux asset，创建 draft Release、上传资产并远端回读校验。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；已接入 Web node-server 与 Desktop Online 构建，不构建 Desktop Full 或 App，不自动 publish。
-- 后端私有仓库已提供 `.github/workflows/backend-release-resolve.yml` 第一版，可解析指定历史主仓库 Release，或在未指定时只检查最新一个合格已发布 Release；历史复用失败时可显式开启 native build fallback；解析完成后可显式回调主仓库 `release.yml` assemble。
+- 后端私有仓库 `.github/workflows/backend-release-resolve.yml` 已收缩为 native build resolver：只按输入的 `backend_commit` 构建后端 native Actions artifact，并可在构建成功后回调主仓库 `release.yml` assemble；它不读取主仓库历史 Release。
 - 本手册描述目标流程；当前还不能完成“只推 tag 到 publish”的完整发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器代码签名、公证、自动更新运行时接入、release notes 和版本号策略仍待单独确认；Tauri updater 静态 JSON 与 `release-manifest.json` 的清单边界已在 release 契约中确认。
@@ -53,13 +54,15 @@ on:
 - 读取 `services/backend`、`apps/web`、`apps/desktop` 和后续 `apps/mobile` 的子模块指针。
 - 通过 `scripts/openapi-snapshot-hash.ps1` 计算 OpenAPI snapshot hash。
 - 生成 `releaseIntentId`，推荐格式为 `<version>:<rootCommit>`。
-- 触发后端私有仓库 release resolve workflow。
+- 只检查最新一个合格已发布主仓库 Release，判断后端 native asset 是否可复用；规则排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease。
+- 复用成功时直接触发主仓库 release assemble workflow。
+- 复用失败时触发后端私有仓库 release resolve workflow 运行 native build。
 
 当前第一版限制：
 
-- 真实 tag push 会显式开启后端 `allow_native_build_fallback` 与 `trigger_release_assemble`。
+- 手动 `workflow_dispatch` 可以通过 `historical_release_tag` 指定历史 Release；留空时仍只检查最新一个合格已发布 Release。
 - 手动 `workflow_dispatch` 默认 `dry_run=true`，只验证上下文计算，不触发后端 resolver。
-- 第一版要求 `services/backend` 子模块 commit 等于后端仓库 `main` 指针；后续如需发布非 main 后端 commit，需要单独扩展 backend ref 策略。
+- `services/backend` 子模块 commit 不要求等于后端仓库当前 `main`。主仓库 release start 不持有后端源码读取权限，也不调用后端 commit API；后端 workflow 文件可以从后端 `main` 启动，但后端源码 checkout 和 native build 必须锁定输入的 `backend_commit` 并在 checkout 后校验。
 
 ### 后端 release resolve
 
@@ -79,12 +82,16 @@ on:
 
 职责：
 
-- checkout 指定 `backend_commit`。
-- 计算 backend native fingerprint。
-- 查找主仓库历史 Release 中是否存在完全匹配的后端 native asset 集合。
-- 如果匹配，生成 `backend_source_mode=historical-release-asset`。
-- 如果不匹配，运行后端 native build，上传 `retention-days: 1` 的 Actions artifact，并生成 `backend_source_mode=github-actions-artifact`。
-- 触发主仓库 release assemble workflow。
+- checkout 指定 `backend_commit`，不按后端仓库当前 `main` 打包源码。
+- 根据 `required_assets_json` 计算 native build scope 和 artifact name。
+- 调用 `backend-native-artifact.yml` 运行后端 native build。
+- 上传 `retention-days: 1` 的 Actions artifact，并生成 `backend_source_mode=github-actions-artifact`。
+- 如果 `trigger_release_assemble=true`，使用 `HDX Main Workflow Bot` 的 `Actions: write` token 触发主仓库 release assemble workflow。
+
+当前第一版限制：
+
+- 后端 release resolve 不读取主仓库历史 Release，不 checkout 主仓库发布工具，也不需要主仓库 `Contents: read` GitHub App 权限。
+- 后端 workflow 控制平面仍从后端仓库 `main` 的 workflow 文件启动；源码和 manifest 必须锁定输入的 `backend_commit`。
 
 ### 主仓库 release assemble
 
@@ -124,8 +131,8 @@ on:
 
 - `github-actions-artifact` 模式支持多个 `backend_sources_json.sources` 条目。
 - `historical-release-asset` 模式支持多个 `backend_sources_json.sources` 条目，但第一版要求这些条目来自同一个历史主仓库 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
-- 后端 release resolve 第一版可解析指定历史 Release asset；未指定时只检查最新一个合格已发布 Release，不排除 prerelease；匹配失败时可通过 `allow_native_build_fallback=true` 显式运行后端 native build fallback。
-- 后端 release resolve 可通过 `trigger_release_assemble=true` 显式回调主仓库 `release.yml`；手动排障默认关闭，避免误创建 draft Release。
+- 历史 Release asset 复用判断由主仓库 release start 完成；未指定历史 tag 时只检查最新一个合格已发布 Release，不排除 prerelease。
+- 后端 release resolve 只负责 native build fallback，并可通过 `trigger_release_assemble=true` 显式回调主仓库 `release.yml`；手动排障默认关闭，避免误创建 draft Release。
 - 只创建并校验 draft Release。
 - 已构建 Web node-server asset 和 Desktop Online asset；不构建 Desktop Full 或 App。
 - 不自动 publish。
@@ -229,7 +236,7 @@ git push origin v0.1.0
 依次观察：
 
 - 主仓库 release start workflow。
-- 后端私有仓库 release resolve workflow。
+- 如果主仓库未复用历史后端 asset，再观察后端私有仓库 release resolve workflow。
 - 主仓库 release assemble workflow。
 
 成功标准：

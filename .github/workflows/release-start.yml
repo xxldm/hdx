@@ -21,19 +21,25 @@ on:
         required: true
         default: "xxldm/hdx-backend"
         type: string
+      historical_release_tag:
+        description: "可选：手动指定尝试复用的历史主仓库 Release tag；留空时检查最新一个合格已发布 Release。"
+        required: false
+        default: ""
+        type: string
       dry_run:
         description: "手动入口默认只验证上下文，不触发后端 resolver。"
         required: true
         default: true
         type: boolean
       trigger_backend_resolve:
-        description: "手动入口是否触发后端 resolver；dry_run=true 时强制跳过。"
+        description: "手动入口是否在历史复用不可用时触发后端 native build；dry_run=true 时强制跳过。"
         required: true
         default: false
         type: boolean
 
 permissions:
   contents: read
+  actions: write
 
 concurrency:
   group: release-start-${{ github.ref }}
@@ -52,6 +58,7 @@ jobs:
       DISPATCH_VERSION: ${{ inputs.version }}
       DISPATCH_ROOT_REF: ${{ inputs.root_ref }}
       DISPATCH_BACKEND_REPOSITORY: ${{ inputs.backend_repository }}
+      DISPATCH_HISTORICAL_RELEASE_TAG: ${{ inputs.historical_release_tag }}
       DISPATCH_DRY_RUN: ${{ inputs.dry_run }}
       DISPATCH_TRIGGER_BACKEND_RESOLVE: ${{ inputs.trigger_backend_resolve }}
     steps:
@@ -76,6 +83,7 @@ jobs:
           $version = ''
           $rootRef = ''
           $backendRepository = ''
+          $historicalReleaseTag = ''
           $dryRun = $true
           $triggerBackendResolve = $false
 
@@ -86,6 +94,7 @@ jobs:
             }
             $version = $env:GITHUB_REF_NAME.Trim()
             $backendRepository = $env:DEFAULT_BACKEND_REPOSITORY
+            $historicalReleaseTag = ''
             $dryRun = $false
             $triggerBackendResolve = $true
           }
@@ -93,6 +102,7 @@ jobs:
             $version = $env:DISPATCH_VERSION.Trim()
             $rootRef = $env:DISPATCH_ROOT_REF.Trim()
             $backendRepository = $env:DISPATCH_BACKEND_REPOSITORY.Trim()
+            $historicalReleaseTag = $env:DISPATCH_HISTORICAL_RELEASE_TAG.Trim()
             $dryRun = $env:DISPATCH_DRY_RUN -eq 'true'
             $triggerBackendResolve = ($env:DISPATCH_TRIGGER_BACKEND_RESOLVE -eq 'true') -and (-not $dryRun)
           }
@@ -102,6 +112,10 @@ jobs:
           Assert-NoLatest 'version' $version
           Assert-NoLatest 'root_ref' $rootRef
           Assert-NoLatest 'backend_repository' $backendRepository
+          if (-not [string]::IsNullOrWhiteSpace($historicalReleaseTag)) {
+            Assert-Pattern 'historical_release_tag' $historicalReleaseTag '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
+            Assert-NoLatest 'historical_release_tag' $historicalReleaseTag
+          }
 
           $isCommit = $rootRef -match '^[0-9a-f]{40}$'
           $isHeadRef = $rootRef -match '^refs/heads/[A-Za-z0-9._/-]+$'
@@ -117,10 +131,11 @@ jobs:
           "backend_repository=$backendRepository" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "backend_owner=$($backendParts[0])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "backend_name=$($backendParts[1])" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "historical_release_tag=$historicalReleaseTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "dry_run=$($dryRun.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "trigger_backend_resolve=$($triggerBackendResolve.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          Write-Host "release start 输入通过：version=$version root_ref=$rootRef backend=$backendRepository dry_run=$dryRun trigger_backend_resolve=$triggerBackendResolve"
+          Write-Host "release start 输入通过：version=$version root_ref=$rootRef backend=$backendRepository historical_release_tag=$historicalReleaseTag dry_run=$dryRun trigger_backend_resolve=$triggerBackendResolve"
 
       - name: Checkout 主仓库发布事实源
         uses: actions/checkout@v6.0.3
@@ -184,9 +199,229 @@ jobs:
           Write-Host "required_assets_json：$requiredAssetsJson"
           Write-Host "release_intent_id：$releaseIntentId"
 
+      - name: 选择历史主仓库 Release
+        id: historical-release
+        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.start-context.outputs.version }}
+          MANUAL_HISTORICAL_RELEASE_TAG: ${{ steps.start-context.outputs.historical_release_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $manualTag = $env:MANUAL_HISTORICAL_RELEASE_TAG.Trim()
+          if (-not [string]::IsNullOrWhiteSpace($manualTag)) {
+            if ($manualTag -match '(?i)latest') {
+              throw "historical_release_tag 不能包含 latest：$manualTag"
+            }
+
+            "historical_release_available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "historical_release_tag=$manualTag" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "historical_release_selection_mode=manual" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "使用手动指定历史 Release：${{ github.repository }}@$manualTag"
+            return
+          }
+
+          $releaseJson = gh release list `
+            --repo ${{ github.repository }} `
+            --limit 50 `
+            --json tagName,name,isDraft,isPrerelease,publishedAt,createdAt
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取主仓库 Release 列表失败：${{ github.repository }}"
+          }
+
+          $releases = @($releaseJson | ConvertFrom-Json -Depth 100)
+          $qualified = @(
+            $releases | Where-Object {
+              -not [string]::IsNullOrWhiteSpace($_.tagName) -and
+              -not $_.isDraft -and
+              $_.tagName -ne $env:VERSION -and
+              $_.tagName -notmatch '(?i)latest' -and
+              $_.tagName -notmatch '(?i)(^|[-_.])(resolver-smoke|smoke|test)([-_.]|$)'
+            }
+          )
+
+          if ($qualified.Count -lt 1) {
+            $reason = '没有找到合格历史 Release。规则：排除 draft、当前版本、latest、smoke/test tag；不排除 prerelease。'
+            "historical_release_available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "historical_release_failure_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Warning "$reason 将触发后端 native build。"
+            return
+          }
+
+          $selected = $qualified |
+            Sort-Object -Property @{
+              Expression = {
+                $publishedAt = [string]$_.publishedAt
+                if ([string]::IsNullOrWhiteSpace($publishedAt)) {
+                  $publishedAt = [string]$_.createdAt
+                }
+                if ([string]::IsNullOrWhiteSpace($publishedAt)) {
+                  [datetime]::MinValue
+                }
+                else {
+                  [datetime]$publishedAt
+                }
+              }
+              Descending = $true
+            } |
+            Select-Object -First 1
+
+          "historical_release_available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "historical_release_tag=$($selected.tagName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "historical_release_selection_mode=latest-qualified" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "自动选择最新合格历史 Release：${{ github.repository }}@$($selected.tagName) prerelease=$($selected.isPrerelease)"
+
+      - name: 下载历史主仓库 Release assets
+        if: ${{ steps.historical-release.outputs.historical_release_available == 'true' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HISTORICAL_RELEASE_TAG: ${{ steps.historical-release.outputs.historical_release_tag }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $historicalRoot = 'target/release-start/historical'
+          if (Test-Path -LiteralPath $historicalRoot) {
+            Remove-Item -LiteralPath $historicalRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $historicalRoot -Force | Out-Null
+
+          gh release download $env:HISTORICAL_RELEASE_TAG `
+            --repo ${{ github.repository }} `
+            --dir $historicalRoot
+          if ($LASTEXITCODE -ne 0) {
+            throw "下载历史主仓库 Release assets 失败：${{ github.repository }}@$env:HISTORICAL_RELEASE_TAG"
+          }
+
+          foreach ($name in @('release-manifest.json', 'backend-native-manifest.json')) {
+            $path = Join-Path $historicalRoot $name
+            if (-not (Test-Path -LiteralPath $path -PathType Leaf)) {
+              throw "历史 Release 缺少必需 asset：$name"
+            }
+          }
+
+          Write-Host "历史 Release assets 已下载：${{ github.repository }}@$env:HISTORICAL_RELEASE_TAG"
+
+      - name: 解析历史后端来源
+        id: historical-resolve
+        if: ${{ steps.historical-release.outputs.historical_release_available == 'true' }}
+        env:
+          VERSION: ${{ steps.start-context.outputs.version }}
+          ROOT_REF: ${{ steps.start-context.outputs.root_ref }}
+          ROOT_COMMIT: ${{ steps.release-context.outputs.root_commit }}
+          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
+          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
+          OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
+          REQUIRED_ASSETS_JSON: ${{ steps.release-context.outputs.required_assets_json }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          New-Item -ItemType Directory -Path 'target/release-start' -Force | Out-Null
+          $env:REQUIRED_ASSETS_JSON | Set-Content -LiteralPath 'target/release-start/required-assets.json'
+          $resolutionPath = 'target/release-start/backend-source-resolution.json'
+
+          try {
+            pwsh -NoLogo -NoProfile -File scripts/release-resolve-backend-sources.ps1 `
+              -HistoricalAssetRoot 'target/release-start/historical' `
+              -RequiredAssetsJsonPath 'target/release-start/required-assets.json' `
+              -Version $env:VERSION `
+              -RootRepository '${{ github.repository }}' `
+              -RootRef $env:ROOT_REF `
+              -RootCommit $env:ROOT_COMMIT `
+              -BackendRepository $env:BACKEND_REPOSITORY `
+              -BackendCommit $env:BACKEND_COMMIT `
+              -OpenApiSnapshotHash $env:OPENAPI_SNAPSHOT_HASH `
+              -OutputPath $resolutionPath
+
+            $resolutionText = Get-Content -LiteralPath $resolutionPath -Raw
+            $resolution = $resolutionText | ConvertFrom-Json -Depth 100
+            $resolutionCompact = ($resolution | ConvertTo-Json -Depth 100 -Compress)
+            "historical_resolve_available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "backend_source_mode=$($resolution.backendSourceMode)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "backend_sources_json=$($resolution.backendSourcesJsonCompact)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "backend_source_resolution_json=$resolutionCompact" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
+          catch {
+            $reason = $_.Exception.Message
+            "historical_resolve_available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "historical_resolve_failure_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Warning "历史 Release asset 复用不可用，将触发后端 native build：$reason"
+          }
+
+      - name: 决定后端来源路径
+        id: backend-source-decision
+        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        env:
+          HISTORICAL_RELEASE_AVAILABLE: ${{ steps.historical-release.outputs.historical_release_available }}
+          HISTORICAL_RELEASE_FAILURE_REASON: ${{ steps.historical-release.outputs.historical_release_failure_reason }}
+          HISTORICAL_RESOLVE_AVAILABLE: ${{ steps.historical-resolve.outputs.historical_resolve_available }}
+          HISTORICAL_RESOLVE_FAILURE_REASON: ${{ steps.historical-resolve.outputs.historical_resolve_failure_reason }}
+          BACKEND_SOURCE_MODE: ${{ steps.historical-resolve.outputs.backend_source_mode }}
+          BACKEND_SOURCES_JSON: ${{ steps.historical-resolve.outputs.backend_sources_json }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $historicalReleaseAvailable = $env:HISTORICAL_RELEASE_AVAILABLE -eq 'true'
+          $historicalResolveAvailable = $env:HISTORICAL_RESOLVE_AVAILABLE -eq 'true'
+
+          if ($historicalReleaseAvailable -and $historicalResolveAvailable) {
+            "backend_build_required=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "backend_source_mode=$env:BACKEND_SOURCE_MODE" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "backend_sources_json=$env:BACKEND_SOURCES_JSON" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            "historical_failure_reason=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            Write-Host "后端来源路径：复用历史主仓库 Release asset。"
+            return
+          }
+
+          $reason = $env:HISTORICAL_RESOLVE_FAILURE_REASON
+          if ([string]::IsNullOrWhiteSpace($reason)) {
+            $reason = $env:HISTORICAL_RELEASE_FAILURE_REASON
+          }
+          if ([string]::IsNullOrWhiteSpace($reason)) {
+            $reason = '历史 Release asset 不可用。'
+          }
+
+          "backend_build_required=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_source_mode=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "backend_sources_json=" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "historical_failure_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Warning "后端来源路径：需要触发后端 native build。原因：$reason"
+
+      - name: 触发主仓库 release assemble
+        if: ${{ steps.backend-source-decision.outputs.backend_build_required == 'false' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.start-context.outputs.version }}
+          ROOT_REF: ${{ steps.start-context.outputs.root_ref }}
+          ROOT_COMMIT: ${{ steps.release-context.outputs.root_commit }}
+          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
+          OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
+          BACKEND_SOURCE_MODE: ${{ steps.backend-source-decision.outputs.backend_source_mode }}
+          BACKEND_SOURCES_JSON: ${{ steps.backend-source-decision.outputs.backend_sources_json }}
+          RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          gh workflow run release.yml `
+            --repo ${{ github.repository }} `
+            --ref $env:ROOT_REF `
+            -f "version=$env:VERSION" `
+            -f "root_ref=$env:ROOT_REF" `
+            -f "root_commit=$env:ROOT_COMMIT" `
+            -f "backend_commit=$env:BACKEND_COMMIT" `
+            -f "openapi_snapshot_hash=$env:OPENAPI_SNAPSHOT_HASH" `
+            -f "backend_source_mode=$env:BACKEND_SOURCE_MODE" `
+            -f "backend_sources_json=$env:BACKEND_SOURCES_JSON" `
+            -f "release_intent_id=$env:RELEASE_INTENT_ID"
+          if ($LASTEXITCODE -ne 0) {
+            throw "触发主仓库 release.yml 失败：${{ github.repository }}@$env:ROOT_REF"
+          }
+
+          Write-Host "已触发主仓库 release.yml：${{ github.repository }}@$env:ROOT_REF version=$env:VERSION"
+
       - name: 生成后端仓库 GitHub App token
         id: backend-token
-        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        if: ${{ steps.backend-source-decision.outputs.backend_build_required == 'true' }}
         uses: actions/create-github-app-token@v3.2.0
         with:
           client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
@@ -194,30 +429,9 @@ jobs:
           owner: ${{ steps.start-context.outputs.backend_owner }}
           repositories: ${{ steps.start-context.outputs.backend_name }}
           permission-actions: write
-          permission-contents: read
-
-      - name: 校验后端 main 指针
-        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
-        env:
-          GH_TOKEN: ${{ steps.backend-token.outputs.token }}
-          BACKEND_REPOSITORY: ${{ steps.start-context.outputs.backend_repository }}
-          BACKEND_COMMIT: ${{ steps.release-context.outputs.backend_commit }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $mainRef = gh api "repos/$env:BACKEND_REPOSITORY/git/ref/heads/main" --jq '.object.sha'
-          if ($LASTEXITCODE -ne 0) {
-            throw "读取后端 main 指针失败：$env:BACKEND_REPOSITORY"
-          }
-          $mainSha = $mainRef.Trim()
-          if ($mainSha -ne $env:BACKEND_COMMIT) {
-            throw "第一版 release start 要求 services/backend 子模块 commit 等于后端 main：main=$mainSha submodule=$env:BACKEND_COMMIT"
-          }
-
-          Write-Host "后端 main 指针校验通过：$mainSha"
 
       - name: 触发后端 release resolve
-        if: ${{ steps.start-context.outputs.trigger_backend_resolve == 'true' }}
+        if: ${{ steps.backend-source-decision.outputs.backend_build_required == 'true' }}
         env:
           GH_TOKEN: ${{ steps.backend-token.outputs.token }}
           VERSION: ${{ steps.start-context.outputs.version }}
@@ -241,8 +455,6 @@ jobs:
             -f "backend_commit=$env:BACKEND_COMMIT" `
             -f "openapi_snapshot_hash=$env:OPENAPI_SNAPSHOT_HASH" `
             -f "required_assets_json=$env:REQUIRED_ASSETS_JSON" `
-            -f "historical_release_tag=" `
-            -f "allow_native_build_fallback=true" `
             -f "trigger_release_assemble=true" `
             -f "release_intent_id=$env:RELEASE_INTENT_ID"
           if ($LASTEXITCODE -ne 0) {
@@ -263,6 +475,10 @@ jobs:
           OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
           DRY_RUN: ${{ steps.start-context.outputs.dry_run }}
           TRIGGER_BACKEND_RESOLVE: ${{ steps.start-context.outputs.trigger_backend_resolve }}
+          HISTORICAL_RELEASE_TAG: ${{ steps.historical-release.outputs.historical_release_tag }}
+          BACKEND_BUILD_REQUIRED: ${{ steps.backend-source-decision.outputs.backend_build_required }}
+          BACKEND_SOURCE_MODE: ${{ steps.backend-source-decision.outputs.backend_source_mode }}
+          HISTORICAL_FAILURE_REASON: ${{ steps.backend-source-decision.outputs.historical_failure_reason }}
           RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
         run: |
           @"
@@ -277,7 +493,11 @@ jobs:
           - openapi_snapshot_hash: ``$env:OPENAPI_SNAPSHOT_HASH``
           - dry_run: ``$env:DRY_RUN``
           - trigger_backend_resolve: ``$env:TRIGGER_BACKEND_RESOLVE``
+          - historical_release: ``$env:HISTORICAL_RELEASE_TAG``
+          - backend_build_required: ``$env:BACKEND_BUILD_REQUIRED``
+          - backend_source_mode: ``$env:BACKEND_SOURCE_MODE``
+          - historical_failure_reason: ``$env:HISTORICAL_FAILURE_REASON``
           - release_intent_id: ``$env:RELEASE_INTENT_ID``
 
-          真实 tag push 会触发后端 ``backend-release-resolve.yml``，并显式开启 ``allow_native_build_fallback`` 与 ``trigger_release_assemble``。
+          真实 tag push 会先在主仓库尝试复用最新一个合格历史 Release asset；复用成功则直接触发主仓库 ``release.yml``，复用失败才触发后端 ``backend-release-resolve.yml`` 运行 native build 并回调组装。
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

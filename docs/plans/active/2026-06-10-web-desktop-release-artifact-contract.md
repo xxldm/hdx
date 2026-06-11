@@ -31,7 +31,7 @@
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
-- 当前正式发布链路已有 `release-start.yml`、后端 resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 与 Desktop Online asset 已接入 assemble，仍缺 Desktop Full/App 构建、正式 publish 和失败清理。`.github/workflows/check-public-release-assets.yml` 用于在不触发后端、不创建 Release 的前提下验证公开端 Web 与 Desktop Online 资产构建。
+- 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 与 Desktop Online asset 已接入 assemble，仍缺 Desktop Full/App 构建、正式 publish 和失败清理。`.github/workflows/check-public-release-assets.yml` 用于在不触发后端、不创建 Release 的前提下验证公开端 Web 与 Desktop Online 资产构建。
 
 ## 已确认结论
 

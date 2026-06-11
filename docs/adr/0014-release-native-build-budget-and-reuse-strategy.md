@@ -39,7 +39,7 @@
 复用必须满足以下条件：
 
 - 复用来源是主仓库 GitHub Release asset，不是后端私有仓库 Actions artifact、后端 private release、S3、RustFS、云 OSS 或独立 artifact 仓库。
-- 复用来源必须在解析结果中显式记录 release tag、asset name、sha256、size 和原始 release manifest，不允许使用 `latest`。未显式指定历史 Release tag 时，后端 release resolve 第一版只检查最新一个合格已发布 Release：排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease。
+- 复用来源必须在解析结果中显式记录 release tag、asset name、sha256、size 和原始 release manifest，不允许使用 `latest`。未显式指定历史 Release tag 时，主仓库 release start 第一版只检查最新一个合格已发布 Release：排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease。
 - 新 Release 必须重新上传该 asset，并在新的 `release-manifest.json` 中记录它来自哪个历史 Release、对应 asset、sha256、size、后端 commit、OpenAPI snapshot hash 和 backend native fingerprint。
 - 后端 native fingerprint 必须完全匹配；匹配不到或无法验证时必须重新运行后端 native workflow。
 - 复用旧 asset 不代表复用旧发布事实源。新的 `release-manifest.json` 仍以当前主仓库 release tag 或 root commit 作为事实源，同时记录该后端 asset 的历史构建来源。
@@ -125,16 +125,18 @@ backend native fingerprint 至少包含：
 ## 后续事项
 
 - `backend-services` Linux 并行 workflow 已完成 GitHub-hosted 实跑验证；Windows services 包仍默认不跑，后续需要发布时再显式验证。
-- `.github/workflows/release-start.yml` 第一版已支持真实 `v*` tag push 触发后端 resolver。
+- `.github/workflows/release-start.yml` 第一版已支持真实 `v*` tag push，并已把历史复用判断迁回主仓库：先检查最新一个合格历史 Release，复用成功时直接触发主仓库 assemble，复用失败时才触发后端 resolver 运行 native build。
 - `.github/workflows/release.yml` 第一版已具备：
   - 多个后端 Actions artifact 聚合。
   - 从同一个历史主仓库 Release 复用多个后端 native asset。
   - Web node-server asset 构建。
   - Desktop Online Windows/Linux asset 构建。
-- 后端私有仓库已提供 release resolve 第一片：
-  - 可从指定历史主仓库 Release 或最新一个合格已发布 Release 生成复用 payload。
-  - 历史复用失败时，resolver 可显式开启 native build fallback。
-  - resolver 可显式回调主仓库 assemble。
+- 后端私有仓库 release resolve 已收缩为 native build resolver：
+  - 按输入的 `backend_commit` checkout 后端源码。
+  - 根据主仓库传入的必需后端资产列表计算 native build scope。
+  - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
+  - 构建完成后可显式回调主仓库 assemble。
+  - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - 补齐 Desktop Full、App 资产构建、统一 publish 和失败清理策略。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
@@ -152,3 +154,4 @@ backend native fingerprint 至少包含：
 - 2026-06-10：`backend-release-resolve.yml` 支持在未显式传入历史 Release tag 时，自动选择最新一个合格已发布主仓库 Release；选择规则排除 draft、当前版本、`latest` 和 smoke/test tag，不排除 prerelease，并且只检查这一个候选。
 - 2026-06-10：`backend-native-artifact.yml` 增加 `workflow_call` 入口；`backend-release-resolve.yml` 增加可选 native build fallback，历史复用失败时可复用现有 native artifact workflow 生成 `github-actions-artifact` 模式来源，并可显式触发主仓库 `release.yml` assemble。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 固化 OpenAPI snapshot 集合 hash 算法；新增 `.github/workflows/release-start.yml`，真实 `v*` tag push 会计算发布上下文并触发后端 resolver。
+- 2026-06-11：历史复用职责迁回主仓库 `release-start.yml`。主仓库负责选择并校验最新一个合格历史 Release；后端 `backend-release-resolve.yml` 不再读取主仓库 Release，只在复用不可用时按指定 `backend_commit` 运行 native build，并可用 `Actions: write` token 回调主仓库 assemble。

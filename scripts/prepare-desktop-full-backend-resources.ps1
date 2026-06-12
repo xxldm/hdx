@@ -223,6 +223,8 @@ if (Test-Path -LiteralPath $outputFull) {
     Remove-Item -LiteralPath $outputFull -Recurse -Force
 }
 New-Item -ItemType Directory -Path $outputFull | Out-Null
+$runtimeRoot = Join-Path $outputFull 'backend'
+New-Item -ItemType Directory -Path $runtimeRoot | Out-Null
 
 $archiveDestinationPath = Join-Path $outputFull ([string]$backendArtifact.fileName)
 Copy-Item -LiteralPath $archivePath -Destination $archiveDestinationPath -Force
@@ -252,8 +254,29 @@ $backendBuild = [ordered]@{
     }
 }
 
-$backendBuildPath = Join-Path $outputFull 'backend-build.json'
+$backendBuildPath = Join-Path $runtimeRoot 'backend-build.json'
 $backendBuild | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath $backendBuildPath
+
+if ($Platform -eq 'windows-x64') {
+    Expand-Archive -LiteralPath $archiveDestinationPath -DestinationPath $runtimeRoot -Force
+}
+else {
+    $tar = Get-Command tar -ErrorAction SilentlyContinue
+    if ($null -eq $tar) {
+        throw "无法解压 backend-full tar.gz，因为未找到 tar 命令。路径：$archiveDestinationPath"
+    }
+
+    & $tar.Source -xzf $archiveDestinationPath -C $runtimeRoot
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+    if ($exitCode -ne 0) {
+        throw "解压 backend-full tar.gz 失败，退出码：$exitCode，路径：$archiveDestinationPath"
+    }
+}
+
+$runtimeEntrypoint = Join-Path $runtimeRoot ($entrypoint.Replace('/', [string][System.IO.Path]::DirectorySeparatorChar))
+if (-not (Test-Path -LiteralPath $runtimeEntrypoint -PathType Leaf)) {
+    throw "解压后的 backend-full entrypoint 不存在：$runtimeEntrypoint"
+}
 
 $releaseManifestCheck = Join-Path $PSScriptRoot 'release-manifest-check.ps1'
 & pwsh -NoLogo -NoProfile -File $releaseManifestCheck `
@@ -270,7 +293,7 @@ if ($LASTEXITCODE -ne 0) {
     -SkipExamples `
     -BackendBuildPath $backendBuildPath `
     -AssetRoot $outputFull `
-    -ScanPath $archiveDestinationPath
+    -ScanPath $runtimeRoot
 if ($LASTEXITCODE -ne 0) {
     throw "Desktop Full 后端资源校验失败，退出码：$LASTEXITCODE"
 }
@@ -279,3 +302,4 @@ Write-Host 'Desktop Full 后端资源已准备完成。'
 Write-Host "平台：$Platform"
 Write-Host "后端 archive：$($backendArtifact.fileName)"
 Write-Host "backend-build.json：$backendBuildPath"
+Write-Host "运行时 entrypoint：$runtimeEntrypoint"

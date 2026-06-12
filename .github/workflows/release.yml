@@ -245,183 +245,11 @@ jobs:
 
           Write-Host "输入校验通过：version=$version mode=$backendSourceMode intent=$releaseIntentId"
 
-  build-desktop-online:
-    name: Build Desktop Online (${{ matrix.platform }})
+  resolve-backend-native:
+    name: Resolve backend native assets
     needs: validate-inputs
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
-    defaults:
-      run:
-        shell: pwsh
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - os: windows-latest
-            platform: windows-x64
-            bundle: nsis
-          - os: ubuntu-latest
-            platform: linux-x64
-            bundle: appimage
-    env:
-      VERSION: ${{ needs.validate-inputs.outputs.version }}
-      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
-      ROOT_COMMIT: ${{ needs.validate-inputs.outputs.root_commit }}
-      DESKTOP_FLAVOR: online
-      DESKTOP_PRODUCT: HDX.Desktop.Online
-      DESKTOP_BINARY: HDX Desktop Online
-      DESKTOP_PLATFORM: ${{ matrix.platform }}
-      TAURI_BUNDLE: ${{ matrix.bundle }}
-    steps:
-      - name: Checkout 主仓库发布事实源
-        uses: actions/checkout@v6.0.3
-        with:
-          ref: ${{ needs.validate-inputs.outputs.root_ref }}
-          fetch-depth: 0
-          persist-credentials: false
-          submodules: false
-
-      - name: 校验 root commit
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $actualRootCommit = (git rev-parse HEAD).Trim()
-          if ($actualRootCommit -ne $env:ROOT_COMMIT) {
-            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
-          }
-
-      - name: 初始化并校验 Desktop 子模块
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
-          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
-            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
-          }
-          $desktopCommit = $Matches[1]
-
-          git submodule update --init --depth 1 apps/desktop
-          if ($LASTEXITCODE -ne 0) {
-            throw '初始化 apps/desktop 子模块失败。'
-          }
-
-          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
-          if ($actualDesktopCommit -ne $desktopCommit) {
-            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
-          }
-
-          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "Desktop 子模块已初始化：$desktopCommit"
-
-      - name: 安装 Linux Tauri 依赖
-        if: ${{ runner.os == 'Linux' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            curl \
-            file \
-            libayatana-appindicator3-dev \
-            librsvg2-dev \
-            libssl-dev \
-            libwebkit2gtk-4.1-dev \
-            libxdo-dev \
-            patchelf \
-            wget
-
-      - name: 设置 Desktop pnpm
-        uses: pnpm/action-setup@v4
-        with:
-          version: 10.0.0
-          run_install: false
-
-      - name: 设置 Desktop Node 缓存
-        uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
-
-      - name: 准备 Desktop release Tauri 配置
-        working-directory: apps/desktop
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
-          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
-            throw "Tauri version 无效：$tauriVersion"
-          }
-
-          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
-          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
-          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
-          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
-          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
-
-          Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
-
-      - name: 构建 Desktop Online
-        working-directory: apps/desktop
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          pnpm install --frozen-lockfile
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Desktop 依赖安装失败。'
-          }
-
-          $arguments = @(
-            'exec',
-            'tauri',
-            'build',
-            '--config',
-            "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json",
-            '--features',
-            "flavor-$env:DESKTOP_FLAVOR",
-            '--bundles',
-            $env:TAURI_BUNDLE,
-            '--ci'
-          )
-          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
-            $arguments += '--no-sign'
-          }
-
-          & pnpm @arguments
-          if ($LASTEXITCODE -ne 0) {
-            throw "Desktop $env:DESKTOP_FLAVOR $env:DESKTOP_PLATFORM 构建失败。"
-          }
-
-      - name: 整理 Desktop Online Release asset
-        run: |
-          $ErrorActionPreference = 'Stop'
-
-          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
-            -Version $env:VERSION `
-            -Flavor $env:DESKTOP_FLAVOR `
-            -Platform $env:DESKTOP_PLATFORM `
-            -OutputDirectory 'target/release/desktop-assets' `
-            -RootCommit $env:ROOT_COMMIT `
-            -DesktopCommit $env:DESKTOP_COMMIT
-
-      - name: 上传 Desktop Online 临时资产
-        uses: actions/upload-artifact@v4
-        with:
-          name: desktop-release-assets-online-${{ matrix.platform }}
-          path: target/release/desktop-assets/*
-          if-no-files-found: error
-          retention-days: 1
-
-  assemble-draft:
-    name: Assemble draft release
-    needs:
-      - validate-inputs
-      - build-desktop-online
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: write
+    timeout-minutes: 30
     defaults:
       run:
         shell: pwsh
@@ -435,7 +263,6 @@ jobs:
       BACKEND_REPO: ${{ needs.validate-inputs.outputs.backend_repo }}
       BACKEND_SOURCES_JSON: ${{ inputs.backend_sources_json }}
       OPENAPI_SNAPSHOT_HASH: ${{ needs.validate-inputs.outputs.openapi_snapshot_hash }}
-      RELEASE_INTENT_ID: ${{ needs.validate-inputs.outputs.release_intent_id }}
       ASSET_ROOT: target/release/assets
     steps:
       - name: Checkout 主仓库发布事实源
@@ -454,16 +281,6 @@ jobs:
           if ($actualRootCommit -ne $env:ROOT_COMMIT) {
             throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
           }
-
-          $submoduleStatus = git submodule status --recursive
-          if ($LASTEXITCODE -ne 0) {
-            throw "读取子模块指针失败，退出码：$LASTEXITCODE"
-          }
-
-          $submoduleStatus | Set-Content -LiteralPath 'target-release-submodules.txt'
-          Write-Host "root commit：$actualRootCommit"
-          Write-Host '子模块只记录指针，不初始化或 checkout：'
-          Get-Content -LiteralPath 'target-release-submodules.txt'
 
       - name: 生成后端仓库 GitHub App token
         id: backend-token
@@ -634,6 +451,454 @@ jobs:
             -OpenApiSnapshotHash $env:OPENAPI_SNAPSHOT_HASH `
             -OutputDirectory $env:ASSET_ROOT
 
+      - name: 上传已校验后端 Release 资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-backend-assets
+          path: target/release/assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-desktop-online:
+    name: Build Desktop Online (${{ matrix.platform }})
+    needs: validate-inputs
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            bundle: nsis
+          - os: ubuntu-latest
+            platform: linux-x64
+            bundle: appimage
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      ROOT_COMMIT: ${{ needs.validate-inputs.outputs.root_commit }}
+      DESKTOP_FLAVOR: online
+      DESKTOP_PRODUCT: HDX.Desktop.Online
+      DESKTOP_BINARY: HDX Desktop Online
+      DESKTOP_PLATFORM: ${{ matrix.platform }}
+      TAURI_BUNDLE: ${{ matrix.bundle }}
+    steps:
+      - name: Checkout 主仓库发布事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验 root commit
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $actualRootCommit = (git rev-parse HEAD).Trim()
+          if ($actualRootCommit -ne $env:ROOT_COMMIT) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
+          }
+
+      - name: 初始化并校验 Desktop 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/desktop
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/desktop 子模块失败。'
+          }
+
+          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
+          if ($actualDesktopCommit -ne $desktopCommit) {
+            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
+          }
+
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块已初始化：$desktopCommit"
+
+      - name: 安装 Linux Tauri 依赖
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: 设置 Desktop pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Desktop Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: 准备 Desktop release Tauri 配置
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Tauri version 无效：$tauriVersion"
+          }
+
+          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
+          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
+          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
+
+          Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
+
+      - name: 构建 Desktop Online
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 依赖安装失败。'
+          }
+
+          $arguments = @(
+            'exec',
+            'tauri',
+            'build',
+            '--config',
+            "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json",
+            '--features',
+            "flavor-$env:DESKTOP_FLAVOR",
+            '--bundles',
+            $env:TAURI_BUNDLE,
+            '--ci'
+          )
+          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
+            $arguments += '--no-sign'
+          }
+
+          & pnpm @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "Desktop $env:DESKTOP_FLAVOR $env:DESKTOP_PLATFORM 构建失败。"
+          }
+
+      - name: 整理 Desktop Online Release asset
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
+            -Version $env:VERSION `
+            -Flavor $env:DESKTOP_FLAVOR `
+            -Platform $env:DESKTOP_PLATFORM `
+            -OutputDirectory 'target/release/desktop-assets' `
+            -RootCommit $env:ROOT_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT
+
+      - name: 上传 Desktop Online 临时资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-assets-online-${{ matrix.platform }}
+          path: target/release/desktop-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+  build-desktop-full:
+    name: Build Desktop Full (${{ matrix.platform }})
+    needs:
+      - validate-inputs
+      - resolve-backend-native
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: windows-x64
+            bundle: nsis
+          - os: ubuntu-latest
+            platform: linux-x64
+            bundle: appimage
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      ROOT_COMMIT: ${{ needs.validate-inputs.outputs.root_commit }}
+      ROOT_REPOSITORY: ${{ needs.validate-inputs.outputs.root_repository }}
+      BACKEND_COMMIT: ${{ needs.validate-inputs.outputs.backend_commit }}
+      DESKTOP_FLAVOR: full
+      DESKTOP_PLATFORM: ${{ matrix.platform }}
+      TAURI_BUNDLE: ${{ matrix.bundle }}
+    steps:
+      - name: Checkout 主仓库发布事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验 root commit
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $actualRootCommit = (git rev-parse HEAD).Trim()
+          if ($actualRootCommit -ne $env:ROOT_COMMIT) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
+          }
+
+      - name: 初始化并校验 Desktop 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/desktop
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/desktop 子模块失败。'
+          }
+
+          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
+          if ($actualDesktopCommit -ne $desktopCommit) {
+            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
+          }
+
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块已初始化：$desktopCommit"
+
+      - name: 下载已校验后端 Release 资产
+        uses: actions/download-artifact@v4
+        with:
+          name: release-backend-assets
+          path: target/release/backend-assets
+
+      - name: 准备 Desktop Full 后端资源
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/prepare-desktop-full-backend-resources.ps1 `
+            -BackendAssetsDirectory 'target/release/backend-assets' `
+            -Version $env:VERSION `
+            -Platform $env:DESKTOP_PLATFORM `
+            -RootRepository $env:ROOT_REPOSITORY `
+            -RootRef $env:ROOT_REF `
+            -RootCommit $env:ROOT_COMMIT `
+            -BackendCommit $env:BACKEND_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT `
+            -OutputDirectory "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM"
+
+      - name: 安装 Linux Tauri 依赖
+        if: ${{ runner.os == 'Linux' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: 设置 Desktop pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Desktop Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+
+      - name: 准备 Desktop Full release Tauri 配置
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Tauri version 无效：$tauriVersion"
+          }
+
+          $repoRoot = (Resolve-Path '../..').Path
+          $backendResourceRoot = Join-Path $repoRoot "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM"
+          $backendBuildPath = Join-Path $backendResourceRoot 'backend-build.json'
+          if (-not (Test-Path -LiteralPath $backendBuildPath -PathType Leaf)) {
+            throw "缺少 Desktop Full backend-build.json：$backendBuildPath"
+          }
+
+          $backendBuild = Get-Content -LiteralPath $backendBuildPath -Raw | ConvertFrom-Json -Depth 100
+          $backendArchivePath = Join-Path $backendResourceRoot ([string]$backendBuild.backend.archiveFileName)
+          if (-not (Test-Path -LiteralPath $backendArchivePath -PathType Leaf)) {
+            throw "缺少 Desktop Full backend archive：$backendArchivePath"
+          }
+
+          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
+          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
+          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          if ($null -eq $config.PSObject.Properties['bundle']) {
+            $config | Add-Member -NotePropertyName bundle -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $resources = [ordered]@{}
+          $resources[$backendBuildPath] = 'backend/backend-build.json'
+          $resources[$backendArchivePath] = "backend/$($backendBuild.backend.archiveFileName)"
+          $config.bundle | Add-Member -NotePropertyName resources -NotePropertyValue $resources -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
+
+          Write-Host "Desktop Full release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
+
+      - name: 构建 Desktop Full
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 依赖安装失败。'
+          }
+
+          $arguments = @(
+            'exec',
+            'tauri',
+            'build',
+            '--config',
+            "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json",
+            '--features',
+            "flavor-$env:DESKTOP_FLAVOR",
+            '--bundles',
+            $env:TAURI_BUNDLE,
+            '--ci'
+          )
+          if ($env:DESKTOP_PLATFORM -eq 'windows-x64') {
+            $arguments += '--no-sign'
+          }
+
+          & pnpm @arguments
+          if ($LASTEXITCODE -ne 0) {
+            throw "Desktop $env:DESKTOP_FLAVOR $env:DESKTOP_PLATFORM 构建失败。"
+          }
+
+      - name: 整理 Desktop Full Release asset
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
+            -Version $env:VERSION `
+            -Flavor $env:DESKTOP_FLAVOR `
+            -Platform $env:DESKTOP_PLATFORM `
+            -OutputDirectory 'target/release/desktop-assets' `
+            -RootCommit $env:ROOT_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT `
+            -FullBackendResourcesDirectory "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM"
+
+      - name: 上传 Desktop Full 临时资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: desktop-release-assets-full-${{ matrix.platform }}
+          path: target/release/desktop-assets/*
+          if-no-files-found: error
+          retention-days: 1
+
+  assemble-draft:
+    name: Assemble draft release
+    needs:
+      - validate-inputs
+      - resolve-backend-native
+      - build-desktop-online
+      - build-desktop-full
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      ROOT_COMMIT: ${{ needs.validate-inputs.outputs.root_commit }}
+      ROOT_REPOSITORY: ${{ needs.validate-inputs.outputs.root_repository }}
+      BACKEND_COMMIT: ${{ needs.validate-inputs.outputs.backend_commit }}
+      BACKEND_SOURCE_MODE: ${{ needs.validate-inputs.outputs.backend_source_mode }}
+      BACKEND_REPO: ${{ needs.validate-inputs.outputs.backend_repo }}
+      BACKEND_SOURCES_JSON: ${{ inputs.backend_sources_json }}
+      OPENAPI_SNAPSHOT_HASH: ${{ needs.validate-inputs.outputs.openapi_snapshot_hash }}
+      RELEASE_INTENT_ID: ${{ needs.validate-inputs.outputs.release_intent_id }}
+      ASSET_ROOT: target/release/assets
+    steps:
+      - name: Checkout 主仓库发布事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 校验 root commit
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $actualRootCommit = (git rev-parse HEAD).Trim()
+          if ($actualRootCommit -ne $env:ROOT_COMMIT) {
+            throw "checkout 后 root commit 与输入不一致：输入 $env:ROOT_COMMIT，实际 $actualRootCommit"
+          }
+
+          $submoduleStatus = git submodule status --recursive
+          if ($LASTEXITCODE -ne 0) {
+            throw "读取子模块指针失败，退出码：$LASTEXITCODE"
+          }
+
+          $submoduleStatus | Set-Content -LiteralPath 'target-release-submodules.txt'
+          Write-Host "root commit：$actualRootCommit"
+          Write-Host '子模块只记录指针，不初始化或 checkout：'
+          Get-Content -LiteralPath 'target-release-submodules.txt'
+
+      - name: 下载已校验后端 Release 资产
+        uses: actions/download-artifact@v4
+        with:
+          name: release-backend-assets
+          path: target/release/assets
+
       - name: 初始化并校验 Web 子模块
         run: |
           $ErrorActionPreference = 'Stop'
@@ -751,7 +1016,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: desktop-release-assets-online-*
-          path: target/release/desktop-assets
+          path: target/release/desktop-online-assets
           merge-multiple: true
 
       - name: 追加 Desktop Online 资产到 Release manifest
@@ -761,7 +1026,26 @@ jobs:
           $releaseManifestPath = Join-Path $env:ASSET_ROOT 'release-manifest.json'
           pwsh -NoLogo -NoProfile -File scripts/release-append-desktop-assets.ps1 `
             -ReleaseManifestPath $releaseManifestPath `
-            -DesktopAssetsDirectory 'target/release/desktop-assets' `
+            -DesktopAssetsDirectory 'target/release/desktop-online-assets' `
+            -DesktopRepository $env:DESKTOP_REPOSITORY `
+            -DesktopCommit $env:DESKTOP_COMMIT `
+            -AssetRoot $env:ASSET_ROOT
+
+      - name: 下载 Desktop Full 临时资产
+        uses: actions/download-artifact@v4
+        with:
+          pattern: desktop-release-assets-full-*
+          path: target/release/desktop-full-assets
+          merge-multiple: true
+
+      - name: 追加 Desktop Full 资产到 Release manifest
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $releaseManifestPath = Join-Path $env:ASSET_ROOT 'release-manifest.json'
+          pwsh -NoLogo -NoProfile -File scripts/release-append-desktop-assets.ps1 `
+            -ReleaseManifestPath $releaseManifestPath `
+            -DesktopAssetsDirectory 'target/release/desktop-full-assets' `
             -DesktopRepository $env:DESKTOP_REPOSITORY `
             -DesktopCommit $env:DESKTOP_COMMIT `
             -AssetRoot $env:ASSET_ROOT
@@ -796,8 +1080,9 @@ jobs:
             '本 draft 由正式 `release.yml` 第一阶段自动生成。'
             ''
             '当前限制：'
-            '- 已组装后端 native 来源、Web node-server asset 和 Desktop Online asset。'
-            '- 尚未构建 Desktop Full 或 App asset。'
+            '- 已组装后端 native 来源、Web node-server asset、Desktop Online asset 和 Desktop Full asset。'
+            '- Desktop Full 包内已携带同平台 backend-full archive 与 backend-build.json，但本机后端启动、健康检查和本机 token 注入仍待后续实现。'
+            '- 尚未构建 App asset。'
             '- 尚不自动 publish，校验通过后仍保持 draft。'
             ''
             "release_intent_id: $env:RELEASE_INTENT_ID"
@@ -950,14 +1235,17 @@ jobs:
           - 按显式 ``backend_sources_json`` 下载后端 native 来源。
           - 初始化根仓库锁定的 ``apps/web`` 子模块，构建 Web node-server 发布包。
           - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
-          - 生成并校验包含后端、Web 与 Desktop Online 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
+          - 构建 Desktop Full Windows/Linux 发布包，携带同平台 ``backend-full`` archive 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
+          - 生成并校验包含后端、Web、Desktop Online 与 Desktop Full 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
           - 创建 draft Release，上传资产，并从远端下载核对 size 与 sha256。
 
           ## 当前限制
 
           - ``github-actions-artifact`` 模式支持多个后端 native asset 来源。
           - ``historical-release-asset`` 模式支持同一个历史 Release 中的多个后端 native asset 来源。
-          - 第一版已构建 Web node-server asset 和 Desktop Online asset，但不构建 Desktop Full 或 App。
+          - 第一版已构建 Web node-server asset、Desktop Online asset 和 Desktop Full asset。
+          - Desktop Full 尚未实现本机后端启动、健康检查和本机 token 注入。
+          - 第一版不构建 App。
           - 第一版不自动 publish；校验通过后仍保持 draft。
 
           ## 子模块指针

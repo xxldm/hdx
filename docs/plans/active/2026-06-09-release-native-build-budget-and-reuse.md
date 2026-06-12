@@ -136,6 +136,7 @@
 - 2026-06-11：误触发一次真实 `Release Start` 演练 run `27324861530`，它成功触发后端 resolver run `27324870505`；在确认提交锁定边界前已取消后端 resolver，run 结论为 `cancelled`，native build job 在早期阶段停止，未产生后端 native artifact。
 - 2026-06-11：进一步收缩职责边界。主仓库 `release-start.yml` 现在先用自身 `GITHUB_TOKEN` 选择并校验最新一个合格历史主仓库 Release；复用成功时直接触发主仓库 `release.yml`，复用失败时才通过 `HDX Backend Actions Bot` 的 `Actions: write` token 触发后端 resolver。后端 `backend-release-resolve.yml` 不再读取主仓库历史 Release，只按输入 `backend_commit` 运行 native build，并可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 assemble；两个 GitHub App 最大权限均不再需要 `Contents: read`。
 - 2026-06-12：增强 `release-start.yml` 手动 dry-run。新增 `evaluate_backend_source` 内部输出，把“是否预演后端来源判断”和“是否触发后续 workflow”分开：手动 `dry_run=true` 会选择/下载/校验候选历史 Release asset 并在 summary 输出 `backend_build_required`、`backend_source_mode` 和失败原因，但不会触发主仓库 `release.yml`，也不会生成后端 App token 或触发后端 resolver。
+- 2026-06-12：主仓库 `Release Start` 手动 dry-run run `27403306816` 通过。该 run 使用 `version=v0.0.0-start-dry-run.1` 和 `root_ref=refs/heads/main`，完成发布上下文计算和历史 Release 选择；当前没有合格历史 Release，所以 `backend_build_required=true`。dry-run 按预期跳过 `触发主仓库 release assemble`、`生成后端仓库 GitHub App token` 和 `触发后端 release resolve`，后端仓库未产生新的 resolver/native build run。
 
 ## 验证结果
 
@@ -162,6 +163,7 @@
 - 2026-06-11：提交锁定边界调整后，运行 `actionlint .github/workflows/release-start.yml`，通过；在 `services/backend/` 运行 `actionlint .github/workflows/backend-release-resolve.yml .github/workflows/backend-native-artifact.yml`，通过；运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope backend -NoBuild`，均通过。`backend -NoBuild` 仅保留 Maven/Jansi 在 Java 25 下的 restricted method warning，不影响 workflow 静态校验。
 - 2026-06-11：发布职责收缩后，运行 `actionlint .github/workflows/release-start.yml .github/workflows/release.yml .github/workflows/check-release-app-token.yml`，通过；在 `services/backend/` 运行 `actionlint .github/workflows/backend-release-resolve.yml .github/workflows/backend-native-artifact.yml`，通过；运行 `git diff --check` 与 `git -C services/backend diff --check`，均通过，仅保留 Git for Windows 行尾转换提示；运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope backend -NoBuild`，均通过。`backend -NoBuild` 仅保留 Maven/Jansi 在 Java 25 下的 restricted method warning。
 - 2026-06-12：主仓库 `check-release-app-token.yml` 手动 run `27402944650` 通过。该 run 使用权限收缩后的 `HDX Backend Actions Bot` 生成 `Actions: read` 和 `Actions: write` token，成功读取后端仓库 Actions metadata；未申请 `Contents: read`，未 checkout 后端源码，未下载 artifact，未创建 Release。
+- 2026-06-12：主仓库 `Release Start` 手动 dry-run run `27403306816` 通过；`actionlint .github/workflows/release-start.yml`、`git diff --check` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 均通过。run 详情确认 release assemble、后端 App token 和后端 resolver 触发步骤全部 skipped，后端仓库最新 run 未变化。
 
 ## 剩余风险
 

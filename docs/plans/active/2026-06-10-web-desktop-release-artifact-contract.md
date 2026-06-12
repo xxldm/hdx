@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online Windows/Linux asset 构建与 manifest 追加切片；新增公开端资产检查 workflow 用于先验证 Web 与 Desktop Online 打包路径
+- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble；Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online 与 Desktop Full Windows/Linux asset 构建和 manifest 追加切片；Desktop Full 包内已携带同平台 `backend-full` archive 与 `backend-build.json`，但运行时 sidecar 闭环仍未实现；新增公开端资产检查 workflow 用于先验证 Web 与 Desktop Online 打包路径
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -27,11 +27,11 @@
 - Web Linux tar 包和后续 Docker 镜像共用 `sh` 启动脚本；`apps/web` 已新增 `start.sh`、`start-web.mjs`、`scripts/web-config-loader.mjs`、`scripts/package-node-server.mjs` 和 `config.example.yml`。`start.sh` 调用 `start-web.mjs`，由 Node 启动器可选读取包根目录 `config.yml`，将配置注入当前进程临时环境变量后启动 `server/index.mjs`。
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Full/Online flavor 配置和 `build:full`、`build:online` 脚本。
-- Desktop 当前仍是只读状态面板和 capability 空壳；Full 未打包或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
+- Desktop 当前仍是只读状态面板和 capability 空壳；Full 发布包已能携带同平台 `backend-full` archive，但尚未解压或启动真实 `backend-all-in-one`，Online 未实现远端地址填写和持久化。
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
-- 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片；Web node-server asset 与 Desktop Online asset 已接入 assemble，仍缺 Desktop Full/App 构建、正式 publish 和失败清理。`.github/workflows/check-public-release-assets.yml` 用于在不触发后端、不创建 Release 的前提下验证公开端 Web 与 Desktop Online 资产构建。
+- 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片；Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble，仍缺 App 构建、正式 publish、失败清理和 Desktop Full 运行时 sidecar 闭环。`.github/workflows/check-public-release-assets.yml` 用于在不触发后端、不创建 Release 的前提下验证公开端 Web 与 Desktop Online 资产构建。
 
 ## 已确认结论
 
@@ -49,7 +49,7 @@
 - `start-web.mjs` 可以使用 YAML 解析依赖，但该依赖必须随 Web 发布产物一起打入包内，不能要求用户在部署机器上执行 `npm install`。
 - 正式生产包不通过事后手工删除 client/public sourcemap 来达成，而是在 Nuxt/Vite/Nitro 构建配置中关闭 client sourcemap；打包脚本仍应检查 `public/` 下不存在 `*.map`。
 - Linux 启动 smoke 可在本机 WSL 中执行；当前 WSL 已有 Node.js `v24.16.0`，Web node-server 包运行时不应再要求额外安装 npm 依赖。
-- Desktop 第一版正式 Release 需要同时提供 Online 与 Full；Full 只有在真实 sidecar、本机 token 注入和本地 Web 启动闭环完成后才能作为用户可用产物发布。
+- Desktop 第一版正式 Release 需要同时提供 Online 与 Full；Full 打包资产可以先进入 draft assemble 验证，但只有在真实 sidecar、本机 token 注入和本地 Web 启动闭环完成后才能作为用户可用产物发布。
 - Desktop Windows 同时发布 NSIS 安装包和绿色 zip 包；Linux 第一版优先发布 AppImage。
 - Desktop Release asset 文件名统一使用无空格命名。
 - Desktop Windows 首版允许未签名；release notes 需要提示 Windows SmartScreen 或系统安全提示风险。
@@ -106,12 +106,12 @@
 ## 待实现问题
 
 - Desktop Online 需要实现远端地址填写、校验、用户级持久化和登录前连接检查。
-- Desktop Full 需要实现同平台 `backend-full` sidecar 打包、启动、健康检查、本机 token 注入和退出清理。
-- Desktop Online Windows 绿色 zip 整理已抽出为 `scripts/package-desktop-release-assets.ps1` 并接入 release/check workflow，包含 exe、`README`、`LICENSE`、可选 `NOTICE` 和 `RELEASE.txt` 发布摘要；仍需要 GitHub-hosted 实跑确认产物内容，Desktop Full 后续沿用同一规则。
+- Desktop Full 需要实现 `backend-full` archive 解压、sidecar 启动、健康检查、本机 token 注入和退出清理；打包第一片已完成。
+- Desktop Online Windows 绿色 zip 整理已抽出为 `scripts/package-desktop-release-assets.ps1` 并接入 release/check workflow，包含 exe、`README`、`LICENSE`、可选 `NOTICE` 和 `RELEASE.txt` 发布摘要；Desktop Full Windows 绿色包会额外携带 `backend/` 目录。
 - Desktop Linux AppImage 需要在 Linux runner 上验证 Online/Full flavor 构建、启动和桌面集成。
-- Release workflow 已在 Desktop Online 切片中把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit；Desktop Full 后续沿用同一整理规则。
+- Release workflow 已把 Tauri 默认输出重命名为上述无空格 asset 名称，并为每个 asset 记录 sha256、size、platform、flavor、packaging 和来源 commit；Desktop Full 打包第一片额外校验并携带同平台 `backend-full` archive 与 `backend-build.json`。
 - Release workflow 后续需要从 Desktop 安装包/AppImage 和 `.sig` 文件派生 Tauri updater JSON，禁止手写 updater URL 或 signature 内容。
-- Release workflow 已接入 Web node-server asset 和 Desktop Online asset 构建；后续仍需接入 Desktop Full/App 构建、正式 publish 和失败清理。
+- Release workflow 已接入 Web node-server asset、Desktop Online asset 和 Desktop Full asset 构建；后续仍需接入 App 构建、正式 publish、失败清理和 Desktop Full 运行时 sidecar 闭环。
 - 公开端资产检查 workflow 已接入 Web node-server 与 Desktop Online Windows/Linux asset 构建；后续需要在 GitHub-hosted runner 实跑，确认 Web 依赖安装、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出。
 
 ## 本地任务清单
@@ -129,6 +129,7 @@
 - [x] 更新 ADR、架构文档、Release runbook 或本计划中的结论。
 - [x] 将 Web node-server asset 接入正式 `release.yml` assemble。
 - [x] 将 Desktop Online Windows/Linux asset 接入正式 `release.yml` assemble。
+- [x] 将 Desktop Full Windows/Linux asset 接入正式 `release.yml` assemble。
 - [x] 新增公开端 Web/Desktop Online release asset check workflow。
 - [x] 运行 docs 范围质量门禁。
 

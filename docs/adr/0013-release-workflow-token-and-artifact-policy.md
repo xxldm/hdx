@@ -213,8 +213,10 @@ validate-inputs
 - 主仓库真实 `release.yml` 已完成第一版 draft assemble 骨架：
   - 支持手动输入多个后端 Actions artifact 聚合。
   - 支持从同一个历史主仓库 Release 复用多个后端 native asset。
+  - 已把后端 native 来源解析拆为 `resolve-backend-native` job，供 Desktop Full 和最终 Release 上传复用同一份已校验资产。
   - 构建 Web node-server asset。
   - 构建 Desktop Online Windows/Linux asset。
+  - 构建 Desktop Full Windows/Linux asset，并把同平台 `backend-full` archive 与 `backend-build.json` 作为 Tauri resources 或绿色包 `backend/` 目录携带。
   - 完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。
 - 后端私有仓库已完成 release resolve 第一片：
   - 按输入的 `backend_commit` checkout 后端源码。
@@ -222,7 +224,7 @@ validate-inputs
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 `release.yml`。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 后续仍需补齐 Desktop Full/App 构建、publish 和失败清理。
+- 后续仍需补齐 App 构建、publish、失败清理和 Desktop Full 运行时 sidecar 闭环。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -236,3 +238,4 @@ validate-inputs
 - 2026-06-10：`release.yml` 接入 Web node-server asset 构建：只初始化根仓库锁定的 `apps/web` 子模块，不 checkout 后端私有源码；构建 `hdx-web-node-server-<version>.tar.gz` 后追加到 `release-manifest.json` 并重算 `SHA256SUMS`。Desktop/App 构建和自动 publish 仍待后续切片。
 - 2026-06-10：`release.yml` 接入 Desktop Online asset 构建：Windows/Linux 分平台构建公开 `apps/desktop` 子模块，整理 Windows NSIS 安装包、Windows 绿色 zip 包和 Linux AppImage，通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop` 与 Desktop Online assets，并重算 `SHA256SUMS`。Desktop Full、App、updater JSON 和自动 publish 仍待后续切片。
 - 2026-06-11：职责边界收缩。历史 Release asset 复用判断迁回主仓库 `release-start.yml`；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble。`HDX Backend Actions Bot` 与 `HDX Main Workflow Bot` 的最大权限均不再需要 `Contents: read`。
+- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片：新增 `resolve-backend-native` job 统一输出已校验后端 Release 资产；Desktop Full Windows/Linux job 下载同一份后端资产，生成 `backend-build.json`，把同平台 `backend-full` archive 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时复制到 `backend/` 目录；assemble job 追加 Desktop Full asset 到 `release-manifest.json`。本轮只完成打包接入，本机后端启动、健康检查、本机 token 注入和退出清理仍待后续切片。

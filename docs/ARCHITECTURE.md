@@ -121,11 +121,12 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
 - `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema 位于 `packages/shared/contracts/release/`。
 - 当前已有 `check-*` 与 `debug-*` 手动验证 workflow；它们不是正式发布入口，具体用途见 `.github/workflows/README.md`。
 - `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run。
-- `.github/workflows/release.yml` 已提供正式发布入口第一版：手动接收后端来源 payload，支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset 和 Desktop Online Windows/Linux asset，创建并远端校验 draft Release；尚不 publish。
+- `.github/workflows/release.yml` 已提供正式发布入口第一版：手动接收后端来源 payload，由 `resolve-backend-native` 统一输出已校验后端资产，支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建并远端校验 draft Release；尚不 publish。
+- Desktop Full 发布包当前已携带同平台 `backend-full` archive 和 `backend-build.json`，且与 Release 中公开的 `backend-full` asset 同源；本机后端启动、健康检查、本机 token 注入和退出清理仍未实现。
 - `services/backend/.github/workflows/backend-release-resolve.yml` 已收缩为后端 native build resolver：只按输入的 `backend_commit` checkout 后端源码、计算必需资产对应的 native build 范围、调用 `backend-native-artifact.yml` 生产短期 Actions artifact，并可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 `release.yml` assemble；它不读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
-正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 Desktop Full/App 构建、正式 publish 和失败清理串联起来。
+正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理和 Desktop Full 运行时 sidecar 闭环串联起来。
 
 ## Web 第一阶段架构
 

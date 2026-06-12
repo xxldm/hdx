@@ -16,7 +16,9 @@ param(
 
     [string]$RootCommit = '',
 
-    [string]$DesktopCommit = ''
+    [string]$DesktopCommit = '',
+
+    [string]$FullBackendResourcesDirectory = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -88,6 +90,15 @@ $targetRoot = Join-Path $RepoRoot 'target'
 Assert-PathWithin -Parent $RepoRoot -Child $desktopRootFull
 Assert-PathWithin -Parent $targetRoot -Child $outputFull
 
+$fullBackendResourcesFull = ''
+if (-not [string]::IsNullOrWhiteSpace($FullBackendResourcesDirectory)) {
+    $fullBackendResourcesFull = Get-FullPath -Path $FullBackendResourcesDirectory
+    Assert-PathWithin -Parent $targetRoot -Child $fullBackendResourcesFull
+    if (-not (Test-Path -LiteralPath $fullBackendResourcesFull -PathType Container)) {
+        throw "FullBackendResourcesDirectory 不存在：$fullBackendResourcesFull"
+    }
+}
+
 if (-not (Test-Path -LiteralPath $desktopRootFull -PathType Container)) {
     throw "DesktopRoot 不存在：$desktopRootFull"
 }
@@ -125,6 +136,18 @@ if ($Platform -eq 'windows-x64') {
         $documentPath = Join-Path $desktopRootFull $documentName
         if (Test-Path -LiteralPath $documentPath -PathType Leaf) {
             Copy-Item -LiteralPath $documentPath -Destination (Join-Path $portableRoot $documentName) -Force
+        }
+    }
+
+    if ($Flavor -eq 'full') {
+        if ([string]::IsNullOrWhiteSpace($fullBackendResourcesFull)) {
+            throw 'Full Windows 绿色包必须提供 FullBackendResourcesDirectory，确保包含 backend-build.json 和同平台 backend-full archive。'
+        }
+
+        $portableBackendRoot = Join-Path $portableRoot 'backend'
+        New-Item -ItemType Directory -Path $portableBackendRoot -Force | Out-Null
+        foreach ($resource in Get-ChildItem -LiteralPath $fullBackendResourcesFull -Force) {
+            Copy-Item -LiteralPath $resource.FullName -Destination $portableBackendRoot -Recurse -Force
         }
     }
 

@@ -159,6 +159,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认 docs 质量门禁已运行 release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 - 2026-06-11：提交锁定边界调整后，运行 `actionlint .github/workflows/release-start.yml`，通过；在 `services/backend/` 运行 `actionlint .github/workflows/backend-release-resolve.yml .github/workflows/backend-native-artifact.yml`，通过；运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope backend -NoBuild`，均通过。`backend -NoBuild` 仅保留 Maven/Jansi 在 Java 25 下的 restricted method warning，不影响 workflow 静态校验。
 - 2026-06-11：发布职责收缩后，运行 `actionlint .github/workflows/release-start.yml .github/workflows/release.yml .github/workflows/check-release-app-token.yml`，通过；在 `services/backend/` 运行 `actionlint .github/workflows/backend-release-resolve.yml .github/workflows/backend-native-artifact.yml`，通过；运行 `git diff --check` 与 `git -C services/backend diff --check`，均通过，仅保留 Git for Windows 行尾转换提示；运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope backend -NoBuild`，均通过。`backend -NoBuild` 仅保留 Maven/Jansi 在 Java 25 下的 restricted method warning。
+- 2026-06-12：主仓库 `check-release-app-token.yml` 手动 run `27402944650` 通过。该 run 使用权限收缩后的 `HDX Backend Actions Bot` 生成 `Actions: read` 和 `Actions: write` token，成功读取后端仓库 Actions metadata；未申请 `Contents: read`，未 checkout 后端源码，未下载 artifact，未创建 Release。
 
 ## 剩余风险
 

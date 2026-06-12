@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset 与 Desktop Online asset 已接入 assemble；Release Start 精确提交模型已调整为按 root commit 中的 `services/backend` 子模块 hash 构建后端源码，不再要求该 hash 等于后端当前 `main`；历史 Release asset 复用判断已迁回主仓库，后端 resolver 已收缩为 native build resolver；仍缺 Desktop Full/App 构建、正式 publish 和失败清理。
+- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset 与 Desktop Online asset 已接入 assemble；Release Start 精确提交模型已调整为按 root commit 中的 `services/backend` 子模块 hash 构建后端源码，不再要求该 hash 等于后端当前 `main`；历史 Release asset 复用判断已迁回主仓库，后端 resolver 已收缩为 native build resolver；Release Start 手动 dry-run 已支持预演后端来源判断且不触发后端或 assemble；仍缺 Desktop Full/App 构建、正式 publish 和失败清理。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-11
+- 最后更新：2026-06-12
 
 ## 目标
 
@@ -69,6 +69,7 @@
 - [x] 新增 `.github/workflows/release-start.yml` 第一版，真实 `v*` tag push 会计算发布上下文、优先尝试主仓库历史后端 asset 复用，复用失败时触发后端 release resolver；手动入口默认 dry-run。
 - [x] 调整 Release Start 与后端 resolver/native build 的提交锁定边界：主仓库 release tag 锁定 root commit，root commit 中的 `services/backend` gitlink 锁定后端源码 commit；后端 workflow 可以从 `main` 启动控制平面，但源码 checkout 和 manifest 必须使用输入的 `backend_commit`。
 - [x] 收缩发布职责边界：主仓库 `release-start.yml` 负责历史 Release asset 复用判断；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble；两个 GitHub App 最大权限均不再需要 `Contents: read`。
+- [x] 增强 Release Start 手动 dry-run：`dry_run=true` 时也预演历史 Release asset 复用判断，但不触发主仓库 `release.yml` 或后端 resolver。
 - [ ] 后续完善 `.github/workflows/release.yml`，把 Desktop Full/App 构建、正式 publish 和失败清理整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
@@ -134,6 +135,7 @@
 - 2026-06-11：用户确认发布模型应允许给主仓库任意一次 commit 打版本 tag，并按该 root commit 中记录的各子模块 commit hash 打包子仓库。此前 `release-start.yml` 第一版要求 `services/backend` 子模块 commit 等于后端仓库当前 `main`，虽然能防止实际构建漂移，但会把后端发布能力退化为只能发布当前 main；已决定不在主仓库用后端 `Contents: read` 权限查询 commit，后端 resolver 和 native build 必须显式 checkout 输入的 `backend_commit` 并在 checkout 后校验 HEAD。
 - 2026-06-11：误触发一次真实 `Release Start` 演练 run `27324861530`，它成功触发后端 resolver run `27324870505`；在确认提交锁定边界前已取消后端 resolver，run 结论为 `cancelled`，native build job 在早期阶段停止，未产生后端 native artifact。
 - 2026-06-11：进一步收缩职责边界。主仓库 `release-start.yml` 现在先用自身 `GITHUB_TOKEN` 选择并校验最新一个合格历史主仓库 Release；复用成功时直接触发主仓库 `release.yml`，复用失败时才通过 `HDX Backend Actions Bot` 的 `Actions: write` token 触发后端 resolver。后端 `backend-release-resolve.yml` 不再读取主仓库历史 Release，只按输入 `backend_commit` 运行 native build，并可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 assemble；两个 GitHub App 最大权限均不再需要 `Contents: read`。
+- 2026-06-12：增强 `release-start.yml` 手动 dry-run。新增 `evaluate_backend_source` 内部输出，把“是否预演后端来源判断”和“是否触发后续 workflow”分开：手动 `dry_run=true` 会选择/下载/校验候选历史 Release asset 并在 summary 输出 `backend_build_required`、`backend_source_mode` 和失败原因，但不会触发主仓库 `release.yml`，也不会生成后端 App token 或触发后端 resolver。
 
 ## 验证结果
 

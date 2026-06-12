@@ -25,7 +25,7 @@
 截至 2026-06-11：
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
-- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run。
+- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run，并可在不触发后端、不创建 Release 的前提下预演历史复用判断。
 - `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，构建 Web node-server asset 和 Desktop Online Windows/Linux asset，创建 draft Release、上传资产并远端回读校验。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；已接入 Web node-server 与 Desktop Online 构建，不构建 Desktop Full 或 App，不自动 publish。
 - 后端私有仓库 `.github/workflows/backend-release-resolve.yml` 已收缩为 native build resolver：只按输入的 `backend_commit` 构建后端 native Actions artifact，并可在构建成功后回调主仓库 `release.yml` assemble；它不读取主仓库历史 Release。
@@ -61,7 +61,7 @@ on:
 当前第一版限制：
 
 - 手动 `workflow_dispatch` 可以通过 `historical_release_tag` 指定历史 Release；留空时仍只检查最新一个合格已发布 Release。
-- 手动 `workflow_dispatch` 默认 `dry_run=true`，只验证上下文计算，不触发后端 resolver。
+- 手动 `workflow_dispatch` 默认 `dry_run=true`，会验证上下文计算并预演后端来源判断，但不会触发主仓库 release assemble，也不会触发后端 resolver。
 - `services/backend` 子模块 commit 不要求等于后端仓库当前 `main`。主仓库 release start 不持有后端源码读取权限，也不调用后端 commit API；后端 workflow 文件可以从后端 `main` 启动，但后端源码 checkout 和 native build 必须锁定输入的 `backend_commit` 并在 checkout 后校验。
 
 ### 后端 release resolve

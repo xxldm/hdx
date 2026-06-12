@@ -761,15 +761,17 @@ jobs:
 
           $repoRoot = (Resolve-Path '../..').Path
           $backendResourceRoot = Join-Path $repoRoot "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM"
-          $backendBuildPath = Join-Path $backendResourceRoot 'backend-build.json'
+          $backendRuntimeRoot = Join-Path $backendResourceRoot 'backend'
+          $backendBuildPath = Join-Path $backendRuntimeRoot 'backend-build.json'
           if (-not (Test-Path -LiteralPath $backendBuildPath -PathType Leaf)) {
             throw "缺少 Desktop Full backend-build.json：$backendBuildPath"
           }
 
           $backendBuild = Get-Content -LiteralPath $backendBuildPath -Raw | ConvertFrom-Json -Depth 100
-          $backendArchivePath = Join-Path $backendResourceRoot ([string]$backendBuild.backend.archiveFileName)
-          if (-not (Test-Path -LiteralPath $backendArchivePath -PathType Leaf)) {
-            throw "缺少 Desktop Full backend archive：$backendArchivePath"
+          $backendExecutableRelative = ([string]$backendBuild.backend.executablePath).Replace('/', [string][System.IO.Path]::DirectorySeparatorChar)
+          $backendExecutablePath = Join-Path $backendRuntimeRoot $backendExecutableRelative
+          if (-not (Test-Path -LiteralPath $backendExecutablePath -PathType Leaf)) {
+            throw "缺少 Desktop Full backend entrypoint：$backendExecutablePath"
           }
 
           $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
@@ -780,8 +782,10 @@ jobs:
             $config | Add-Member -NotePropertyName bundle -NotePropertyValue ([pscustomobject]@{}) -Force
           }
           $resources = [ordered]@{}
-          $resources[$backendBuildPath] = 'backend/backend-build.json'
-          $resources[$backendArchivePath] = "backend/$($backendBuild.backend.archiveFileName)"
+          foreach ($resourceFile in Get-ChildItem -LiteralPath $backendRuntimeRoot -Recurse -File) {
+            $relativePath = [System.IO.Path]::GetRelativePath($backendRuntimeRoot, $resourceFile.FullName).Replace('\', '/')
+            $resources[$resourceFile.FullName] = "backend/$relativePath"
+          }
           $config.bundle | Add-Member -NotePropertyName resources -NotePropertyValue $resources -Force
           $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
 
@@ -829,7 +833,7 @@ jobs:
             -OutputDirectory 'target/release/desktop-assets' `
             -RootCommit $env:ROOT_COMMIT `
             -DesktopCommit $env:DESKTOP_COMMIT `
-            -FullBackendResourcesDirectory "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM"
+            -FullBackendResourcesDirectory "target/release/desktop-full-backend/$env:DESKTOP_PLATFORM/backend"
 
       - name: 上传 Desktop Full 临时资产
         uses: actions/upload-artifact@v4
@@ -1081,7 +1085,7 @@ jobs:
             ''
             '当前限制：'
             '- 已组装后端 native 来源、Web node-server asset、Desktop Online asset 和 Desktop Full asset。'
-            '- Desktop Full 包内已携带同平台 backend-full archive 与 backend-build.json，但本机后端启动、健康检查和本机 token 注入仍待后续实现。'
+            '- Desktop Full 包内已携带同平台已解压 backend-full 与 backend-build.json，但真实安装后启动验证、Nuxt server 本机 token 注入和退出清理仍需继续验证。'
             '- 尚未构建 App asset。'
             '- 尚不自动 publish，校验通过后仍保持 draft。'
             ''
@@ -1235,7 +1239,7 @@ jobs:
           - 按显式 ``backend_sources_json`` 下载后端 native 来源。
           - 初始化根仓库锁定的 ``apps/web`` 子模块，构建 Web node-server 发布包。
           - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
-          - 构建 Desktop Full Windows/Linux 发布包，携带同平台 ``backend-full`` archive 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
+          - 构建 Desktop Full Windows/Linux 发布包，携带同平台已解压 ``backend-full`` 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
           - 生成并校验包含后端、Web、Desktop Online 与 Desktop Full 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
           - 创建 draft Release，上传资产，并从远端下载核对 size 与 sha256。
 

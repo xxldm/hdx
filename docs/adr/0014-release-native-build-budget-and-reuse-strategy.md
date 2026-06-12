@@ -138,7 +138,7 @@ backend native fingerprint 至少包含：
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 assemble。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 补齐 App 资产构建、统一 publish、失败清理策略和 Desktop Full 运行时 sidecar 闭环。
+- 补齐 App 资产构建、统一 publish、失败清理策略、Desktop Full 真实安装包验证和本地 Web/Nuxt token 注入。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录
@@ -156,4 +156,4 @@ backend native fingerprint 至少包含：
 - 2026-06-10：`backend-native-artifact.yml` 增加 `workflow_call` 入口；`backend-release-resolve.yml` 增加可选 native build fallback，历史复用失败时可复用现有 native artifact workflow 生成 `github-actions-artifact` 模式来源，并可显式触发主仓库 `release.yml` assemble。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 固化 OpenAPI snapshot 集合 hash 算法；新增 `.github/workflows/release-start.yml`，真实 `v*` tag push 会计算发布上下文并触发后端 resolver。
 - 2026-06-11：历史复用职责迁回主仓库 `release-start.yml`。主仓库负责选择并校验最新一个合格历史 Release；后端 `backend-release-resolve.yml` 不再读取主仓库 Release，只在复用不可用时按指定 `backend_commit` 运行 native build，并可用 `Actions: write` token 回调主仓库 assemble。
-- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片。`resolve-backend-native` job 统一输出已校验后端资产；Desktop Full Windows/Linux job 生成 `backend-build.json`，把同平台 `backend-full` archive 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时携带 `backend/` 目录；assemble job 将 Desktop Full assets 追加到 `release-manifest.json`。本轮只完成打包接入，本机后端启动、健康检查、本机 token 注入和退出清理仍待后续实现。
+- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片。`resolve-backend-native` job 统一输出已校验后端资产；Desktop Full Windows/Linux job 生成 `backend-build.json`，并把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时携带已解压 `backend/` 目录；assemble job 将 Desktop Full assets 追加到 `release-manifest.json`。Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续实现。

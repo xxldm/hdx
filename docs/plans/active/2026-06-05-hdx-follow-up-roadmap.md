@@ -3,7 +3,7 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、主仓库最新合格 Release 自动选择、后端 native build resolver、可选 assemble 回调、Web node-server asset、Desktop Online asset 和 Desktop Full asset 构建，仍缺 App 构建、publish、失败清理、Desktop Full 运行时 sidecar、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、主仓库最新合格 Release 自动选择、后端 native build resolver、可选 assemble 回调、Web node-server asset、Desktop Online asset、Desktop Full asset 构建和 Desktop Full sidecar 最小启动闭环，仍缺 App 构建、publish、失败清理、Desktop Full 真实安装包验证、本地 Web/Nuxt token 注入、签名/公证/自动更新、release notes 和版本号策略。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-12
@@ -103,7 +103,7 @@
 
 仍未完成：
 
-- App 构建、publish、失败清理和 Desktop Full 运行时 sidecar 闭环的完整自动链路。
+- App 构建、publish、失败清理、Desktop Full 真实安装包验证和本地 Web/Nuxt token 注入的完整自动链路。
 - `backend-services-windows-x64` 真实发布验证。
 - 安装器签名、公证、自动更新、release notes 和版本号策略。
 
@@ -159,10 +159,10 @@
 
 - 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
-- 第 6 步 Desktop 的 all-in-one sidecar 启动、本机 token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
+- 第 6 步 Desktop 的 all-in-one sidecar 最小启动、本机 token 读取和退出清理已实现；本地 Web/Nuxt token 注入、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、App 真实打包、Desktop Full 运行时 sidecar、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
-- 第 9 步当前子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md` 已收口 Web/Desktop 发布产物契约和 Desktop Full asset 打包第一片；后续继续补运行时 sidecar、App 和 publish。
+- 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、App 真实打包、Desktop Full 真实安装包验证、本地 Web/Nuxt token 注入、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
+- 第 9 步当前子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md` 已收口 Web/Desktop 发布产物契约、Desktop Full asset 打包第一片和 Desktop Full sidecar 最小启动闭环；后续继续补 App、publish、真实安装包验证和本地 Web/Nuxt token 注入。
 
 ## 相关 commit
 

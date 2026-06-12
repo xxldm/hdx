@@ -141,7 +141,7 @@ if ($Platform -eq 'windows-x64') {
 
     if ($Flavor -eq 'full') {
         if ([string]::IsNullOrWhiteSpace($fullBackendResourcesFull)) {
-            throw 'Full Windows 绿色包必须提供 FullBackendResourcesDirectory，确保包含 backend-build.json 和同平台 backend-full archive。'
+            throw 'Full Windows 绿色包必须提供 FullBackendResourcesDirectory，确保包含 backend-build.json 和已解压的 backend-full bin 目录。'
         }
 
         $portableBackendRoot = Join-Path $portableRoot 'backend'

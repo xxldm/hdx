@@ -527,6 +527,29 @@ jobs:
           "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Desktop 子模块已初始化：$desktopCommit"
 
+      - name: 初始化并校验 Web 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $webTree = (git ls-tree HEAD apps/web).Trim()
+          if ($webTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/web$') {
+            throw "无法读取 apps/web 子模块指针：$webTree"
+          }
+          $webCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/web
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/web 子模块失败。'
+          }
+
+          $actualWebCommit = (git -C apps/web rev-parse HEAD).Trim()
+          if ($actualWebCommit -ne $webCommit) {
+            throw "apps/web checkout 后 commit 与 root 指针不一致：指针 $webCommit，实际 $actualWebCommit"
+          }
+
+          "WEB_COMMIT=$webCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Web 子模块已初始化：$webCommit"
+
       - name: 安装 Linux Tauri 依赖
         if: ${{ runner.os == 'Linux' }}
         shell: bash
@@ -556,7 +579,24 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: |
+            apps/desktop/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+
+      - name: 构建 Desktop 静态 Web 资源
+        working-directory: apps/web
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web 依赖安装失败。'
+          }
+
+          node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 静态 Web 资源构建失败。'
+          }
 
       - name: 准备 Desktop release Tauri 配置
         working-directory: apps/desktop
@@ -572,6 +612,11 @@ jobs:
           $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
           $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
           $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          if ($null -eq $config.PSObject.Properties['build']) {
+            $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/dist/desktop-tauri' -Force
           $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
 
           Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
@@ -697,6 +742,29 @@ jobs:
           "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Desktop 子模块已初始化：$desktopCommit"
 
+      - name: 初始化并校验 Web 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $webTree = (git ls-tree HEAD apps/web).Trim()
+          if ($webTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/web$') {
+            throw "无法读取 apps/web 子模块指针：$webTree"
+          }
+          $webCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/web
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/web 子模块失败。'
+          }
+
+          $actualWebCommit = (git -C apps/web rev-parse HEAD).Trim()
+          if ($actualWebCommit -ne $webCommit) {
+            throw "apps/web checkout 后 commit 与 root 指针不一致：指针 $webCommit，实际 $actualWebCommit"
+          }
+
+          "WEB_COMMIT=$webCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Web 子模块已初始化：$webCommit"
+
       - name: 下载已校验后端 Release 资产
         uses: actions/download-artifact@v4
         with:
@@ -747,7 +815,24 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: |
+            apps/desktop/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+
+      - name: 构建 Desktop 静态 Web 资源
+        working-directory: apps/web
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web 依赖安装失败。'
+          }
+
+          node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 静态 Web 资源构建失败。'
+          }
 
       - name: 准备 Desktop Full release Tauri 配置
         working-directory: apps/desktop
@@ -778,6 +863,11 @@ jobs:
           $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
           $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
           $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          if ($null -eq $config.PSObject.Properties['build']) {
+            $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/dist/desktop-tauri' -Force
           if ($null -eq $config.PSObject.Properties['bundle']) {
             $config | Add-Member -NotePropertyName bundle -NotePropertyValue ([pscustomobject]@{}) -Force
           }
@@ -1085,8 +1175,9 @@ jobs:
             ''
             '当前限制：'
             '- 已组装后端 native 来源、Web node-server asset、Desktop Online asset 和 Desktop Full asset。'
-            '- Desktop Full 包内已携带同平台已解压 backend-full 与 backend-build.json，Rust 侧已有受控 Web/Nuxt server token 注入管理器。'
-            '- Desktop Full 真实安装后启动验证、Web/Nuxt resource 打包、Node runtime 内置策略和本机 Web 启动闭环仍需继续验证。'
+            '- Desktop Online/Full 包内使用 Web desktop-static 静态 UI，不内置 Node/Nitro 子进程。'
+            '- Desktop Full 包内已携带同平台已解压 backend-full 与 backend-build.json，Rust BFF 会通过 sidecar token 访问本机后端。'
+            '- Desktop Full 真实安装后启动验证、Desktop Online 远端配置闭环仍需继续验证。'
             '- 尚未构建 App asset。'
             '- 尚不自动 publish，校验通过后仍保持 draft。'
             ''
@@ -1238,7 +1329,7 @@ jobs:
           - Checkout 指定 root ref，并校验 root commit。
           - 不初始化、不 checkout 后端私有子模块源码。
           - 按显式 ``backend_sources_json`` 下载后端 native 来源。
-          - 初始化根仓库锁定的 ``apps/web`` 子模块，构建 Web node-server 发布包。
+          - 初始化根仓库锁定的 ``apps/web`` 子模块，构建 Web node-server 发布包和 Desktop 静态 Web UI。
           - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
           - 构建 Desktop Full Windows/Linux 发布包，携带同平台已解压 ``backend-full`` 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
           - 生成并校验包含后端、Web、Desktop Online 与 Desktop Full 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
@@ -1249,7 +1340,8 @@ jobs:
           - ``github-actions-artifact`` 模式支持多个后端 native asset 来源。
           - ``historical-release-asset`` 模式支持同一个历史 Release 中的多个后端 native asset 来源。
           - 第一版已构建 Web node-server asset、Desktop Online asset 和 Desktop Full asset。
-          - Desktop Full 尚未实现本机后端启动、健康检查和本机 token 注入。
+          - Desktop Online/Full 已改为静态 Web UI + Rust BFF，不再内置 Node/Nitro 子进程。
+          - Desktop Online 远端配置、Desktop Full 真实安装包验证、App asset 和 publish 仍未完成。
           - 第一版不构建 App。
           - 第一版不自动 publish；校验通过后仍保持 draft。
 

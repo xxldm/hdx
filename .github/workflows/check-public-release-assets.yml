@@ -282,6 +282,29 @@ jobs:
           "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Desktop 子模块已初始化：$desktopRepository@$desktopCommit"
 
+      - name: 初始化并校验 Web 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $webTree = (git ls-tree HEAD apps/web).Trim()
+          if ($webTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/web$') {
+            throw "无法读取 apps/web 子模块指针：$webTree"
+          }
+          $webCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/web
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/web 子模块失败。'
+          }
+
+          $actualWebCommit = (git -C apps/web rev-parse HEAD).Trim()
+          if ($actualWebCommit -ne $webCommit) {
+            throw "apps/web checkout 后 commit 与 root 指针不一致：指针 $webCommit，实际 $actualWebCommit"
+          }
+
+          "WEB_COMMIT=$webCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Web 子模块已初始化：$webCommit"
+
       - name: 安装 Linux Tauri 依赖
         if: ${{ runner.os == 'Linux' }}
         shell: bash
@@ -311,7 +334,24 @@ jobs:
         with:
           node-version: '24'
           cache: pnpm
-          cache-dependency-path: apps/desktop/pnpm-lock.yaml
+          cache-dependency-path: |
+            apps/desktop/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+
+      - name: 构建 Desktop 静态 Web 资源
+        working-directory: apps/web
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web 依赖安装失败。'
+          }
+
+          node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 静态 Web 资源构建失败。'
+          }
 
       - name: 准备 Desktop release Tauri 配置
         working-directory: apps/desktop
@@ -327,6 +367,11 @@ jobs:
           $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
           $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
           $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          if ($null -eq $config.PSObject.Properties['build']) {
+            $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/dist/desktop-tauri' -Force
           $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
 
           Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"

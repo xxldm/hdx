@@ -70,7 +70,7 @@ Desktop 第一阶段技术与打包策略见 ADR 0008。
 - 技术栈为 Tauri + Rust + Vite + TypeScript，平台范围为 Windows + Linux 并列。
 - `apps/desktop` 只维护一套代码，Full/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分。
 - `HDX Desktop Full` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份。
-- 本机 token 只能在 Tauri/Rust 主进程和受控 Nuxt server 边界内流转，不得暴露给 WebView 浏览器代码。
+- 本机 token 只能在 Tauri/Rust 主进程和 Rust BFF command 边界内流转，不得暴露给 WebView 浏览器代码。
 - `HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。
 - 自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability。
 - 类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike，不要求 Linux 提供等价能力。
@@ -125,12 +125,13 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
   它支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建并远端校验 draft Release；尚不 publish。
 - Desktop Full 发布包当前以公开 `backend-full` archive 为校验事实源，并在打包阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Desktop 资源。
   Desktop Full 运行时已实现最小 sidecar 闭环：复制内置资源到用户数据目录、启动本机后端、健康检查、读取 `/local/session` 并在退出时清理进程。
-  Desktop Rust 侧已新增受控 Web/Nuxt server token 注入管理器；Web/Nuxt resource 打包、Node runtime 内置策略、真实安装包/AppImage 端到端验证和本机 Web 启动闭环仍未完成。
+  Desktop 发布包改为消费 `apps/web` 的 `desktop-static` 静态输出；Desktop 静态 UI 通过 Rust BFF command 调用本机 sidecar，WebView 不接触本机 token。
+  Desktop Online 远端地址配置和 Online Rust BFF 认证转发仍待后续实现。
 - `services/backend/.github/workflows/backend-release-resolve.yml` 已收缩为后端 native build resolver：只按输入的 `backend_commit` checkout 后端源码、计算必需资产对应的 native build 范围、调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   它可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 `release.yml` assemble；不读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
-正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证、Web/Nuxt resource 打包和本机 Web 启动闭环串联起来。
+正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环串联起来。
 
 ## Web 第一阶段架构
 
@@ -153,6 +154,12 @@ Web 浏览器代码不直接访问后端地址。
 - 业务请求通过 `backend-gateway`，登录、刷新和登出请求直接调用 `backend-auth-service`。
 - 后端地址、本机 all-in-one 令牌、access token、refresh token 和其他敏感配置只能留在 Nuxt server 私有运行边界内。
 - Web 登录态使用加密 `HttpOnly` cookie session，浏览器只能读取 public session 和 CSRF token。
+
+同一套 Web UI 可以作为 Desktop 静态 UI 构建，但不改变 Web Online 的 Nuxt SSR/Nitro 运行形态。
+
+- Desktop 静态构建使用 `HDX_WEB_BUILD_TARGET=desktop-static`，生成 `ssr: false` 的静态输出供 Tauri WebView 消费。
+- Web store 通过 `app/utils/hdx-api-client.ts` 选择传输方式：Web Online 调 Nuxt server BFF，Desktop WebView 调 Tauri Rust BFF command。
+- Desktop Rust BFF 负责持有本机 sidecar token 或后续远端登录态；WebView 不保存本机 token、access token 或 refresh token。
 
 ## 待决策事项
 

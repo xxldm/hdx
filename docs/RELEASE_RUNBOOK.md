@@ -1,6 +1,7 @@
 # Release 操作手册
 
-本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble，Desktop Full 运行时 sidecar 已有最小启动闭环；完整 tag-only 自动发布仍待后续补齐 App 构建、publish、失败清理、Desktop Full 真实安装包验证和本地 Web/Nuxt token 注入。
+本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble。
+Desktop Full 运行时 sidecar 已有最小启动闭环；Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF。完整 tag-only 自动发布仍待后续补齐 App 构建、publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。
 
 ## 目标
 
@@ -28,7 +29,8 @@
 - `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run，并可在不触发后端、不创建 Release 的前提下预演历史复用判断。
 - `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建 draft Release、上传资产并远端回读校验。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；已接入 Web node-server、Desktop Online 和 Desktop Full 构建，不构建 App，不自动 publish。
-- Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`，Desktop 侧已实现本机后端启动、健康检查、`/local/session` 读取和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续实现。
+- Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`，Desktop 侧已实现本机后端启动、健康检查、`/local/session` 读取和退出清理的最小闭环。
+  Desktop Online/Full 发布包使用 Web `desktop-static` 静态输出和 Rust BFF；真实安装包/AppImage 端到端验证和 Desktop Online 远端配置仍待后续实现。
 - 后端私有仓库 `.github/workflows/backend-release-resolve.yml` 已收缩为 native build resolver：只按输入的 `backend_commit` 构建后端 native Actions artifact，并可在构建成功后回调主仓库 `release.yml` assemble；它不读取主仓库历史 Release。
 - 本手册描述目标流程；当前还不能完成“只推 tag 到 publish”的完整发版。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
@@ -136,7 +138,8 @@ on:
 - 后端 release resolve 只负责 native build fallback，并可通过 `trigger_release_assemble=true` 显式回调主仓库 `release.yml`；手动排障默认关闭，避免误创建 draft Release。
 - 只创建并校验 draft Release。
 - 已构建 Web node-server asset、Desktop Online asset 和 Desktop Full asset。
-- Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`；本机后端启动、健康检查、`/local/session` 读取和退出清理已有最小闭环，真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续实现。
+- Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`；本机后端启动、健康检查、`/local/session` 读取和退出清理已有最小闭环。
+  Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF，真实安装包/AppImage 端到端验证和 Desktop Online 远端配置仍待后续实现。
 - 不构建 App。
 - 不自动 publish。
 

@@ -238,11 +238,15 @@
 - 2026-06-13：GitHub Actions `Check Public Release Assets` run `27456924444` 中 Web node-server job 通过，但 Windows/Linux Desktop Online 均失败在 `构建 Desktop 静态 Web 资源`。
   原因是 `nuxt generate` 已生成 `.output/public`，脚本随后把产物复制到 `dist/desktop-tauri` 时被 Nuxt/Node 判定为复制到源目录自身的子目录。已将 Desktop static 专用输出目录隔离为 `.output-desktop-static`，并在生成前清理该目录。
   本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD .`、`node_modules\.bin\nuxt.CMD typecheck` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
+- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457274703` 确认 Desktop static 专用输出目录已生效，Nuxt 生成到 `.output-desktop-static/public`。
+  但 Windows/Linux Desktop Online 仍失败在脚本使用 `fs.cpSync` 把该目录复制到 `dist/desktop-tauri` 时的目录关系误判。已改为脚本显式递归复制普通文件，并拒绝 symlink/Junction 和特殊文件。
+  本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
-- Web node-server 和 Desktop Online 已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查；后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
+- Web node-server 已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查；Desktop Online 静态 Web + Rust BFF 打包路径仍需重跑确认。
+  后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
 - Desktop Online 本轮只验证构建和资产整理，未验证安装后启动、WebView2 引导、AppImage 运行时桌面集成。
 - Desktop Full sidecar 最小运行时闭环和 Rust BFF 第一片已完成；但真实安装包/AppImage 端到端验证和 Desktop 静态 UI 启动闭环完成前，不应发布让用户误以为可离线使用的 Full 安装包。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
@@ -255,6 +259,7 @@
 - `apps/web`：`e479bc3` 构建：兼容 Web 发布包 build metadata 版本。
 - `apps/web`：`be49be5` 修复：物化 Web 发布包符号链接。
 - `apps/web`：`a91d150` 修复：隔离 Desktop 静态输出目录。
+- `apps/web`：`5d2c2ab` 修复：稳定复制 Desktop 静态资源。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。

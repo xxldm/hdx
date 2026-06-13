@@ -250,6 +250,9 @@
 - 2026-06-13：为 Desktop GitHub Actions 构建补充 Rust 缓存。
   `check-public-release-assets.yml` 的 Desktop Online job、正式 `release.yml` 的 Desktop Online/Full job 现在缓存 Cargo registry、Cargo git cache 和 `apps/desktop/src-tauri/target`；缓存 key 绑定 runner OS、Desktop platform、flavor 和 `Cargo.lock`。
   Linux Tauri apt 系统依赖仍按 runner 原生方式安装，暂未引入 apt 包缓存。
+- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27458336496` 通过，确认 Desktop Rust cache step 在 Windows/Linux job 中均可执行。
+  本次为新 key 首跑，Windows/Linux 均为 cache miss；post step 分别保存约 415 MB 与 572 MB 的 Rust cache。后续相同 root/submodule 指针重跑应能命中。
+  run 同时保留 GitHub Actions Node.js 20 action deprecation annotation，提示后续需要关注官方 action 版本或显式切换 JavaScript action runtime。
 
 ## 剩余风险
 

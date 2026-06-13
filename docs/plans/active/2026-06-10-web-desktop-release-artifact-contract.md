@@ -6,7 +6,7 @@
 - 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble。
   Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online 与 Desktop Full Windows/Linux asset 构建和 manifest 追加切片。
   Desktop Full 包内改为携带同平台已解压 `backend-full` 与 `backend-build.json`，Desktop Rust 侧已实现 sidecar 最小启动、健康检查、`/local/session` 读取、Rust BFF command 和退出清理。
-  Desktop Online/Full 发布包已改为消费 Web `desktop-static` 静态 UI，不内置 Node/Nitro 子进程；公开端资产检查 workflow 已验证 Web 与 Desktop Online 打包路径。
+  Desktop Online/Full 发布包已改为消费 Web `desktop-static` 静态 UI，不内置 Node/Nitro 子进程；Desktop Online 已实现远端配置保存和连接检查第一片；公开端资产检查 workflow 已验证 Web 与 Desktop Online 打包路径。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -31,13 +31,14 @@
 - Docker 镜像不要求 `config.yml` 文件存在，配置由容器环境变量注入；`start.sh` / `start-web.mjs` 仍负责默认值、关键变量校验和启动。
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Full/Online flavor 配置和 `build:full`、`build:online` 脚本。
 - Desktop 本地 dev 仍以只读状态面板和 capability 空壳作为首屏；发布包改为使用 Web `desktop-static` 静态 UI。
-  Full 运行时已能复制已解压 `backend-full`、启动真实 `backend-all-in-one`，并通过 Rust BFF command 访问本机后端。Online 未实现远端地址填写和持久化。
+  Full 运行时已能复制已解压 `backend-full`、启动真实 `backend-all-in-one`，并通过 Rust BFF command 访问本机后端。
+  Online 已实现远端地址填写、用户级配置持久化和 `/actuator/health` 连接检查第一片；远端认证转发仍待实现。
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片。
   Web node-server asset、Desktop Online asset、Desktop Full asset、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已接入。
-  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
+  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 认证转发闭环。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
 
 ## 已确认结论
 
@@ -112,7 +113,8 @@
 
 ## 待实现问题
 
-- Desktop Online 需要实现远端地址填写、校验、用户级持久化和登录前连接检查。
+- Desktop Online 已实现远端地址填写、校验、用户级持久化和登录前连接检查第一片。
+  本轮只保存 `authBaseUrl`、`gatewayBaseUrl` 和连接超时，并由 Rust 主进程检查两个远端 `/actuator/health`；不保存远端 token。
 - Desktop Full 已实现构建期解压 `backend-full`、运行时复制已解压资源、sidecar 启动、健康检查、`/local/session` 读取和退出清理。
   Desktop Rust BFF command 已接入 Web 静态 UI 所需的 session、runtime 和 tools API；Full flavor 通过 sidecar token 访问本机后端，但 token 不返回 WebView。
   Desktop Online 远端 Rust BFF 认证转发、真实安装包/AppImage 端到端验证仍待后续补齐。
@@ -123,7 +125,7 @@
 - Release workflow 后续需要从 Desktop 安装包/AppImage 和 `.sig` 文件派生 Tauri updater JSON，禁止手写 updater URL 或 signature 内容。
 - Release workflow 已接入 Web node-server asset、Desktop Online asset 和 Desktop Full asset 构建。
   Desktop Online/Full release job 会额外构建 Web `desktop-static` 静态输出，并把 Tauri `frontendDist` 指向该目录。
-  后续仍需接入 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。
+  后续仍需接入 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 认证转发闭环。
 - 公开端资产检查 workflow 已接入 Web node-server 与 Desktop Online Windows/Linux asset 构建；最新 GitHub-hosted run 已确认 Web 依赖安装、Desktop 静态 Web 输出、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出可用。
 
 ## 本地任务清单
@@ -146,13 +148,14 @@
 - [x] 运行 docs 范围质量门禁。
 - [x] 实现 Desktop Full sidecar 运行时最小闭环：定位内置后端资源、复制到用户数据目录、启动本机后端、健康检查、读取 `/local/session`、保持 token 不暴露给 WebView、退出清理。
 - [x] 实现 Desktop 静态 Web UI + Rust BFF 第一片：Web store 调用 API adapter，Desktop Full Rust BFF 通过 sidecar token 访问本机后端，状态不序列化 token。
+- [x] 实现 Desktop Online 远端配置第一片：Web 静态 UI 可填写远端地址，Rust 主进程校验、持久化并检查 `/actuator/health`。
 
 ## 验收标准
 
 - Web 发布包不能再被模糊描述为静态包；必须明确 Nuxt SSR/BFF 的第一版交付形态。
 - Desktop Online 与 Desktop Full 的第一版 asset 命名、平台矩阵、校验方式和 manifest 记录方式明确。
 - 后续接入 `release.yml` 时，可以按本文结论实现构建 job，而不是在 workflow 中临时猜包结构。
-- 尚未实现的能力必须明确标为未实现，尤其是真实安装包/AppImage 端到端验证、Desktop Online 远端地址配置、远端 Rust BFF 认证转发和自动更新。
+- 尚未实现的能力必须明确标为未实现，尤其是真实安装包/AppImage 端到端验证、Desktop Online 远端 Rust BFF 认证转发和自动更新。
 
 ## 验证结果
 
@@ -253,13 +256,18 @@
 - 2026-06-13：GitHub Actions `Check Public Release Assets` run `27458336496` 通过，确认 Desktop Rust cache step 在 Windows/Linux job 中均可执行。
   本次为新 key 首跑，Windows/Linux 均为 cache miss；post step 分别保存约 415 MB 与 572 MB 的 Rust cache。后续相同 root/submodule 指针重跑应能命中。
   run 同时保留 GitHub Actions Node.js 20 action deprecation annotation，提示后续需要关注官方 action 版本或显式切换 JavaScript action runtime。
+- 2026-06-13：Desktop Online 远端配置闭环第一片已实现。
+  `apps/desktop` 新增 Online config Tauri command：读取/保存用户级 `online-config.json`，校验 `authBaseUrl`、`gatewayBaseUrl` 和连接超时，并在 Rust 主进程检查两个远端 `/actuator/health`。
+  `apps/web` 登录页在 Desktop Online 中显示远端服务设置，未配置前禁用登录；Web Online SSR/Nitro 仍走原 Nuxt server BFF，不读取该 Desktop 配置。
+  本地执行 Desktop Online/Full `cargo check`、Online/Full `cargo test`、Web schema 单测、Web eslint、Nuxt typecheck、Web SSR build 和 Desktop static build，均通过；首次普通 `cargo check` 因沙盒网络限制失败后按权限规则提权重跑通过。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
 - Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查。
   后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
-- Desktop Online 本轮只验证构建和资产整理，未验证安装后启动、WebView2 引导、AppImage 运行时桌面集成。
+- Desktop Online 已实现远端地址保存和健康检查第一片，但远端登录、token 保存/刷新、业务 API 转发和安装后启动验证仍未完成。
+  本轮未验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
 - Desktop Full sidecar 最小运行时闭环和 Rust BFF 第一片已完成；但真实安装包/AppImage 端到端验证和 Desktop 静态 UI 启动闭环完成前，不应发布让用户误以为可离线使用的 Full 安装包。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 

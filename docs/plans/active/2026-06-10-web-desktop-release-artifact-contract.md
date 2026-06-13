@@ -6,7 +6,7 @@
 - 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble。
   Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online 与 Desktop Full Windows/Linux asset 构建和 manifest 追加切片。
   Desktop Full 包内改为携带同平台已解压 `backend-full` 与 `backend-build.json`，Desktop Rust 侧已实现 sidecar 最小启动、健康检查、`/local/session` 读取、Rust BFF command 和退出清理。
-  Desktop Online/Full 发布包已改为消费 Web `desktop-static` 静态 UI，不内置 Node/Nitro 子进程；公开端资产检查 workflow 用于先验证 Web 与 Desktop Online 打包路径。
+  Desktop Online/Full 发布包已改为消费 Web `desktop-static` 静态 UI，不内置 Node/Nitro 子进程；公开端资产检查 workflow 已验证 Web 与 Desktop Online 打包路径。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 
@@ -37,7 +37,7 @@
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片。
   Web node-server asset、Desktop Online asset、Desktop Full asset、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已接入。
-  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。`.github/workflows/check-public-release-assets.yml` 用于验证公开端 Web 与 Desktop Online 资产构建。
+  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
 
 ## 已确认结论
 
@@ -124,7 +124,7 @@
 - Release workflow 已接入 Web node-server asset、Desktop Online asset 和 Desktop Full asset 构建。
   Desktop Online/Full release job 会额外构建 Web `desktop-static` 静态输出，并把 Tauri `frontendDist` 指向该目录。
   后续仍需接入 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。
-- 公开端资产检查 workflow 已接入 Web node-server 与 Desktop Online Windows/Linux asset 构建；后续需要在 GitHub-hosted runner 实跑，确认 Web 依赖安装、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出。
+- 公开端资产检查 workflow 已接入 Web node-server 与 Desktop Online Windows/Linux asset 构建；最新 GitHub-hosted run 已确认 Web 依赖安装、Desktop 静态 Web 输出、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出可用。
 
 ## 本地任务清单
 
@@ -244,11 +244,14 @@
 - 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457469457` 继续失败在 Desktop 静态 Web 资源构建。
   日志显示静态 public 输出与 `dist/desktop-tauri` 在 runner 上发生真实路径套叠，复制时产生 `desktop-tauri/desktop-tauri/...` 递归。已把 Desktop 静态资源最终目录改为 `target/desktop-tauri`，并同步 Tauri `frontendDist`。
   本地执行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs`、`actionlint .github/workflows/release.yml .github/workflows/check-public-release-assets.yml`、根仓库和 Web `diff --check`，均通过；临时输出已清理。
+- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457713493` 最终通过。
+  该 run 首次执行时 Web node-server、Desktop Online Windows job 通过，Linux Desktop job 因 Cargo 下载 `serde_derive` 时出现 crates.io 临时网络 `unexpected eof while reading` 失败。
+  执行 `gh run rerun 27457713493 --failed` 后，`Build Desktop Online (linux-x64)` 通过；最终 Web node-server、Desktop Online Windows/Linux 三个 job 均为 success。
 
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
-- Web node-server 已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查；Desktop Online 静态 Web + Rust BFF 打包路径仍需重跑确认。
+- Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查。
   后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
 - Desktop Online 本轮只验证构建和资产整理，未验证安装后启动、WebView2 引导、AppImage 运行时桌面集成。
 - Desktop Full sidecar 最小运行时闭环和 Rust BFF 第一片已完成；但真实安装包/AppImage 端到端验证和 Desktop 静态 UI 启动闭环完成前，不应发布让用户误以为可离线使用的 Full 安装包。

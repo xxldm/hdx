@@ -235,6 +235,9 @@
   Desktop 侧执行 `node_modules\.bin\tsc.CMD --noEmit`、`node_modules\.bin\vite.CMD build`、Full/Online 两个 `cargo check` 和 Full flavor `cargo test`，均通过。
   根仓库执行 `actionlint` 检查 release/check workflow、根仓库与 Web/Desktop `git diff --check`、`quality-gate.ps1 -Scope docs -NoBuild`、`-Scope desktop -NoBuild` 和 `-Scope web -NoBuild`，均通过。
   `quality-gate.ps1 -Scope web -NoBuild` 首次普通权限运行时因已知 pnpm/Codex sandbox `EPERM: lstat C:\Users\zengl` 失败；随后按权限规则用审批路径重跑同一命令通过。
+- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27456924444` 中 Web node-server job 通过，但 Windows/Linux Desktop Online 均失败在 `构建 Desktop 静态 Web 资源`。
+  原因是 `nuxt generate` 已生成 `.output/public`，脚本随后把产物复制到 `dist/desktop-tauri` 时被 Nuxt/Node 判定为复制到源目录自身的子目录。已将 Desktop static 专用输出目录隔离为 `.output-desktop-static`，并在生成前清理该目录。
+  本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD .`、`node_modules\.bin\nuxt.CMD typecheck` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
 
 ## 剩余风险
 
@@ -251,6 +254,7 @@
 - `apps/web`：`b7eb570` 构建：新增 Web node-server 打包脚本。
 - `apps/web`：`e479bc3` 构建：兼容 Web 发布包 build metadata 版本。
 - `apps/web`：`be49be5` 修复：物化 Web 发布包符号链接。
+- `apps/web`：`a91d150` 修复：隔离 Desktop 静态输出目录。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。

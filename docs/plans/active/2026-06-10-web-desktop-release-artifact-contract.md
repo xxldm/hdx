@@ -247,6 +247,9 @@
 - 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457713493` 最终通过。
   该 run 首次执行时 Web node-server、Desktop Online Windows job 通过，Linux Desktop job 因 Cargo 下载 `serde_derive` 时出现 crates.io 临时网络 `unexpected eof while reading` 失败。
   执行 `gh run rerun 27457713493 --failed` 后，`Build Desktop Online (linux-x64)` 通过；最终 Web node-server、Desktop Online Windows/Linux 三个 job 均为 success。
+- 2026-06-13：为 Desktop GitHub Actions 构建补充 Rust 缓存。
+  `check-public-release-assets.yml` 的 Desktop Online job、正式 `release.yml` 的 Desktop Online/Full job 现在缓存 Cargo registry、Cargo git cache 和 `apps/desktop/src-tauri/target`；缓存 key 绑定 runner OS、Desktop platform、flavor 和 `Cargo.lock`。
+  Linux Tauri apt 系统依赖仍按 runner 原生方式安装，暂未引入 apt 包缓存。
 
 ## 剩余风险
 

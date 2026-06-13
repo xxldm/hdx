@@ -583,6 +583,19 @@ jobs:
             apps/desktop/pnpm-lock.yaml
             apps/web/pnpm-lock.yaml
 
+      - name: 设置 Desktop Rust 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/desktop/src-tauri/target
+          key: desktop-rust-${{ runner.os }}-${{ matrix.platform }}-${{ env.DESKTOP_FLAVOR }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            desktop-rust-${{ runner.os }}-${{ matrix.platform }}-${{ env.DESKTOP_FLAVOR }}-
+            desktop-rust-${{ runner.os }}-${{ matrix.platform }}-
+            desktop-rust-${{ runner.os }}-
+
       - name: 构建 Desktop 静态 Web 资源
         working-directory: apps/web
         run: |
@@ -818,6 +831,19 @@ jobs:
           cache-dependency-path: |
             apps/desktop/pnpm-lock.yaml
             apps/web/pnpm-lock.yaml
+
+      - name: 设置 Desktop Rust 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/desktop/src-tauri/target
+          key: desktop-rust-${{ runner.os }}-${{ matrix.platform }}-${{ env.DESKTOP_FLAVOR }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            desktop-rust-${{ runner.os }}-${{ matrix.platform }}-${{ env.DESKTOP_FLAVOR }}-
+            desktop-rust-${{ runner.os }}-${{ matrix.platform }}-
+            desktop-rust-${{ runner.os }}-
 
       - name: 构建 Desktop 静态 Web 资源
         working-directory: apps/web

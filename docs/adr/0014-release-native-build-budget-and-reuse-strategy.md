@@ -5,7 +5,8 @@
 
 ## 背景
 
-后端私有仓库 native-image 构建已经验证可产出 `backend-full` Linux/Windows 和 `backend-services` Linux artifact。实际 GitHub-hosted run 显示，`backend-services` 当前只有 `backend-auth-service`、`backend-gateway` 和 `backend-core-service` 三个可执行服务，顺序 native-image 编译仍可能接近或超过一个小时；后续服务数量增加后，单个 job 顺序编译容易触及 GitHub Actions job 超时，也会让发布等待时间不可接受。
+后端私有仓库 native-image 构建已经验证可产出 `backend-full` Linux/Windows 和 `backend-services` Linux artifact。实际 GitHub-hosted run 显示，`backend-services` 当前只有 `backend-auth-service`、`backend-gateway` 和 `backend-core-service` 三个可执行服务。
+顺序 native-image 编译仍可能接近或超过一个小时；后续服务数量增加后，单个 job 顺序编译容易触及 GitHub Actions job 超时，也会让发布等待时间不可接受。
 
 同时，后端仓库保持私有，因此后端 native-image 构建会消耗私有仓库 GitHub Actions 额度。Web、Desktop、App 和主仓库组装后续会公开，标准 GitHub-hosted runner 日常 CI 不作为本 ADR 的主要额度压力。用户已确认不需要额外的“候选发布”分级；除 native-image 外，日常检查可以正常运行。
 
@@ -144,7 +145,8 @@ backend native fingerprint 至少包含：
 ## 实施记录
 
 - 2026-06-09：`release-manifest.schema.json`、样例和 `scripts/release-manifest-check.ps1` 已支持 `backendNativeManifest.source.type` 显式来源、backend native asset 的 `historical-release-asset` 来源、历史构建上下文和 `backendNativeFingerprint` 校验。
-- 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/debug-release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口：从主仓库指定历史 Release 下载 manifest 和后端 native asset，校验后生成新的 `release-manifest.json`、重新上传到新 draft Release，并远端下载核对 size 与 sha256。当时完整真实 release workflow 尚未设计完成。
+- 2026-06-09：新增 `scripts/release-draft-reuse-backend-assets.ps1` 和 `.github/workflows/debug-release-draft-reuse-backend.yml`，提供手动最小 draft 复用入口。
+  该入口从主仓库指定历史 Release 下载 manifest 和后端 native asset，校验后生成新的 `release-manifest.json`、重新上传到新 draft Release，并远端下载核对 size 与 sha256。当时完整真实 release workflow 尚未设计完成。
 - 2026-06-09：`scripts/release-draft-minimal-assets.ps1` 已为从后端 Actions artifact 整理出的后端 native asset 写入 `backendNativeFingerprint`，使该 draft Release 后续可作为历史 Release asset 复用来源。
 - 2026-06-09：GitHub-hosted run `27209181697` 已创建带 `backendNativeFingerprint` 的历史 draft Release `v0.0.0-services-parallel.2`；run `27209326174` 已成功复用该历史 Release asset 创建 draft Release `v0.0.0-services-parallel.3`，并完成远端资产 size/sha256 回读校验。
 - 2026-06-09：补充正式 `release.yml` 设计中的 `resolve-backend-native` 接入规则：后端 Actions artifact 和历史主仓库 Release asset 两种来源最终输出同一种已校验后端资产目录；历史复用第一版保留历史后端 native asset 文件名，不做 manifest rewrite。
@@ -156,4 +158,6 @@ backend native fingerprint 至少包含：
 - 2026-06-10：`backend-native-artifact.yml` 增加 `workflow_call` 入口；`backend-release-resolve.yml` 增加可选 native build fallback，历史复用失败时可复用现有 native artifact workflow 生成 `github-actions-artifact` 模式来源，并可显式触发主仓库 `release.yml` assemble。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 固化 OpenAPI snapshot 集合 hash 算法；新增 `.github/workflows/release-start.yml`，真实 `v*` tag push 会计算发布上下文并触发后端 resolver。
 - 2026-06-11：历史复用职责迁回主仓库 `release-start.yml`。主仓库负责选择并校验最新一个合格历史 Release；后端 `backend-release-resolve.yml` 不再读取主仓库 Release，只在复用不可用时按指定 `backend_commit` 运行 native build，并可用 `Actions: write` token 回调主仓库 assemble。
-- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片。`resolve-backend-native` job 统一输出已校验后端资产；Desktop Full Windows/Linux job 生成 `backend-build.json`，并把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时携带已解压 `backend/` 目录；assemble job 将 Desktop Full assets 追加到 `release-manifest.json`。Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续实现。
+- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片。`resolve-backend-native` job 统一输出已校验后端资产；Desktop Full Windows/Linux job 生成 `backend-build.json`。
+  构建阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时携带已解压 `backend/` 目录；assemble job 将 Desktop Full assets 追加到 `release-manifest.json`。
+  Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续实现。

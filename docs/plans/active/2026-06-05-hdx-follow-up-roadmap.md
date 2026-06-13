@@ -3,7 +3,8 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、主仓库最新合格 Release 自动选择、后端 native build resolver、可选 assemble 回调、Web node-server asset、Desktop Online asset、Desktop Full asset 构建和 Desktop Full sidecar 最小启动闭环，仍缺 App 构建、publish、失败清理、Desktop Full 真实安装包验证、本地 Web/Nuxt token 注入、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、主仓库最新合格 Release 自动选择、后端 native build resolver、可选 assemble 回调。
+  Web node-server asset、Desktop Online asset、Desktop Full asset 构建和 Desktop Full sidecar 最小启动闭环也已接入；仍缺 App 构建、publish、失败清理、Desktop Full 真实安装包验证、本地 Web/Nuxt token 注入、签名/公证/自动更新、release notes 和版本号策略。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-12

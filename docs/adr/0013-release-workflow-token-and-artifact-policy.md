@@ -23,13 +23,15 @@ ADR 0012 已确认：公开主仓库 GitHub Releases 是唯一公开发布入口
 GitHub App 的权限是一套最大授权；虽然 installation token 可以请求权限子集，但持有 App private key 的 workflow 仍可能生成该 App 最大授权范围内的 token。为降低 private key 泄漏时的影响面，正式 tag-only 发布流程使用两个 GitHub Apps：
 
 - `HDX Backend Actions Bot`：安装到后端私有仓库，用于主仓库触发后端 workflow 和读取后端 Actions artifact。权限为 `Actions: read`、`Actions: write`、`Metadata: read`，private key 只保存到公开主仓库 secrets；该 App 不授予 `Contents: read`，公开主仓库不得用它读取后端源码。
-- `HDX Main Workflow Bot`：安装到公开主仓库，用于后端私有仓库在 native build 完成后触发主仓库 release assemble workflow。权限为 `Actions: write`、`Metadata: read`，private key 只保存到后端私有仓库 secrets，当前后端仓库 secret 名称为 `HDX_MAIN_WORKFLOW_APP_CLIENT_ID` 和 `HDX_MAIN_WORKFLOW_APP_PRIVATE_KEY`；该 App 不授予 `Contents: read`，后端仓库不再读取主仓库历史 Release asset。
+- `HDX Main Workflow Bot`：安装到公开主仓库，用于后端私有仓库在 native build 完成后触发主仓库 release assemble workflow。
+  权限为 `Actions: write`、`Metadata: read`，private key 只保存到后端私有仓库 secrets，当前后端仓库 secret 名称为 `HDX_MAIN_WORKFLOW_APP_CLIENT_ID` 和 `HDX_MAIN_WORKFLOW_APP_PRIVATE_KEY`；该 App 不授予 `Contents: read`，后端仓库不再读取主仓库历史 Release asset。
 
 主仓库创建、上传和发布 GitHub Release 时，优先使用主仓库 workflow 自己的 `GITHUB_TOKEN`，并在对应 job 中声明 `permissions: contents: write`。如果后续要求 Release 必须由 GitHub App 身份创建，不得把具备主仓库 `Contents: write` 的 App private key 放入后端私有仓库；应另行设计只保存在主仓库的发布 App 或继续使用主仓库 `GITHUB_TOKEN`。
 
 GitHub App 的 client id、private key 和安装信息只能放在 GitHub Actions Secrets 或后续等价 secret store 中，不提交到仓库。实现前必须确认 GitHub App 安装范围、权限、secret 名称和 workflow 使用的 token 生成 action 版本。
 
-当前主仓库提供最小验证 workflow `.github/workflows/check-release-app-token.yml`。该 workflow 只用于手动验证 `HDX Backend Actions Bot` 能以 `Actions: read/write` 权限访问后端私有仓库 Actions metadata，不申请 `Contents: read`，不读取或下载 Actions artifact，不创建 GitHub Release，不上传 asset，也不 checkout 后端私有源码。当前 workflow 使用 `HDX_RELEASE_APP_CLIENT_ID` 与 `actions/create-github-app-token@v3.2.0` 的 `client-id` 输入，避免使用已弃用的 `app-id` 输入。
+当前主仓库提供最小验证 workflow `.github/workflows/check-release-app-token.yml`。该 workflow 只用于手动验证 `HDX Backend Actions Bot` 能以 `Actions: read/write` 权限访问后端私有仓库 Actions metadata。
+它不申请 `Contents: read`，不读取或下载 Actions artifact，不创建 GitHub Release，不上传 asset，也不 checkout 后端私有源码。当前 workflow 使用 `HDX_RELEASE_APP_CLIENT_ID` 与 `actions/create-github-app-token@v3.2.0` 的 `client-id` 输入，避免使用已弃用的 `app-id` 输入。
 
 ### Actions artifact 保留期
 
@@ -53,11 +55,14 @@ ADR 0014 已替代本 ADR 早期“后端 native 一律不复用历史 Release a
 
 ### Tag-only 触发与 release payload
 
-常规发版目标是人工只在公开主仓库推送 release tag，其余步骤自动完成。主仓库 release start workflow 由 tag push 触发，读取 root commit、子模块指针和 OpenAPI hash 后，先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用；复用成功时直接触发主仓库 release assemble workflow，复用失败时才使用 `HDX Backend Actions Bot` 通过 `workflow_dispatch` 触发后端私有仓库 release resolve workflow 运行 native build。
+常规发版目标是人工只在公开主仓库推送 release tag，其余步骤自动完成。主仓库 release start workflow 由 tag push 触发，读取 root commit、子模块指针和 OpenAPI hash 后，先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用。
+复用成功时直接触发主仓库 release assemble workflow，复用失败时才使用 `HDX Backend Actions Bot` 通过 `workflow_dispatch` 触发后端私有仓库 release resolve workflow 运行 native build。
 
-主仓库 release tag 对应的 root commit 是事实源。后端源码版本由该 root commit 中的 `services/backend` 子模块 gitlink 决定；release start 不要求该 `backend_commit` 等于后端仓库当前 `main`，也不持有后端 `Contents: read` 权限去调用后端 commit API。后端 release resolve 和 native build workflow 可以使用后端 `main` 上的 workflow 文件作为控制平面，但必须显式 checkout 输入的 `backend_commit`，并在 checkout 后校验实际 HEAD 与输入一致。
+主仓库 release tag 对应的 root commit 是事实源。后端源码版本由该 root commit 中的 `services/backend` 子模块 gitlink 决定；release start 不要求该 `backend_commit` 等于后端仓库当前 `main`，也不持有后端 `Contents: read` 权限去调用后端 commit API。
+后端 release resolve 和 native build workflow 可以使用后端 `main` 上的 workflow 文件作为控制平面，但必须显式 checkout 输入的 `backend_commit`，并在 checkout 后校验实际 HEAD 与输入一致。
 
-历史主仓库 Release asset 复用判断由主仓库 release start 完成。主仓库使用自身 `GITHUB_TOKEN` 读取公开主仓库 Release asset，并用 `scripts/release-resolve-backend-sources.ps1` 校验历史 `release-manifest.json`、`backend-native-manifest.json`、必需 asset 的 sha256/size、OpenAPI hash 和 backend native fingerprint。后端 release resolve workflow 只负责在复用不可用时按输入的 `backend_commit` 重新构建后端 native，并使用 `HDX Main Workflow Bot` 的 `Actions: write` token 通过 `workflow_dispatch` 触发主仓库 release assemble workflow。
+历史主仓库 Release asset 复用判断由主仓库 release start 完成。主仓库使用自身 `GITHUB_TOKEN` 读取公开主仓库 Release asset，并用 `scripts/release-resolve-backend-sources.ps1` 校验历史 `release-manifest.json`、`backend-native-manifest.json`。
+校验范围包括必需 asset 的 sha256/size、OpenAPI hash 和 backend native fingerprint。后端 release resolve workflow 只负责在复用不可用时按输入的 `backend_commit` 重新构建后端 native，并使用 `HDX Main Workflow Bot` 的 `Actions: write` token 通过 `workflow_dispatch` 触发主仓库 release assemble workflow。
 
 主仓库 release assemble workflow 至少接收以下由上游自动生成的 payload；这些字段不是常规人工输入：
 
@@ -236,6 +241,9 @@ validate-inputs
 - 2026-06-10：`backend-release-resolve.yml` 增加可选 native build fallback 和可选主仓库 `release.yml` assemble 回调。手动排障默认不启用这两个开关，完整 tag-only release start 后续应显式开启。
 - 2026-06-10：新增 `scripts/openapi-snapshot-hash.ps1` 和 `.github/workflows/release-start.yml`。`release-start.yml` 的真实 `v*` tag push 路径会计算 root commit、后端子模块 commit、OpenAPI snapshot hash 和默认后端必需资产，并触发后端 resolver；手动入口默认 dry-run。
 - 2026-06-10：`release.yml` 接入 Web node-server asset 构建：只初始化根仓库锁定的 `apps/web` 子模块，不 checkout 后端私有源码；构建 `hdx-web-node-server-<version>.tar.gz` 后追加到 `release-manifest.json` 并重算 `SHA256SUMS`。Desktop/App 构建和自动 publish 仍待后续切片。
-- 2026-06-10：`release.yml` 接入 Desktop Online asset 构建：Windows/Linux 分平台构建公开 `apps/desktop` 子模块，整理 Windows NSIS 安装包、Windows 绿色 zip 包和 Linux AppImage，通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop` 与 Desktop Online assets，并重算 `SHA256SUMS`。Desktop Full、App、updater JSON 和自动 publish 仍待后续切片。
+- 2026-06-10：`release.yml` 接入 Desktop Online asset 构建：Windows/Linux 分平台构建公开 `apps/desktop` 子模块，整理 Windows NSIS 安装包、Windows 绿色 zip 包和 Linux AppImage。
+  随后通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop` 与 Desktop Online assets，并重算 `SHA256SUMS`。Desktop Full、App、updater JSON 和自动 publish 仍待后续切片。
 - 2026-06-11：职责边界收缩。历史 Release asset 复用判断迁回主仓库 `release-start.yml`；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble。`HDX Backend Actions Bot` 与 `HDX Main Workflow Bot` 的最大权限均不再需要 `Contents: read`。
-- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片：新增 `resolve-backend-native` job 统一输出已校验后端 Release 资产；Desktop Full Windows/Linux job 下载同一份后端资产，生成 `backend-build.json`，并把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时复制已解压 `backend/` 目录；assemble job 追加 Desktop Full asset 到 `release-manifest.json`。Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续切片。
+- 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片：新增 `resolve-backend-native` job 统一输出已校验后端 Release 资产；Desktop Full Windows/Linux job 下载同一份后端资产，生成 `backend-build.json`。
+  构建阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时复制已解压 `backend/` 目录；assemble job 追加 Desktop Full asset 到 `release-manifest.json`。
+  Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和本地 Web/Nuxt token 注入仍待后续切片。

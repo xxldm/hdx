@@ -270,6 +270,14 @@
   `ureq` 依赖启用 `json` feature；access/refresh token 不出现在任何 Tauri command 返回值中。
   `capabilities.rs` Online `remote-endpoint` 状态更新为 `ready`，新增 `desktop-rust-bff-online` capability。
   本地执行 Online/Full `cargo check`、Online/Full `cargo test`（18 个测试通过，覆盖 public session 不泄露 token、token 过期判断、ISO 时间解析和 logout 清理）、Desktop `tsc --noEmit` 和 `vite build`，均通过。
+- 2026-06-13：Desktop Full 真实安装包端到端验证通过。
+  使用最新 backend-all-in-one native（GraalVM JDK 25 native-image，2分53秒）构建 Tauri Full release exe（携带 `backend/` 资源、`backend-build.json` 和静态 Web UI），在真实 Windows 环境运行并验证完整链路：
+  - Sidecar 定位 Tauri resource `backend/`、复制到用户数据目录 `%APPDATA%/cn.hdx.desktop.full/backend/runtime/v0.1.0/`、启动 `backend-all-in-one` native，启动耗时约 5.2 秒。
+  - `/actuator/health` 返回 `UP`，`/local/session` 返回 `X-HDX-Local-Token` 和 64 位随机令牌。
+  - 使用令牌访问 `/api/v1/runtime` 返回 `application=hdx-all-in-one`、`topology=all-in-one`、`javaVersion=25.0.3`、`nativeImage=true`。
+  - `/api/v1/tools` 返回空列表（初始状态），`/api/v1/auth/current` 返回 `actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=[ADMIN]`、`permissions=[*]`。
+  - 截图确认 Desktop Full 窗口 UI 正常渲染：状态面板显示「本机后端：运行中」「本机会话：已就绪」「Sidecar token 暴露：否」，本机 token 未暴露给 WebView。
+  验证后已关闭进程并清理临时 release Tauri 配置。
 
 ## 剩余风险
 
@@ -278,7 +286,7 @@
   后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
 - Desktop Online 已实现远端地址保存、健康检查和远端 Rust BFF 认证转发闭环（登录、refresh 轮换、logout 撤销、业务请求 Bearer 注入），但真实安装包/AppImage 启动后端到端验证仍未完成。
   本轮未验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
-- Desktop Full sidecar 最小运行时闭环和 Rust BFF 第一片已完成；但真实安装包/AppImage 端到端验证和 Desktop 静态 UI 启动闭环完成前，不应发布让用户误以为可离线使用的 Full 安装包。
+- Desktop Full sidecar 最小运行时闭环、Rust BFF 和真实安装包端到端验证已完成（Windows）；Linux AppImage 端到端验证仍待后续补齐。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 
 ## 相关 commit

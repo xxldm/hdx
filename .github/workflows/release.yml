@@ -593,7 +593,7 @@ jobs:
             throw 'Web 依赖安装失败。'
           }
 
-          node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri
+          node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri
           if ($LASTEXITCODE -ne 0) {
             throw 'Desktop 静态 Web 资源构建失败。'
           }
@@ -616,7 +616,7 @@ jobs:
             $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
           }
           $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
-          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/dist/desktop-tauri' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/target/desktop-tauri' -Force
           $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
 
           Write-Host "Desktop release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
@@ -829,7 +829,7 @@ jobs:
             throw 'Web 依赖安装失败。'
           }
 
-          node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri
+          node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri
           if ($LASTEXITCODE -ne 0) {
             throw 'Desktop 静态 Web 资源构建失败。'
           }
@@ -867,7 +867,7 @@ jobs:
             $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
           }
           $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
-          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/dist/desktop-tauri' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/target/desktop-tauri' -Force
           if ($null -eq $config.PSObject.Properties['bundle']) {
             $config | Add-Member -NotePropertyName bundle -NotePropertyValue ([pscustomobject]@{}) -Force
           }

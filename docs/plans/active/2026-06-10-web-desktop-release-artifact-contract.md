@@ -241,6 +241,9 @@
 - 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457274703` 确认 Desktop static 专用输出目录已生效，Nuxt 生成到 `.output-desktop-static/public`。
   但 Windows/Linux Desktop Online 仍失败在脚本使用 `fs.cpSync` 把该目录复制到 `dist/desktop-tauri` 时的目录关系误判。已改为脚本显式递归复制普通文件，并拒绝 symlink/Junction 和特殊文件。
   本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
+- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457469457` 继续失败在 Desktop 静态 Web 资源构建。
+  日志显示静态 public 输出与 `dist/desktop-tauri` 在 runner 上发生真实路径套叠，复制时产生 `desktop-tauri/desktop-tauri/...` 递归。已把 Desktop 静态资源最终目录改为 `target/desktop-tauri`，并同步 Tauri `frontendDist`。
+  本地执行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs`、`actionlint .github/workflows/release.yml .github/workflows/check-public-release-assets.yml`、根仓库和 Web `diff --check`，均通过；临时输出已清理。
 
 ## 剩余风险
 
@@ -260,6 +263,7 @@
 - `apps/web`：`be49be5` 修复：物化 Web 发布包符号链接。
 - `apps/web`：`a91d150` 修复：隔离 Desktop 静态输出目录。
 - `apps/web`：`5d2c2ab` 修复：稳定复制 Desktop 静态资源。
+- `apps/web`：`f02275d` 修复：避开 Desktop 静态输出套叠。
 - `apps/desktop`：`738b23b` 构建：配置 Windows 安装器多语言。
 - `apps/desktop`：`c3ae62e` 构建：收敛 Desktop Full flavor 命名。
 - `apps/desktop`：`cd50e0f` 构建：补充 Tauri PNG 图标。

@@ -3,10 +3,10 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证；第 5 小步统一当前身份接口已实现并完成自动化验证。
+- 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证；第 5 小步统一当前身份接口已实现并完成自动化验证；账号密码登录审计与失败冷却基础能力已实现并完成验证。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-07
+- 最后更新：2026-06-14
 
 ## 目标
 
@@ -558,13 +558,21 @@
     同时启动两个 `backend-auth-service` 实例指向同一临时空库，`/actuator/health` 均为 `UP`。
     `/oauth2/jwks` 返回相同 kid `4d60a12b-c070-4c6b-83ea-0367eb6413e7`；库内最终 `auth.auth_signing_key` 为 `total=1 active=1`，临时库已删除。
 - 2026-06-14：真实 Nacos `hdx-gateway.yml` 已确认不存在废弃的 `hdx.gateway.routes.auth-uri`，无需回写修改。gateway 仍通过 `spring.security.oauth2.resourceserver.jwt.issuer-uri` 校验 JWT，不代理认证中心路由。
+- 2026-06-14：实现账号密码登录审计与失败冷却基础能力。
+  - 新增 Flyway V6 迁移创建 `auth.auth_login_audit` 表，记录归一化登录标识、用户、登录标识、客户端类型、成功/失败、失败原因、客户端 IP、User-Agent 和尝试时间。
+  - `backend-auth-service` 登录流程在成功、账号不存在、密码错误和冷却拒绝时写入审计记录；认证失败与冷却异常不回滚审计事务。
+  - 登录失败冷却按 `hdx.auth.login-security.max-failures`、`failure-window` 和 `cooldown` 配置控制；默认 15 分钟窗口内 5 次失败后冷却 15 分钟，成功登录会使后续统计只计算成功后的失败。
+  - 真实 Nacos `hdx-auth-service.yml` 已补齐 `hdx.auth.tokens` 和 `hdx.auth.login-security`。同步过程中曾因临时脚本拆行逻辑错误写出重复顶层 `hdx` 块；已通过归一化脚本修复为单一 `hdx` 块，并用只读摘要确认 `runtime`、`tokens`、`login-security` 同处一个 `hdx` 下。
+  - `mvn -pl :backend-auth-service -am test`：通过，24 个测试覆盖登录成功审计、密码错误审计、账号不存在审计、重复失败触发冷却、成功登录重置失败计数和冷却窗口后允许重试。期间一次补丁漏加 `Duration` import 导致编译失败，已修复并重跑通过。
+  - 使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，创建临时库 `hdx_auth_migration_20260614215742`，从空库执行 Flyway V1-V6；确认版本 6 和 `auth.auth_login_audit` 存在，临时库已删除。
+  - `git -C services/backend diff --check` 与根仓库 `git diff --check` 均通过，仅保留 Git for Windows 换行提示。
 
 ## 剩余风险
 
 - JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。V5 唯一索引限制同时最多只有一个 ACTIVE，`JwtEncoder` 显式选择 ACTIVE 签发；重启不再使已签发 token 失效。后续仍需补齐密钥轮换管理接口，接口必须保证 retire/activate 原子性并记录审计信息。
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
-- 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
+- 当前已实现基础登录审计日志、客户端 IP/User-Agent 记录和按账号标识的失败冷却；尚未实现验证码、MFA、异常登录告警、IP/设备维度限流、分布式反滥用策略或管理端查询审计记录。生产开放账号密码登录前仍需按风险补齐。
 - Web 登录页和全局登录守卫已实现；当前仍未实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
 - `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。

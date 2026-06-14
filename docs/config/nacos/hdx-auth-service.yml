@@ -23,3 +23,7 @@ hdx:
       access-token-ttl: 15m
       refresh-token-ttl: 7d
       revocation-ttl-skew: 1m
+    login-security:
+      max-failures: 5
+      failure-window: 15m
+      cooldown: 15m

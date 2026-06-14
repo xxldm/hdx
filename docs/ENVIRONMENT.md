@@ -137,6 +137,9 @@ Data ID、认证中心初始化管理员、desktop all-in-one 数据库、Web co
 - `hdx.auth.tokens.access-token-ttl`：第一方账号密码登录 access token 有效期。
 - `hdx.auth.tokens.refresh-token-ttl`：第一方账号密码登录 refresh token 滑动不活跃窗口，默认 `7d`；7 天内没有触发 refresh 的用户需要重新登录，7 天内有操作并由客户端或 BFF 触发 refresh 时会签发新 refresh token 并刷新窗口。
 - `hdx.auth.tokens.revocation-ttl-skew`：写入 Redis `sid` 撤销索引时追加的时钟偏移缓冲。
+- `hdx.auth.login-security.max-failures`：账号密码登录冷却阈值，默认 `5`；小于等于 0 时关闭冷却。
+- `hdx.auth.login-security.failure-window`：统计失败次数的滑动窗口，默认 `15m`。
+- `hdx.auth.login-security.cooldown`：达到失败阈值后的冷却时间，默认 `15m`。
 - `spring.flyway.schemas` 和 `spring.flyway.default-schema`：认证中心迁移使用 `auth` schema。
 - `hdx.gateway.routes.core-uri`：gateway 转发到 core-service 的目标地址。
 - `hdx.security.jwt.revocation.enabled` 和 `hdx.security.jwt.revocation.key-prefix`：gateway JWT 会话撤销检查开关和 Redis key 前缀。

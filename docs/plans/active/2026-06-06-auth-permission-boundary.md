@@ -557,6 +557,7 @@
     使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，创建临时库 `hdx_auth_race_20260614204826`，从空库执行 Flyway V1-V5。
     同时启动两个 `backend-auth-service` 实例指向同一临时空库，`/actuator/health` 均为 `UP`。
     `/oauth2/jwks` 返回相同 kid `4d60a12b-c070-4c6b-83ea-0367eb6413e7`；库内最终 `auth.auth_signing_key` 为 `total=1 active=1`，临时库已删除。
+- 2026-06-14：真实 Nacos `hdx-gateway.yml` 已确认不存在废弃的 `hdx.gateway.routes.auth-uri`，无需回写修改。gateway 仍通过 `spring.security.oauth2.resourceserver.jwt.issuer-uri` 校验 JWT，不代理认证中心路由。
 
 ## 剩余风险
 
@@ -564,7 +565,6 @@
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。
-- 真实 Nacos 中 `hdx-gateway.yml` 如仍存在 `hdx.gateway.routes.auth-uri`，应在用户确认后删除或停用；repo 模板已移除该项，gateway 不再代理 `/api/auth/**`、OIDC discovery 或 JWK。
 - Web 登录页和全局登录守卫已实现；当前仍未实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
 - `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。

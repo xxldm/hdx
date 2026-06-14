@@ -572,6 +572,13 @@
   - Web BFF 解析上游 `code/message`，H3 错误 `data` 中保留 BFF 边界 `code` 与后端 `upstreamCode`；登录 store 优先按 `AUTH_INVALID_CREDENTIALS`、`AUTH_LOGIN_COOLDOWN` 等上游 code 映射 i18n key。
   - 2026-06-14 后续补齐：`backend-gateway` 的 JWT 撤销过滤器已从 Servlet `sendError` 改为 JSON `ApiErrorResponse`，并登记 `GATEWAY_TOKEN_SESSION_MISSING`、`GATEWAY_SESSION_REVOKED`、`GATEWAY_REVOCATION_UNAVAILABLE`。
   - 本轮普通权限执行 `mvn -pl :backend-auth-service,:backend-core,:backend-gateway -am test` 因 `backend-contract/target/maven-status` 写入失败，已按权限规则提权重跑通过。
+- 2026-06-14：继续清理安全链默认错误出口。
+  - 新增 `backend-http-support` 模块，集中提供 Spring Security `AuthenticationEntryPoint`、`AccessDeniedHandler` 和 servlet JSON 写出逻辑，避免 auth-service、gateway、core-service、all-in-one 各复制一套 `ApiErrorResponse` 写出代码。该模块只属于后端内部 HTTP 边界支撑，不作为 Web/App 端共享层；Web/App 继续通过 OpenAPI、错误码和协议契约共享。
+  - `backend-auth-service` 自有 REST API、`backend-gateway` JWT resource server、`backend-core-service` 调试入口和 `backend-all-in-one` 本机令牌入口已接入粗粒度安全错误码。OAuth2/OIDC/JWK 等 Authorization Server 标准协议端点继续保留 Spring Authorization Server 标准错误响应，不强行改成 HDX `ApiErrorResponse`。
+  - 错误码用于 UI 分组、本地化和排障关联，不要求 UI 逐字展示底层细节；服务不可用类错误应优先映射为统一用户文案。
+  - 普通权限执行 `mvn -pl :backend-auth-service,:backend-gateway,:backend-core-service,:backend-all-in-one -am test` 因 Maven 缓存/构建产物写入权限失败，已按权限规则提权重跑通过；随后 `mvn -pl :backend-all-in-one -am test` 提权重跑通过，确认新增 all-in-one 安全链测试使用内存 H2，不再生成本地 `data` 目录。
+  - `mvn -pl :backend-auth-service,:backend-gateway,:backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot` 提权执行通过，验证 auth-service、gateway、core-service 和 all-in-one 引入 `backend-http-support` 后的 Spring AOT 入口。
+  - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed -NoBuild -SkipDesktop` 提权执行通过；覆盖文档/Release/OpenAPI 契约检查、后端空白和 Maven 环境检查、Web 8 个测试文件 40 个测试、typecheck 与 lint。`-NoBuild` 跳过 Web build，后端完整测试由本轮前述 Maven 命令覆盖。
 
 ## 剩余风险
 
@@ -579,7 +586,7 @@
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前已实现基础登录审计日志、客户端 IP/User-Agent 记录和按账号标识的失败冷却；尚未实现验证码、MFA、异常登录告警、IP/设备维度限流、分布式反滥用策略或管理端查询审计记录。生产开放账号密码登录前仍需按风险补齐。
-- 当前后端 MVC 错误响应与 gateway JWT 撤销过滤器均已提供稳定 `code` 和中文 fallback `message`，Web 登录链路已按 code 做 i18n 映射；业务功能扩大后仍需持续把新增错误码登记到 `packages/shared/constants/README.md`。
+- 当前后端 MVC 错误响应、gateway JWT 撤销过滤器和主要 Spring Security 默认入口均已提供稳定 `code` 和中文 fallback `message`，Web 登录链路已按 code 做 i18n 映射；业务功能扩大后仍需持续把新增错误码登记到 `packages/shared/constants/README.md`，并按用户场景合并为不过度暴露细节的 UI 文案。
 - Web 登录页和全局登录守卫已实现；当前仍未实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
 - `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。

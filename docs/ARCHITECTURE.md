@@ -178,6 +178,7 @@ Web 浏览器代码不直接访问后端地址。
 后端第一阶段包含：
 
 - `backend-contract`：后端共享 API 契约与 DTO。
+- `backend-http-support`：后端内部 HTTP/Spring Security 边界支撑代码。
 - `backend-core`：核心业务能力、JPA 实体、Repository、服务和 REST 控制器。
 - `backend-core-service`：核心业务微服务启动器。
 - `backend-auth-service`：认证中心微服务启动器，作为 JWT/OAuth2 issuer，使用 PostgreSQL `auth` schema。

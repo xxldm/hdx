@@ -6,9 +6,10 @@
 
 1. 先读 `AGENTS.md`、本文档和 `docs/CONSTRAINTS.md`。
 2. 用 `git status --short --branch` 看根仓库状态；涉及子模块时再分别看对应子模块状态。
-3. 按本文档的“按需阅读路由”打开任务相关详细文档，不要默认通读所有 active plan 和 ADR。
-4. 修改前确认是否需要本地计划；跨模块、跨多次提交、架构、安全、高风险或长期工作必须更新 `docs/plans/active/`。
-5. 完成后按变更范围运行验证，并按根仓库与子模块分开提交。
+3. 检查全部子模块状态时使用 `scripts/git-submodule-status.ps1`，不要在 Windows/Codex 环境里用 `git submodule foreach`。
+4. 按本文档的“按需阅读路由”打开任务相关详细文档，不要默认通读所有 active plan 和 ADR。
+5. 修改前确认是否需要本地计划；跨模块、跨多次提交、架构、安全、高风险或长期工作必须更新 `docs/plans/active/`。
+6. 完成后按变更范围运行验证，并按根仓库与子模块分开提交。
 
 ## 仓库地图
 
@@ -106,5 +107,6 @@ cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-
 
 - 短入口只放可长期复用的当前事实和路由，不放长验证日志。
 - active plan 只保留恢复上下文所需的信息：当前状态、关键决策、最近有效验证、剩余风险和相关 commit。
+- 命令踩坑、环境坑和可复用操作纪律写入 `docs/AGENT_WORKFLOW.md` 或自动化脚本，不写进 active plan。
 - 重复验证只记录最后一次有效结果；普通命令输出不整段粘贴。
 - 稳定长期决策进入 ADR 或架构文档；过期过程记录归档到 completed/history，而不是继续堆在 active plan。

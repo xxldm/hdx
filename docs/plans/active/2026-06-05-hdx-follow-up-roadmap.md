@@ -159,7 +159,7 @@
 
 ## 剩余风险
 
-- 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK、登录安全增强和 App 登录态尚未完成。
+- 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK 已完成（密钥存储在 PostgreSQL，重启不再使 token 失效）、登录安全增强和 App 登录态尚未完成。
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop 的 all-in-one sidecar 最小启动、本机 token 读取、Rust BFF command 和退出清理已实现。
   Desktop 静态 Web UI 启动闭环、Desktop Online 远端配置、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。

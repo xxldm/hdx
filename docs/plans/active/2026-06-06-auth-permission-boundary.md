@@ -536,10 +536,16 @@
 - `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service 15 个测试；新增 `AuthServiceOpenApiSecurityTest` 验证 service profile 安全链下 `/v3/api-docs` 无尾斜杠访问返回 `200` 并包含登录契约。
 - `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 auth-service OpenAPI 安全链修复后的 Spring AOT 入口。
 - 临时 19082 service profile 实例验证：使用 `.env.local`、真实 Nacos、PostgreSQL 和 Redis 启动修复后的 `backend-auth-service`，`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200` 且包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
+- 2026-06-14：实现持久化 JWK 与密钥轮换基础设施。
+  - 新增 Flyway V4 迁移创建 `auth.auth_signing_key` 表（key_id、private_key_jwk、status、activated_at、retired_at）。
+  - 新增 `AuthSigningKeyRepository`（JDBC）和 `AuthSigningKeyJwkSource`（`JWKSource<SecurityContext>`），启动时加载所有 ACTIVE 和 RETIRED 密钥；无 ACTIVE 密钥时自动生成 RSA 2048 密钥并持久化。
+  - `AuthorizationServerSecurityConfiguration` 不再每次启动生成临时密钥，改为通过 `@Bean` 创建 DB-backed JWK source。
+  - 密钥轮换路径：插入新 ACTIVE 密钥 → 将旧密钥 UPDATE 为 RETIRED → 两个密钥都出现在 `/oauth2/jwks`，新 token 用新密钥签发，旧 token 仍可验签直到过期。
+  - `mvn -pl :backend-auth-service -am test`：通过，18 个测试包含 3 个新 JWK 持久化测试（空库自动生成、跨实例复用、轮换多密钥共存）。
 
 ## 剩余风险
 
-- 当前 JWK 为服务启动期临时 RSA key，仅用于打通 discovery/JWK 链路；真正签发 token 前必须设计并实现持久化密钥、密钥轮换和部署 Secret 管理。
+- JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。重启不再使已签发 token 失效。密钥轮换可通过插入新 ACTIVE 密钥并将旧密钥标记为 RETIRED 实现；轮换后旧密钥仍可用于验签，直到对应 token 自然过期。后续可补齐轮换管理接口。
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。

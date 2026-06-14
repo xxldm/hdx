@@ -41,7 +41,7 @@
 - Nacos 地址、Namespace 和登录凭据属于启动引导信息，通过环境变量或部署平台 Secret 注入；Namespace 为空仅表示使用 public namespace，登录凭据为空仅适用于 Nacos 未开启鉴权。Group 和 Data ID 已有代码默认值，只有改名或多环境复用启动脚本时才需要覆盖。
 - 如果未来决定把密钥放入 Nacos，必须先新增 ADR，说明 Nacos 权限、加密、审计、备份和轮换策略。
 - Nacos 配置示例位于 `docs/config/nacos/`；示例中的地址、用户名和 issuer 均为占位，不代表真实部署值。
-- 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须按模板原有层级和相邻位置同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改。
+- 修改 `docs/config/nacos/` 下的 Nacos 模板后，必须按模板原有层级和相邻位置同步真实 Nacos Data ID。新增配置项可以直接补到 Nacos 并在完成后通知用户；修改或删除已有配置项必须先征得用户同意。URL、issuer、内网地址等模板占位值不能自动猜测真实值，必须提示用户手动修改；发布操作人规则见 `docs/config/nacos/README.md`。
 
 默认 Data ID：
 
@@ -213,6 +213,6 @@ pwsh -NoLogo -NoProfile -File .\scripts\load-env.ps1 -Path .env.example -Validat
 - 新增环境变量时必须同步更新 `.env.example` 和本文档。
 - 修改 `.env.example` 或 `.env.symphony.example` 时，必须按模板原有分组和相邻位置同步对应 local 文件的变量结构，不能简单追加到文件末尾；新增变量可直接补齐并提示用户填写真实值，修改或删除已有变量必须先主动请求用户确认，不能以“需要同意”为理由静默跳过。
 - 新增后端 service profile 非密钥配置时，必须同步更新 `docs/config/nacos/` 示例和本文档。
-- 修改 `docs/config/nacos/` 模板时，必须按模板原有层级和相邻位置同步真实 Nacos Data ID；新增项可直接同步，修改或删除项必须先征得用户同意，占位 URL 等真实值由用户手动确认。
+- 修改 `docs/config/nacos/` 模板时，必须按模板原有层级和相邻位置同步真实 Nacos Data ID；新增项可直接同步，修改或删除项必须先征得用户同意，占位 URL 等真实值由用户手动确认；发布操作人规则见 `docs/config/nacos/README.md`。
 - 面向浏览器的 public runtime config 不得包含真实后端内网地址、令牌、数据库配置或密钥。
 - 部署环境使用同名变量或 Nacos 配置，不使用仓库内 `.env.local` 文件。

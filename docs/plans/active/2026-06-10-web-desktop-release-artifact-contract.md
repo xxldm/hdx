@@ -10,7 +10,7 @@
   Desktop Online 已实现远端 Rust BFF 认证转发闭环：Rust 主进程持有 access/refresh token，完成远端登录、refresh 轮换、logout 撤销和业务请求 Bearer 注入；token 不暴露给 WebView。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
-- 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+- 最后更新：2026-06-15（补充阅读指引并压缩验证记录）
 
 ## 阅读指引
 
@@ -167,139 +167,18 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 
 ## 验证结果
 
-- 2026-06-10：在 `apps/web/` 普通权限运行 `pnpm build`，因 `pnpm` 读取 `C:\Users\zengl` 触发已知 Codex sandbox `EPERM` 失败；随后按权限规则用审批路径重跑同一命令通过。
-- `pnpm build` 的默认输出为 Nuxt/Nitro `node-server`，生成 `.output/public`、`.output/server` 和 `.output/nitro.json`，预览入口为 `node .output/server/index.mjs`。
-- 以上 build 输出只作为整理运行产物的输入；最终发布包使用整理后的 Nuxt SSR server bundle archive，不把默认 `.output` 原样当成发布标准。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\vitest.CMD run`，8 个测试文件、34 个测试通过。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\eslint.CMD .`，通过。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node_modules\.bin\nuxt.CMD typecheck`，通过。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/web-dev-runner.mjs build`，通过；`.output/public` 下 `*.map` 文件数量为 `0`，`.output/server` 下 `*.map` 文件数量为 `26`。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `rg -n 'sourcesContent|NUXT_AUTH_SESSION_SECRET|NUXT_BACKEND_LOCAL_TOKEN' .output\server --glob '*.map'`，无匹配；当前 server sourcemap 不内嵌源码正文，也未匹配到敏感运行时变量名。
-- 2026-06-10：在 `apps/web/` 普通权限运行 `node scripts/package-node-server.mjs --version dev`，通过，生成 `dist/hdx-web-node-server-dev.tar.gz`；包内 `publicMapCount` 为 `0`，`serverMapCount` 为 `26`。
-- 2026-06-10：使用 `tar -tzf` / `tar -tvzf` 检查 `dist/hdx-web-node-server-dev.tar.gz`，包根目录直接包含 `public/`、`server/`、`nitro.json`、`start.sh`、`start-web.mjs`、`config.example.yml`、配置 loader 和 `node_modules/yaml/`。
-  未发现 `.output/`、`.nuxt/`、`public/*.map`、`.env` 或链接项；`start.sh` 在 tar 内为 `0755`。
-- 2026-06-10：同一 tar 包在 Windows Node 下解压后运行 `node start-web.mjs` 并请求 `/login`，通过。
-- 2026-06-10：WSL 需要沙盒外执行；通过提权路径运行 `wsl bash /mnt/d/Project/hdx/apps/web/dist/web-smoke-run.sh`，脚本解压 `dist/hdx-web-node-server-dev.tar.gz`、检查 `start.sh` 可执行、使用 `./start.sh` 启动并请求 `/login`，通过。
-- 当前构建仍保留上游 sourcemap warning、VueUse pure annotation warning、单个约 `522 kB` client chunk warning 和 Node `DEP0155` warning；已确认最终 `public/` 不包含 `.map` 文件，这些 warning 暂不阻塞 build。
-- 2026-06-10：在 `apps/desktop/` 普通权限运行 `node_modules\.bin\tsc.CMD --noEmit` 和 `node_modules\.bin\vite.CMD build`，均通过。
-- 2026-06-10：在 `apps/desktop/` 普通权限运行 Tauri build 时，`beforeBuildCommand` 调用 `pnpm run build:web` 触发已知 Codex sandbox `EPERM: lstat C:\Users\zengl`；随后按规则使用提权路径重跑通过。
-- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online`，通过，生成 `src-tauri/target/release/hdx-desktop-online.exe`。
-- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.local.conf.json --features flavor-local`，通过，生成旧命名 `src-tauri/target/release/hdx-desktop-local.exe`；该记录是命名前的历史验证。
-- 2026-06-10：在 `apps/desktop/` 提权路径运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过，生成 `src-tauri/target/release/bundle/nsis/HDX Desktop Online_0.1.0_x64-setup.exe`。
-- 2026-06-10：Desktop NSIS 正式配置加入 `SimpChinese`、`English` 和 `displayLanguageSelector` 后重打 Online NSIS，通过；生成的 `installer.nsi` 包含 `MUI_LANGUAGE "SimpChinese"`、`MUI_LANGUAGE "English"` 和 `MUI_LANGDLL_DISPLAY`。
-- 2026-06-10：Desktop NSIS 配置显式加入 `installMode: currentUser`，Windows `webviewInstallMode` 显式设为 `embedBootstrapper` 且 `silent: false`；已用 `ConvertFrom-Json` 确认 `apps/desktop/src-tauri/tauri.conf.json` 可解析。
-- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
-- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过。
-- 2026-06-10：扩展 `release-manifest.json` schema，新增 Web/Desktop 发布物粒度 kind、flavor、packaging、channel 和 Tauri updater 静态 JSON 引用字段；样例已覆盖 `web-node-server`、`desktop-installer`、`desktop-update-signature` 和 `desktop-updater-manifest`。
-- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1`，通过。
-- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过，覆盖新增 release manifest schema、样例、ADR、runbook 和 debug dry-run 资产清单。
-- 2026-06-10：Desktop Tauri `productName` 改为 `HDX.Desktop` / `HDX.Desktop.Online` / `HDX.Desktop.Local`，避免安装包默认文件名前缀包含空格；Windows 裸 EXE 的 `mainBinaryName` 允许使用空格，例如 `HDX Desktop Online.exe`。
-  已用 `ConvertFrom-Json` 解析三个 Tauri 配置，并运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，通过；后续实际运行 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --no-bundle`，通过。
-  该验证生成 `src-tauri/target/release/HDX Desktop Online.exe`，验证后已清理 `src-tauri/target`。本条为改名 Full 前的历史记录。
-- 2026-06-10：Desktop Release asset 命名改为应用名前缀保留大小写与点分隔、使用 `_` 分组，例如 `HDX.Desktop.Online_windows-x64_v0.1.0_setup.exe`；已运行 `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
-- 2026-06-10：Desktop 用户可见本地完整模式与构建 flavor 从 Local 收敛为 Full；`tauri.local.conf.json` 更名为 `tauri.full.conf.json`，脚本改为 `dev:full` / `build:full`，Rust feature 改为 `flavor-full`，状态面板字段改为 `includesFullBackend`。
-  已运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`、`node_modules\.bin\tsc.CMD --noEmit` 和 `cargo check --manifest-path src-tauri/Cargo.toml --features flavor-full`。
-  同时运行 `cargo check --manifest-path src-tauri/Cargo.toml --features flavor-online`，均通过；验证产生的 `src-tauri/target` 已清理。
-- 2026-06-10：正式 `.github/workflows/release.yml` 接入 Web node-server asset：assemble job 初始化根仓库锁定的 `apps/web` 子模块，使用 Node 24 + pnpm 10 构建 `hdx-web-node-server-<version>.tar.gz`。
-  随后通过 `scripts/release-append-web-asset.ps1` 追加 `sources.web`、`web-node-server` asset 并重算 `SHA256SUMS`。本地用 `target/release-append-web-fixture` 生成假后端 tar、假 Web tar 和最小 release manifest。
-  运行 `pwsh -NoLogo -NoProfile -File scripts/release-append-web-asset.ps1 ...` 通过，脚本内部完成 release manifest schema、sha256/size 和禁止文件扫描；临时 fixture 已清理。
-- 2026-06-10：Web `scripts/package-node-server.mjs` 允许 `--version` 包含 SemVer build metadata 加号，避免 `release.yml` 已允许的 `v1.2.3+build` 版本在 Web 打包阶段失败。
-  已在 `apps/web/` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.1.0+build.test --out-dir dist/package-plus-test`，通过；测试输出已清理。
-- 2026-06-10：正式 `.github/workflows/release.yml` 接入 Desktop Online asset：新增 Windows/Linux 分平台 build job，初始化公开 `apps/desktop` 子模块，构建 Online NSIS/绿色 zip/AppImage，上传 1 天保留期的临时 workflow artifact。
-  assemble job 下载后通过 `scripts/release-append-desktop-assets.ps1` 追加 `sources.desktop`、`desktop-installer`、`desktop-portable` 和 `desktop-appimage` assets 并重算 `SHA256SUMS`。
-  本地用 fixture 验证脚本追加逻辑，脚本内部完成 release manifest schema、sha256/size 和禁止文件扫描；临时 fixture 已清理。
-- 2026-06-10：Desktop release asset 文件整理抽出为 `scripts/package-desktop-release-assets.ps1`，正式 `release.yml` 与 `check-public-release-assets.yml` 共用该脚本。
-  脚本生成 `HDX.Desktop.Online_windows-x64_<version>_setup.exe`、`HDX.Desktop.Online_windows-x64_<version>_portable.zip` 和 `HDX.Desktop.Online_linux-x64_<version>.AppImage`。
-- 2026-06-10：新增 `.github/workflows/check-public-release-assets.yml`，用于手动验证公开端 Web node-server 和 Desktop Online Windows/Linux 发布资产；该 workflow 不下载后端 artifact、不创建 Release、不上传公开产物，只上传 1 天保留期的临时检查 artifact。
-- 2026-06-10：使用 `target/package-desktop-assets-fixture` 构造假 Tauri 输出，运行 `scripts/package-desktop-release-assets.ps1` 的 Windows Online 和 Linux Online 路径，通过；确认生成 setup、`_portable.zip` 和 AppImage，绿色包内包含 exe、`README.md`、`LICENSE`、`NOTICE` 和 `RELEASE.txt`；临时 fixture 已清理。
-- 2026-06-10：运行 `actionlint .github/workflows/release.yml .github/workflows/check-public-release-assets.yml .github/workflows/debug-release-dry-run.yml`，通过。
-- 2026-06-10：运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`，通过。
-- 2026-06-11：GitHub Actions `Check Public Release Assets` 的 Web job 失败在 `构建 Web node-server 资产`。原因是主仓库 workflow 使用 `pnpm package:node-server -- --version ...`，pnpm 10 会把额外的 `--` 原样传给 `scripts/package-node-server.mjs`，触发 `未知参数：--`。
-  同时 workflow 试图把 `--out-dir` 指向 `../../target/...`，不符合 Web 打包脚本“输出目录必须位于 apps/web 内”的安全边界。已改为直接调用 `node scripts/package-node-server.mjs --version ... --out-dir dist/...`。
-  check workflow 直接上传 `apps/web/dist/...`，正式 release workflow 再复制 archive 到根仓库 asset 目录。
-- 2026-06-11：同一次 Actions run 暴露 Desktop Linux job 失败：Tauri `generate_context!` 找不到 `apps/desktop/src-tauri/icons/icon.png`。
-  已按用户指定把 `D:\SynologyDrive\主题\图标\png\3.png` 复制为 `apps/desktop/src-tauri/icons/icon.png`，并运行 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 通过，确认 Tauri 宏不再因缺 PNG 图标失败。
-- 2026-06-11：推送上述修复后重跑 `Check Public Release Assets`，Web job 进入真实 Nuxt build 后失败在 `scripts/package-node-server.mjs` 的符号链接检查：Linux runner 上 Nitro server `node_modules` 内存在 pnpm/Nitro 生成的 symlink。
-  已在 `apps/web` 子模块中让打包脚本先物化 package tree 内的 symlink，再执行“发布包不含 symlink/Junction”校验和压缩；同时更新 Web README，避免继续使用 `pnpm ... -- --version` 示例。
-  已在 `apps/web` 运行 `node scripts/package-node-server.mjs --skip-build --version v0.0.0 --out-dir dist/workflow-arg-test`、`node_modules\.bin\eslint.CMD scripts/package-node-server.mjs` 和 `node_modules\.bin\vitest.CMD run`，均通过；测试输出已清理。
-- 2026-06-11：再次重跑 `Check Public Release Assets` 后，Web node-server job 通过，Desktop Windows Online `nsis` job 通过，Desktop Linux Online `appimage` job 失败在 Tauri bundler：`couldn't find a square icon to use as AppImage icon`。
-  已在 `apps/desktop` 使用用户指定的 `icon.png` 源图派生 Tauri 标准图标集，并在基础 `tauri.conf.json` 显式配置 `bundle.icon`。
-  本地先以普通权限运行 Tauri NSIS build 时触发已知 pnpm/Codex sandbox `EPERM: lstat C:\Users\zengl`，随后按权限规则提权复跑 `node_modules\.bin\tauri.CMD build --config src-tauri/tauri.online.conf.json --features flavor-online --bundles nsis --ci --no-sign`，通过。
-- 2026-06-11：推送根仓库 `2dbf3f2` 后触发 GitHub Actions `Check Public Release Assets` run `27291207098`，`Validate inputs`、`Build Web node-server`、`Build Desktop Online (windows-x64)` 和 `Build Desktop Online (linux-x64)` 全部通过。
-  确认 Web node-server、Desktop Windows NSIS/portable 和 Desktop Linux AppImage 的公开端资产构建与整理路径在 GitHub-hosted runner 上可用。
-- 2026-06-12：开始 Desktop Full sidecar 运行时闭环切片。确认后端 all-in-one 已提供 `/actuator/health` 和 `/local/session`，Desktop 不生成本机 token，只在启动后从本机后端读取 token 并保留在 Rust 主进程边界内。
-  本轮选择把 `backend-full` archive 在构建/打包阶段解压为 Tauri resource，运行时只复制已解压资源并启动，避免新增 Rust zip/tar 运行时解析依赖。
-- 2026-06-12：Desktop Full sidecar 最小闭环已实现。`apps/desktop` 新增 Rust sidecar 管理器：Full flavor 启动时定位 Tauri resource `backend/`、复制到用户数据目录、分配本机端口、启动 `backend-all-in-one`、轮询 `/actuator/health`、读取 `/local/session`。
-  token 只保存在 Rust 主进程；退出时清理子进程。状态面板只显示 sidecar 状态和本机会话是否就绪，不返回 token 或 header。根仓库 `prepare-desktop-full-backend-resources.ps1` 改为在构建期解压 `backend-full` archive，并让 `release.yml` 和 Windows 绿色包携带已解压 `backend/` 目录。
-- 2026-06-12：Desktop Full sidecar 最小闭环本地验证通过。执行 `node_modules\.bin\tsc.CMD --noEmit`、`node_modules\.bin\vite.CMD build`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`。
-  同时执行 `cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online`、`cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`，均通过；Rust 单测覆盖 sidecar entrypoint 路径校验和状态序列化不泄露 token。
-- 2026-06-12：根仓库脚本验证通过。使用 `target/desktop-full-runtime-fixture` 构造假 `backend-full` Windows zip、`backend-native-manifest.json` 和 `release-manifest.json`，运行 `scripts/prepare-desktop-full-backend-resources.ps1`。
-  确认输出保留校验用 archive，同时生成 `backend/backend-build.json` 和已解压 `backend/bin/hdx-backend-full.exe`；使用 `target/package-desktop-full-fixture` 构造假 Tauri 输出，运行 `scripts/package-desktop-release-assets.ps1` 的 Windows Full 路径，确认绿色包包含已解压 `backend/` 目录。
-- 2026-06-12：运行 `actionlint .github/workflows/release.yml`、`git -C apps/desktop diff --check`、`git diff --check`、`pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
-  同时运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，均通过；仅保留 Git for Windows 行尾转换提示。
-- 2026-06-13：Desktop 发布包方向调整为静态 Web UI + Rust BFF。`apps/web` 新增 API adapter 和 `build-desktop-static.mjs`，默认 Web Online 仍走 Nuxt server BFF。
-  Desktop WebView 检测到 Tauri runtime 后改走 Rust BFF command；`apps/desktop` 移除本机 Web/Nuxt server 管理器，新增 Full flavor Rust BFF command。
-  Rust BFF 通过 sidecar `/local/session` token 访问本机 `/api/v1/runtime` 和 `/api/v1/tools`，但 token 不返回 WebView。Online Rust BFF 远端配置当时仍未实现，后续已在本计划中关闭。
-  `release.yml` 和 `check-public-release-assets.yml` 的 Desktop job 会构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录。
-- 2026-06-13：Desktop 静态 Web UI + Rust BFF 本地验证通过。
-  Web 侧执行 `node_modules\.bin\vitest.CMD run`、`node_modules\.bin\eslint.CMD .`、`node_modules\.bin\nuxt.CMD typecheck` 和 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-test`，均通过。
-  Desktop 侧执行 `node_modules\.bin\tsc.CMD --noEmit`、`node_modules\.bin\vite.CMD build`、Full/Online 两个 `cargo check` 和 Full flavor `cargo test`，均通过。
-  根仓库执行 `actionlint` 检查 release/check workflow、根仓库与 Web/Desktop `git diff --check`、`quality-gate.ps1 -Scope docs -NoBuild`、`-Scope desktop -NoBuild` 和 `-Scope web -NoBuild`，均通过。
-  `quality-gate.ps1 -Scope web -NoBuild` 首次普通权限运行时因已知 pnpm/Codex sandbox `EPERM: lstat C:\Users\zengl` 失败；随后按权限规则用审批路径重跑同一命令通过。
-- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27456924444` 中 Web node-server job 通过，但 Windows/Linux Desktop Online 均失败在 `构建 Desktop 静态 Web 资源`。
-  原因是 `nuxt generate` 已生成 `.output/public`，脚本随后把产物复制到 `dist/desktop-tauri` 时被 Nuxt/Node 判定为复制到源目录自身的子目录。已将 Desktop static 专用输出目录隔离为 `.output-desktop-static`，并在生成前清理该目录。
-  本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD .`、`node_modules\.bin\nuxt.CMD typecheck` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
-- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457274703` 确认 Desktop static 专用输出目录已生效，Nuxt 生成到 `.output-desktop-static/public`。
-  但 Windows/Linux Desktop Online 仍失败在脚本使用 `fs.cpSync` 把该目录复制到 `dist/desktop-tauri` 时的目录关系误判。已改为脚本显式递归复制普通文件，并拒绝 symlink/Junction 和特殊文件。
-  本地执行 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs` 和 `git -C apps/web diff --check`，均通过；临时输出已清理。
-- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457469457` 继续失败在 Desktop 静态 Web 资源构建。
-  日志显示静态 public 输出与 `dist/desktop-tauri` 在 runner 上发生真实路径套叠，复制时产生 `desktop-tauri/desktop-tauri/...` 递归。已把 Desktop 静态资源最终目录改为 `target/desktop-tauri`，并同步 Tauri `frontendDist`。
-  本地执行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri-ci-test`、`node_modules\.bin\eslint.CMD scripts/build-desktop-static.mjs`、`actionlint .github/workflows/release.yml .github/workflows/check-public-release-assets.yml`、根仓库和 Web `diff --check`，均通过；临时输出已清理。
-- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27457713493` 最终通过。
-  该 run 首次执行时 Web node-server、Desktop Online Windows job 通过，Linux Desktop job 因 Cargo 下载 `serde_derive` 时出现 crates.io 临时网络 `unexpected eof while reading` 失败。
-  执行 `gh run rerun 27457713493 --failed` 后，`Build Desktop Online (linux-x64)` 通过；最终 Web node-server、Desktop Online Windows/Linux 三个 job 均为 success。
-- 2026-06-13：为 Desktop GitHub Actions 构建补充 Rust 缓存。
-  `check-public-release-assets.yml` 的 Desktop Online job、正式 `release.yml` 的 Desktop Online/Full job 现在缓存 Cargo registry、Cargo git cache 和 `apps/desktop/src-tauri/target`；缓存 key 绑定 runner OS、Desktop platform、flavor 和 `Cargo.lock`。
-  Linux Tauri apt 系统依赖仍按 runner 原生方式安装，暂未引入 apt 包缓存。
-- 2026-06-13：GitHub Actions `Check Public Release Assets` run `27458336496` 通过，确认 Desktop Rust cache step 在 Windows/Linux job 中均可执行。
-  本次为新 key 首跑，Windows/Linux 均为 cache miss；post step 分别保存约 415 MB 与 572 MB 的 Rust cache。后续相同 root/submodule 指针重跑应能命中。
-  run 同时保留 GitHub Actions Node.js 20 action deprecation annotation，提示后续需要关注官方 action 版本或显式切换 JavaScript action runtime。
-- 2026-06-13：Desktop Online 远端配置闭环第一片已实现。
-  `apps/desktop` 新增 Online config Tauri command：读取/保存用户级 `online-config.json`，校验 `authBaseUrl`、`gatewayBaseUrl` 和连接超时，并在 Rust 主进程检查两个远端 `/actuator/health`。
-  `apps/web` 登录页在 Desktop Online 中显示远端服务设置，未配置前禁用登录；Web Online SSR/Nitro 仍走原 Nuxt server BFF，不读取该 Desktop 配置。
- 本地执行 Desktop Online/Full `cargo check`、Online/Full `cargo test`、Web schema 单测、Web eslint、Nuxt typecheck、Web SSR build 和 Desktop static build，均通过；首次普通 `cargo check` 因沙盒网络限制失败后按权限规则提权重跑通过。
-- 2026-06-13：Desktop Online 远端 Rust BFF 认证转发闭环已实现。
-  `apps/desktop` 新增 `online_session.rs` 模块：Rust 主进程通过 `OnlineSessionHolder`（Mutex 包裹）持有远端 access/refresh token，提供 login、ensure_access_token（临近过期自动 refresh）、refresh、logout 和业务请求转发能力。
-  `bff.rs` 的 Online 分支全部接通：`hdx_auth_login` 调用认证中心 `/api/auth/login`（带 `clientType=DESKTOP`）并存储 token；`hdx_auth_session` 返回不含 token 的 public session；`hdx_auth_logout` 调用后端 logout 并清理本地 token；`hdx_runtime_info`、`hdx_tools_list`、`hdx_tools_create` 注入 Bearer token 走 gateway。
-  `ureq` 依赖启用 `json` feature；access/refresh token 不出现在任何 Tauri command 返回值中。
-  `capabilities.rs` Online `remote-endpoint` 状态更新为 `ready`，新增 `desktop-rust-bff-online` capability。
-  本地执行 Online/Full `cargo check`、Online/Full `cargo test`（18 个测试通过，覆盖 public session 不泄露 token、token 过期判断、ISO 时间解析和 logout 清理）、Desktop `tsc --noEmit` 和 `vite build`，均通过。
-- 2026-06-13：Desktop Full 真实安装包端到端验证通过。
-  使用最新 backend-all-in-one native（GraalVM JDK 25 native-image，2分53秒）构建 Tauri Full release exe（携带 `backend/` 资源、`backend-build.json` 和静态 Web UI），在真实 Windows 环境运行并验证完整链路：
-  - Sidecar 定位 Tauri resource `backend/`、复制到用户数据目录 `%APPDATA%/cn.hdx.desktop.full/backend/runtime/v0.1.0/`、启动 `backend-all-in-one` native，启动耗时约 5.2 秒。
-  - `/actuator/health` 返回 `UP`，`/local/session` 返回 `X-HDX-Local-Token` 和 64 位随机令牌。
-  - 使用令牌访问 `/api/v1/runtime` 返回 `application=hdx-all-in-one`、`topology=all-in-one`、`javaVersion=25.0.3`、`nativeImage=true`。
-  - `/api/v1/tools` 返回空列表（初始状态），`/api/v1/auth/current` 返回 `actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=[ADMIN]`、`permissions=[*]`。
-  - 截图确认 Desktop Full 窗口 UI 正常渲染：状态面板显示「本机后端：运行中」「本机会话：已就绪」「Sidecar token 暴露：否」，本机 token 未暴露给 WebView。
-  验证后已关闭进程并清理临时 release Tauri 配置。
-- 2026-06-13：Desktop Online 远端 Rust BFF 认证转发验证通过。
-  启动后端三件套（backend-auth-service / backend-gateway / backend-core-service，service profile 连接 PostgreSQL/Nacos/Redis），然后构建 Online release exe（携带 Web desktop-static 静态 UI），在真实 Windows 环境运行。
-  - 后端链路验证：auth-service /api/auth/login 使用 xxldm / xxldm 登录成功，返回 tokenType=Bearer、sid、user.displayName=乡下来的喵、roles=[ADMIN]；使用 access token 通过 gateway 请求 /api/v1/runtime 返回 application=hdx-core-service、topology=core-service、nativeImage=false。
-  - Desktop Online UI 验证：截图确认登录页完整渲染，远端服务设置区域（认证中心地址、业务网关地址、连接超时）、连接检查/保存按钮和登录表单均可见。
-  - Rust BFF command 链路：hdx_online_config_get 返回未配置状态，hdx_auth_session 返回匿名 session（authenticated=false）。
-  远端登录提交的端到端浏览器交互验证受限于当前会话缺少 in-app Browser 工具；但后端 API 链路和 Rust BFF 代码路径已分别验证通过。
-  验证后已关闭 Desktop Online 和后端微服务进程，并清理临时 release Tauri 配置。
-
-- 2026-06-14：Desktop Online 远端登录端到端交互验证通过，并修复 session schema 不匹配缺陷。
-  启动后端三件套（service profile），构建 Online release exe（Web desktop-static + Rust BFF），在 Windows 环境实际填表单点登录。
-  - 缺陷发现与修复：Rust BFF `WebAuthPublicSession` / `OnlinePublicSession` 的 `accessTokenExpiresAt` / `refreshTokenExpiresAt` 原为 `Option<u64>`（epoch 秒），但前端 zod schema 期望 `z.string().datetime()`（ISO 字符串）。登录在后端成功返回 token 后，前端 zod 校验失败，显示「账号或密码不正确，或认证中心暂时不可用」。
-    修复方式：`RemoteTokenSession` 同时保留 epoch u64（内部 refresh 判断用）和原始 ISO 字符串；public session 的 expires_at 字段改为 `Option<String>`，与 Web BFF 行为一致。
-  - 交互验证：用户在 Desktop Online 登录页填写远端服务地址（认证中心 `http://localhost:18082`、网关 `http://localhost:18080`），使用 xxldm / xxldm 登录成功，进入应用主界面。
-  - 构建流程：按文档记录的正确流程——`apps/web` 运行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri`，然后生成临时 release Tauri 配置（`frontendDist` 指向 `../../web/target/desktop-tauri`，`beforeBuildCommand` 置空），执行 `tauri build --config ... --features flavor-online --no-bundle`。
-  验证后已清理临时 release Tauri 配置。
-- 2026-06-14：修复 Desktop Online logout 本地清理语义。
-  `OnlineSessionHolder` 新增 `clear_local()`，`hdx_auth_logout` 在远端配置缺失、损坏或读取失败时也会清理 Rust 主进程内存中的 access/refresh token；有配置时仍尽力调用认证中心 logout，再清理本地 session。
-  本地执行 `cargo test --features flavor-online online_session`、`cargo test --features flavor-full` 和 `cargo test --features flavor-online`，均通过；Full/Online 两个 feature 各 19 个 Rust 单元测试通过。
+- Web node-server 发布包：Web 测试、lint、Nuxt typecheck、SSR build、`package-node-server.mjs`、Windows Node smoke 和 WSL `start.sh` smoke 均已通过。
+  最终 tar 包不包含 `.output/`、`.nuxt/`、`public/*.map`、`.env` 或链接项；包根包含 `public/`、`server/`、`nitro.json`、`start.sh`、`start-web.mjs`、`config.example.yml` 和运行所需 `yaml` 依赖。
+  当前保留上游 sourcemap、VueUse pure annotation、chunk size 和 Node `DEP0155` warning，不阻塞。
+- Desktop Online/Full 基础打包：TypeScript、Vite、Full/Online `cargo check`、Full/Online Rust 单测、Tauri Windows exe/NSIS、Linux AppImage 打包路径、图标集、当前用户安装和 WebView2 引导配置均已验证；`package-desktop-release-assets.ps1` 通过 fixture 覆盖 Windows Online、Linux Online 和 Windows Full 绿色包整理。
+- Release/check workflow：`actionlint` 覆盖 `release.yml`、`check-public-release-assets.yml` 和 debug workflows；`release-append-web-asset.ps1`、`release-append-desktop-assets.ps1` 和 release manifest schema/样例校验通过。
+  `Check Public Release Assets` run `27291207098` 首次确认 Web node-server、Desktop Online Windows NSIS/portable 和 Linux AppImage 构建可用；后续 run `27457713493` 与 `27458336496` 确认 Desktop 静态 Web 输出、Rust cache 和 Windows/Linux Online 打包路径可用。
+- Desktop Full sidecar：Full flavor 已实现构建期解压 `backend-full`、运行时复制资源、启动 `backend-all-in-one`、健康检查、读取 `/local/session` 和退出清理；Rust 单测覆盖 entrypoint 校验和状态序列化不泄露 token。
+  Windows 真实端到端验证通过：Full release exe 携带 `backend/`、`backend-build.json` 和静态 Web UI，sidecar 启动后 `/actuator/health`、`/local/session`、`/api/v1/runtime`、`/api/v1/tools` 和 `/api/v1/auth/current` 均符合预期，WebView 不暴露本机 token。
+- Desktop Online 远端配置与认证转发：Online config command、远端 health 检查、Rust 主进程 token holder、login/refresh/logout 和业务请求 Bearer 注入均已实现并通过本地 Rust/Web 验证。
+  Windows 真实端到端验证通过，用户在 Desktop Online 登录页填写 auth/gateway 地址并用账号密码登录成功进入应用；已修复 public session 时间字段与前端 zod schema 不匹配、logout 配置不可读时不清理本地 token 两个缺陷。
+- 根仓库质量门禁：相关阶段均运行过 `git diff --check`、子模块 diff check、`quality-gate.ps1 -Scope docs -NoBuild`、`-Scope desktop -NoBuild` 和 `-Scope web -NoBuild`；普通权限下 pnpm/Cargo 写缓存或读取用户目录失败时按权限规则提权重跑通过。
+- 逐次 CI 失败、临时 fixture 路径和完整命令输出不再保留在 active plan；需要审计时看本文件 2026-06-15 压缩前的 Git 历史，重复性命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。

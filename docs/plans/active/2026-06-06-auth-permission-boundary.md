@@ -6,7 +6,7 @@
 - 当前状态：认证服务模块骨架已实现；service profile 已完成 Nacos/PostgreSQL/issuer discovery 联调；第一方账号密码登录后端能力已实现并完成本轮自动化验证；第 2 小步 Web BFF 登录态最小接口已实现；第 3 小步 Web 登录页与全局登录守卫已实现并完成本轮验证；第 5 小步统一当前身份接口已实现并完成自动化验证；账号密码登录审计与失败冷却基础能力已实现并完成验证；后端错误响应 `code/message` 契约与 Web 登录错误码映射小片已实现。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-15（补充阅读指引）
+- 最后更新：2026-06-15（补充阅读指引并压缩验证记录）
 
 ## 阅读指引
 
@@ -448,141 +448,26 @@
 
 ## 状态记录
 
-- 2026-06-06：用户确认认证中心按独立模块设计；创建本地计划，等待继续确认持久化边界。
-- 2026-06-06：用户确认登录只在 PostgreSQL 服务端模式执行；all-in-one/H2 不需要登录，默认管理员账号；Desktop 连接外部服务端时走 PostgreSQL 服务端认证中心。
-- 2026-06-06：用户确认 all-in-one 固定本机身份可使用稳定字段 `local-admin`、`ADMIN`、全量权限；用户端回显名改为 `用户`，日志和规则判断不得依赖该显示名。
-- 2026-06-06：用户确认服务端认证中心使用 PostgreSQL 独立 schema `auth`；`auth` schema 已手动创建且所有者为 `hdx`；手工 SQL 权限检查通过。
-- 2026-06-06：用户确认认证中心最小数据模型方向；自有用户、角色、权限及关系表放入 `auth` schema，OAuth2 授权相关表也放入 `auth` schema，并优先沿用 Spring Security Authorization Server 约定。
-- 2026-06-06：用户确认自有表使用数字主键、软删除、时间审计和单字段操作人审计；操作人审计使用 `USER:123`、`SYSTEM:bootstrap`、`LOCAL_ADMIN:local-admin`、`SERVICE:auth-service` 这类稳定字符串快照。
-- 2026-06-06：用户确认用户主体与登录标识分离；`auth_user` 不强制用户名必填，`auth_user_identity` 承载 `USERNAME`、后续 `EMAIL` 等登录标识，避免未来禁止用户名注册时反向改造用户主体表。
-- 2026-06-06：用户确认 `auth_user` 和 `auth_user_identity` 字段清单；时间字段沿用现有后端迁移风格 `TIMESTAMP(6) WITH TIME ZONE`。
-- 2026-06-06：用户确认 `auth_role`、`auth_permission`、`auth_user_role`、`auth_role_permission` 字段清单；权限编码优先使用 `resource:action` 风格。
-- 2026-06-06：用户确认 OAuth2/Spring Authorization Server 表直接贴近官方 JDBC schema，不做 HDX 自有字段改动；表落到 `auth` schema。
-- 2026-06-06：实现 `backend-auth-service` 模块骨架、`auth` schema 迁移脚本、当时的 gateway auth 路由和 Nacos 示例；本轮仍不实现具体登录流程。后续已确认认证中心独立入口，并移除 gateway auth 路由。
-- 2026-06-06：用户确认 auth 服务后续使用独立域名，不通过 gateway 作为 issuer；当前本地 Nacos issuer 暂用 `http://192.168.50.100:18082`，反代后再改成 auth 独立域名。
-- 2026-06-06：补充 service profile 下的最小 Authorization Server 安全配置，暴露 OIDC discovery 与 JWK；本轮仍不实现登录页面、用户密码认证、注册或真实 client 管理。
-- 2026-06-06：开始第 1 小步 Web 登录态与 refresh token 策略确认；根据 Nuxt SSR+BFF 现状补充推荐草案，等待用户确认会话/token 存储、cookie/CSRF 命名、token 有效期方向和是否进入实现。
-- 2026-06-06：用户确认登出即时生效使用 Redis 拉黑 JWT `sid`，只在 gateway 检查，Redis 不可用时返回 `503`；临时 Redis Docker Compose 不进入项目记录，但 Redis 撤销策略和代码配置进入项目事实源。
-- 2026-06-06：用户确认第一方 Web 需要账号密码登录、二维码登录和第三方 OAuth 登录，第一方 App 需要账号密码登录和第三方 OAuth 登录；现阶段只实现第一方账号密码登录，其余能力保留扩展空间。
-- 2026-06-06：实现第一方账号密码登录后端能力：`/api/auth/login`、`/api/auth/refresh`、`/api/auth/logout`，refresh token 持久化哈希并轮换，复用旧 refresh token 或 logout 时撤销 `sid` 并写 Redis。
-- 2026-06-06：用户确认 refresh token 默认滑动不活跃窗口改为 7 天；7 天内没有触发 refresh 需要重新登录，7 天内有操作并触发 refresh 时刷新会话窗口。
-- 2026-06-06：用户确认下一步进入 Web BFF 登录态接入；补充第 2 小步计划草案，等待用户确认后再实现。
-- 2026-06-06：用户确认使用加密 `HttpOnly` cookie session，不使用内存型服务端 session store；开始实现 Web BFF 登录态。
-- 2026-06-06：用户确认采用受环境变量控制的 bootstrap runner 创建首个全权限管理员账号；默认关闭，同时配置用户名和密码后创建或补齐 `ADMIN` 角色与 `*` 权限，账号已存在时不覆盖已有密码。
-- 2026-06-06：真实 PostgreSQL service profile 联调发现 `GeneratedKeyHolder.getKey()` 在 PostgreSQL 下拿到多列 generated key，导致初始化管理员插入失败；已改为 JDBC 插入时只请求 `id` 列。
-- 2026-06-06：真实 service profile 联调发现 `/api/auth/login` 被 Authorization Server/Bearer 安全入口提前返回 `401`，未进入登录 controller；已拆分认证服务器端点安全链和应用 API 安全链。
-- 2026-06-06：真实 Nacos gateway 配置启动时曾出现 `Target host is not specified`，经临时环境变量覆盖 `hdx.gateway.routes.auth-uri=http://127.0.0.1:18082` 后 gateway 登录链路通过；真实 Nacos 既有配置值需用户确认后再修改。
-- 2026-06-06：用户确认认证中心与 gateway 同级，不再通过 gateway 代理认证中心。已移除 gateway auth/OIDC 代理路由和 `hdx.gateway.routes.auth-uri` 模板项；Web BFF 认证请求改为通过 `HDX_AUTH_BASE_URL`/`NUXT_AUTH_BASE_URL` 直连 auth-service，业务请求仍通过 `HDX_BACKEND_BASE_URL` 走 gateway。
-- 2026-06-07：实现 Web 独立 `/login` 登录页和全局登录守卫；登录页使用项目内 `apps/web/app/assets/images/login-background.bmp` 背景图，远程未登录访问业务页跳转登录页，all-in-one 模式通过本机 token 配置返回固定 `LOCAL_ADMIN:local-admin` public session。
-- 2026-06-07：修复登录页移动端卡片裁切问题，收紧内部 redirect 参数只允许单斜杠开头的站内路径；新增本地 lucide 图标集合，避免 Nuxt Icon 本地模式缺失图标集合；Web server route 统一使用 `message` 创建 H3 错误，避免 `statusMessage` deprecation warning 刷屏。
-- 2026-06-07：真实登录链路联调发现并修复 gateway `lb://` 路由缺少 load-balancer 处理、Web 可选本机 token 空字符串导致 runtimeConfig 校验失败、Web runtime BFF 未注入 Bearer token、logout 返回旧 public session 投影四个缺口。修复后远程模式 Web 登录、业务请求、runtime 请求和登出链路已通过。
-- 2026-06-07：真实浏览器登录复现 `xxldm / xxldm` 直连 auth-service 与 Web BFF 命令行 session 流程均成功，但登录页提交失败；判断为页面复用 SSR 阶段 public session 中的 CSRF token，浏览器端未必持有对应 CSRF cookie。已改为登录前强制通过同源请求刷新当前浏览器 session/CSRF，并把 CSRF 失败提示从“账号或密码不正确”中拆分出来。
-- 2026-06-07：用户确认进入统一当前身份接口切片；新增 `GET /api/v1/auth/current` 后端接口，服务端模式从 JWT claims 投影 `USER:<id>` 身份，all-in-one 模式通过本机 token 认证注入固定 `LOCAL_ADMIN:local-admin` 身份。
-- 2026-06-07：本轮首次普通权限执行 `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test` 失败于当前 Codex shell 中 `mvn` 不在 `PATH`；改用 README 记录的 Maven 固定路径后，首次未显式设置 `JAVA_HOME` 失败于当前 shell 继承旧 Java、不支持 `release 25`；显式设置 GraalVM JDK 25 后普通权限又失败于 `target/maven-status` 写入，已按权限规则改走提权路径。
-- 2026-06-08：复核 3 个小项时发现正在运行的旧 `backend-auth-service` 对 `/v3/api-docs` 返回 `403`，根因是 service profile 安全链只放行 `/v3/api-docs/**` 而未覆盖无尾斜杠的 `/v3/api-docs`；已补精确路径并新增回归测试。
+- 2026-06-06：确认认证中心独立于 gateway/core，服务端登录只面向 PostgreSQL `auth` schema；all-in-one/H2 不运行认证中心，使用固定本机管理员身份。自有用户/角色/权限表和 Spring Authorization Server 官方 OAuth2 表均落在 `auth` schema，字段清单保留在上文。
+- 2026-06-06：实现 `backend-auth-service` 骨架、`auth` schema 迁移、service profile OIDC discovery/JWK 和第一方账号密码登录 API。登录、refresh、logout 使用 refresh token 持久化哈希与轮换，复用旧 refresh token 或 logout 时按 `sid` 撤销会话；gateway 作为唯一外部资源入口检查 Redis 撤销，Redis 不可用时 fail-closed 返回 503。
+- 2026-06-06 至 2026-06-07：Web BFF 登录态和 `/login` 页面落地。浏览器只持有加密 `HttpOnly` session cookie，Nuxt server 持有 token；Web BFF 直连 auth-service 做认证请求，业务请求仍走 gateway。
+  真实联调修复过 PostgreSQL generated key、多安全链、gateway load-balancer、Web runtimeConfig 空字符串、Bearer 注入、logout public session 和 CSRF 刷新问题。
+- 2026-06-07 至 2026-06-08：统一当前身份接口完成。`GET /api/v1/auth/current` 在服务端模式从 JWT claims 投影 `USER:<id>`，all-in-one 模式通过本机 token 注入 `LOCAL_ADMIN:local-admin`；同时补齐 auth-service `/v3/api-docs` 无尾斜杠放行回归。
+- 2026-06-14：持久化 JWK 与轮换基础设施完成。`auth.auth_signing_key` 保存 ACTIVE/RETIRED 私钥 JWK，启动时加载并在无 ACTIVE 时生成；V5 partial unique index 保证最多一个 ACTIVE，`NimbusJwtEncoder` 显式选择 ACTIVE 签发，ACTIVE + RETIRED 共同用于 JWKS 验签。真实 PostgreSQL、多实例冷启动竞争和重启不失效均已验证；运行期轮换管理接口仍未实现。
+- 2026-06-14：账号密码登录审计与失败冷却完成。`auth.auth_login_audit` 记录成功、账号不存在、密码错误和冷却拒绝；冷却参数来自 `hdx.auth.login-security`，真实 Nacos `hdx-auth-service.yml` 已补齐并归一化为单一 `hdx` 块。当前仅有基础账号维度冷却，验证码/MFA/异常告警等仍是剩余风险。
+- 2026-06-14：错误响应稳定 code 与安全链 JSON 出口完成。后端 MVC、gateway JWT 撤销过滤器和主要 Spring Security 默认入口返回 `ApiErrorResponse(code, message)`；Web 登录链路按 code 做 i18n 映射。`backend-http-support` 集中 servlet 安全错误写出，只属于后端内部 HTTP 边界支撑，不作为 Web/App 共享层。
+- 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；需要审计时看本文件 2026-06-15 压缩前的 Git 历史，重复性命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
 
-- `mvn test`：通过，覆盖后端 7 个 Maven 模块，新增 `AuthServiceApplicationTest` 验证 local profile 骨架可启动。
-- `mvn compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 `backend-core-service`、`backend-auth-service`、`backend-gateway` 和 `backend-all-in-one`。
-- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
-- 使用临时 `migration-check` profile 和 `target/local-service-check.yml` 连接本地 PostgreSQL，`backend-auth-service` `/actuator/health` 返回 `UP`；因为 Flyway 失败会阻止应用启动，该结果验证 `auth` schema 迁移脚本可执行。
-- `backend-auth-service` 当前新增安全配置后，`mvn -pl :backend-auth-service test` 通过。
-- 真实 Nacos service profile 联调通过：auth/core/gateway 均可读取各自 Data ID 并启动；auth/core 使用公共 `hdx-database.yml` 连通 PostgreSQL，Flyway 确认 `auth` 与 `public` schema 均已是最新版本。
-- 真实 Nacos issuer discovery 验证通过：`GET http://192.168.50.100:18082/.well-known/openid-configuration` 返回 `200`，`issuer` 为 `http://192.168.50.100:18082`，`jwks_uri` 为 `http://192.168.50.100:18082/oauth2/jwks`，JWK 返回 1 个 key。
-- 资源服务 issuer 链路验证通过：auth/core/gateway 同时以 service profile 启动成功。
-- gateway JWT `sid` 撤销检查单元测试通过：`mvn -pl :backend-gateway test` 覆盖未撤销放行、已撤销返回 `401`、缺少 `sid` 返回 `401`、Redis 查询失败返回 `503`。
-- 后端全量 `mvn test` 通过，覆盖 7 个 Maven 模块。
-- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot` 通过，验证 gateway 新增 Redis 依赖后的 AOT 入口。
-- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'` 通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
-- `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service local profile 启动、账号密码登录成功、密码错误、禁用用户不能登录、禁用用户不能 refresh、refresh 轮换、旧 refresh token 复用撤销会话、logout 撤销会话。测试侧使用 H2 最小表结构验证服务逻辑；auth schema 生产迁移仍以 PostgreSQL 为事实源。
-- `mvn test`：通过，覆盖后端 7 个 Maven 模块。
-- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 新增 JWT/Redis/JDBC 组件和当时 gateway auth 路由/安全配置的 AOT 入口。
-- `mvn -Pnative package '-DskipTests' '-Dnative.skip=true'`：通过，覆盖后端 7 个 Maven 模块；native-image 按 `skipNativeBuild` 跳过。
-- `mvn -pl :backend-auth-service -am test`：通过，覆盖 refresh token 默认 7 天滑动不活跃窗口；登录后 refresh token 到第 7 天过期，超过 7 天未 refresh 会被拒绝，登录 2 天后 refresh 会轮换 token 并把新 refresh token 延后到第 9 天过期。
-- `pnpm test`：通过，覆盖 Web auth schema、Web public session 不暴露 token、CSRF token 生成/匹配、Web session public 投影、登录保存 session、refresh 轮换 session、session GET 自动 refresh 分支、access token refresh 提前量判断和 Web 私有 auth 配置解析。当前共 19 个测试通过。
-- `pnpm typecheck`：通过，验证 Nuxt server auth routes、H3 加密 cookie session、CSRF helper 和 auth schema 类型。
-- `pnpm lint`：通过。
-- `pnpm build`：通过，Nitro 产物包含 `auth/login.post`、`auth/logout.post`、`auth/refresh.post`、`auth/session.get` 路由。保留上游 sourcemap 与 package exports deprecation warning，当前不阻塞。
-- `mvn -pl :backend-auth-service -am test`：通过，验证 PostgreSQL generated key 修复不破坏 H2 测试路径，覆盖 auth-service local profile、初始化管理员和第一方登录服务逻辑。
-- 真实 PostgreSQL/Nacos/Redis service profile 联调：`backend-auth-service` 启动成功，Flyway 验证 `auth` schema 已在版本 3；bootstrap 管理员账号存在、启用、当前 `.env.local` 密码匹配，且拥有 `ADMIN` 角色与 `*` 权限。
-- 真实 auth-service API 联调：直连 `http://127.0.0.1:18082/api/auth/login` 登录成功，refresh token 轮换成功，logout 返回 `204`，旧 refresh token 被拒绝。
-- 真实 gateway API 联调：使用临时环境变量覆盖本机 auth/core 路由后，`http://127.0.0.1:18080/api/auth/login`、`/refresh`、`/logout` 全部通过；返回 token 类型为 `Bearer`，登录角色为 `ADMIN`，权限为 `*`。
-- `mvn test`：通过，覆盖后端 7 个 Maven 模块。
-- `mvn -pl :backend-auth-service,:backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，覆盖 auth-service 多安全链和 gateway 当时配置的 AOT 入口。
-- `mvn -pl :backend-gateway -am test`：通过，覆盖 gateway JWT `sid` 撤销过滤器；验证移除 auth/OIDC 代理路由后 gateway 模块测试仍通过。
-- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 gateway 当前只保留业务路由和 JWT resource server 配置后的 AOT 入口。
-- `pnpm test`：通过，5 个测试文件、19 个测试通过；`auth-session` 测试确认 refresh 调用认证中心地址 `http://localhost:18082`，不再走 gateway。
-- `pnpm typecheck`：通过，验证新增 `authBaseUrl` runtimeConfig、认证 fetch helper 和 Nuxt server auth routes 类型。
-- `pnpm lint`：通过。
-- `pnpm build`：通过，Nitro 产物包含 auth/session/login/refresh/logout 路由；保留 Nuxt/Tailwind/VueUse 上游 sourcemap 与 deprecation warning，当前不阻塞。
-- `pnpm test`：通过，7 个测试文件、27 个测试通过；覆盖 Web public session `actorType/subject`、all-in-one fixed local admin session、authenticated backend fetch、auth store 登录/登出和站内 redirect 归一化。
-- `pnpm typecheck`：通过，验证登录页、全局 route middleware、auth store、server auth helper 和 H3 错误 helper 类型。
-- `pnpm lint`：通过。
-- `pnpm build`：通过，登录背景图作为 Nuxt client asset 打包，产物包含约 7,056 kB 的 BMP 资源；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、单个约 521 kB chunk warning 和 Node DEP0155 deprecation warning，当前不阻塞。
-- 启动 Web dev server 检查：远程未登录访问 `http://127.0.0.1:3000/` 返回 `302 Location: /login?redirect=/`；`/login` SSR HTML 包含项目内背景图、登录文案、账号/密码输入和登录按钮。
-- 使用 Edge headless 截图检查 `1440x900` 与 `390x844` 视口：登录页背景图、磨砂玻璃登录框和表单控件均可见，移动端最终修复后无卡片/输入框右侧裁切。
-- `mvn -pl :backend-gateway -am test`：通过，新增 `CoreGatewayRoutesTest` 覆盖 `lb://hdx-core-service` 识别、service id 提取和缺少 service id 的错误路径；既有 `JwtSessionRevocationFilterTest` 继续通过。
-- 真实 service profile 联调：使用 `.env.local`、Nacos、PostgreSQL 和 Redis 启动 `backend-core-service`、`backend-auth-service`、`backend-gateway`，三者 `/actuator/health` 均返回 `200`。
-- 真实 auth-service API 联调：直连 `http://127.0.0.1:18082/api/auth/login` 登录成功，`/api/auth/refresh` 轮换 refresh token 成功，旧 refresh token 复用返回 `401`，`/api/auth/logout` 返回 `204`。
-- 真实 gateway API 联调：使用 auth-service 签发的 access token 请求 `http://127.0.0.1:18080/api/v1/runtime` 成功返回 `application=hdx-core-service`、`topology=core-service`；随后通过 auth-service logout 撤销同一 `sid`，复用旧 access token 请求 gateway 返回 `401`。
-- `pnpm test`：通过，7 个测试文件、28 个测试通过；新增覆盖 Web 可选本机 token 配置为空字符串时按未设置处理。
-- `pnpm typecheck`：通过，验证 Web runtimeConfig 空字符串预处理、runtime 认证代理和 logout 返回匿名 public session 的类型。
-- `pnpm lint`：通过。
-- `pnpm build`：通过，Nitro 产物包含 auth/session/login/logout/refresh、runtime 和 tools 路由；保留 Nuxt/Tailwind sourcemap warning、VueUse pure annotation warning、约 521 kB chunk warning、约 7 MB BMP 资源和 Node `DEP0155` warning，当前不阻塞。
-- `mvn -pl :backend-gateway -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 gateway 新增 `spring-cloud-starter-loadbalancer` 后的 AOT 入口。
-- 真实 Web BFF 联调：`GET /api/hdx/v1/auth/session` 未登录返回匿名 session 和 CSRF token；未登录访问 `/api/hdx/v1/tools` 返回 `401`；`POST /api/hdx/v1/auth/login` 登录成功且 public session 不泄露 access token；登录后 `/api/hdx/v1/tools` 与 `/api/hdx/v1/runtime` 通过；`POST /api/hdx/v1/auth/logout` 返回匿名 session，登出后 `/api/hdx/v1/tools` 返回 `401`。
-- `pnpm test`：通过，7 个测试文件、29 个测试通过；新增覆盖登录时强制重新加载同源 session/CSRF，且 CSRF 失败提示使用独立文案。
-- 真实内置浏览器联调：访问 `http://127.0.0.1:3000/login?redirect=/`，使用 `.env.local` 初始化管理员 `xxldm / xxldm` 登录成功并跳转 `/`，页面显示用户 `乡下来的喵`、runtime `hdx-core-service` 和 tools 空列表。
-- `mvn -pl :backend-core,:backend-core-service,:backend-all-in-one -am test`：通过，覆盖 `CurrentActorControllerTest`、`JwtCurrentActorProviderTest` 和 `LocalCurrentActorProviderTest`；验证 core 当前身份 REST 投影、JWT claims 解析和 all-in-one 本机身份注入。保留 H2 2.4.240 高于 Flyway 已验证版本提示、Maven/Jansi Java 25 native access warning、Mockito/Byte Buddy 动态 agent warning，当前不阻塞。
-- `mvn test`：通过，覆盖后端 7 个 Maven 模块、31 个测试；确认当前身份接口改动未破坏 auth-service、gateway 和既有 core/all-in-one 测试。
-- `mvn -pl :backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 core-service JWT 身份 provider 与 all-in-one 本机身份 provider 的 Spring AOT 入口。
-- `mvn -pl :backend-auth-service -am test`：通过，覆盖 auth-service 15 个测试；新增 `AuthServiceOpenApiSecurityTest` 验证 service profile 安全链下 `/v3/api-docs` 无尾斜杠访问返回 `200` 并包含登录契约。
-- `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot`：通过，验证 auth-service OpenAPI 安全链修复后的 Spring AOT 入口。
-- 临时 19082 service profile 实例验证：使用 `.env.local`、真实 Nacos、PostgreSQL 和 Redis 启动修复后的 `backend-auth-service`，`/actuator/health` 返回 `200`，`/v3/api-docs` 返回 `200` 且包含 `/api/auth/login`、`/api/auth/refresh` 和 `/api/auth/logout`；临时实例已停止。
-- 2026-06-14：实现持久化 JWK 与密钥轮换基础设施。
-  - 新增 Flyway V4 迁移创建 `auth.auth_signing_key` 表（key_id、private_key_jwk、status、activated_at、retired_at）。
-  - 新增 `AuthSigningKeyRepository`（JDBC）和 `AuthSigningKeyJwkSource`（`JWKSource<SecurityContext>`），启动时加载所有 ACTIVE 和 RETIRED 密钥；无 ACTIVE 密钥时自动生成 RSA 2048 密钥并持久化。
-  - `AuthorizationServerSecurityConfiguration` 不再每次启动生成临时密钥，改为通过 `@Bean` 创建 DB-backed JWK source。
-  - 2026-06-14 修复轮换签发与多实例冷启动风险：新增 Flyway V5 唯一索引，限制 `auth.auth_signing_key` 同时最多只有一个 ACTIVE；`NimbusJwtEncoder` 显式选择当前 ACTIVE key 签发，新 token 不再因 ACTIVE + RETIRED 共存而签发失败。
-  - 轮换语义收敛为：唯一 ACTIVE 用于新 token 签发，ACTIVE + RETIRED 共同出现在 `/oauth2/jwks` 供旧 token 验签。当前尚未提供运行期轮换管理接口；后续接口必须用事务或锁保证 retire/activate 原子性。
-  - `mvn -pl :backend-auth-service -am test`：通过，18 个测试包含 3 个新 JWK 持久化测试（空库自动生成、跨实例复用、轮换多密钥共存）。
-  - `mvn -pl :backend-auth-service -am test`：通过，19 个测试；新增覆盖轮换后 `NimbusJwtEncoder` 使用 ACTIVE key 签发，以及 service profile OpenAPI 安全测试使用真实 H2/JDBC 签名表而不是 mock 掉持久化边界。Maven 保留一次 `maven-compiler-plugin` mojo status 写入 warning，不阻塞构建结果。
-  - 2026-06-14：JWK 持久化真实 PostgreSQL 联调验证通过。
-    启动 auth-service（service profile 连接 PostgreSQL 18.4），Flyway 自动执行 V4 迁移从 version 3 升到 4，创建 `auth.auth_signing_key` 表。
-    首次启动自动生成 RSA 2048 密钥并持久化，`/oauth2/jwks` 返回 1 个 key，登录签发的 token kid 与 JWKS 匹配。
-    重启 auth-service 后 JWKS kid 保持不变（`b58cff10-7185-436a-97b3-bf91c452a31d`），新签发 token kid 也一致；token 通过 gateway 请求 `/api/v1/runtime` 返回 200。
-    确认重启不再使已签发 token 失效。
-  - 2026-06-14：PostgreSQL V5 迁移和唯一 ACTIVE 约束实机验证通过。
-    使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，Flyway Maven Plugin 将 `auth` schema 从 version 4 升到 5。
-    查询确认 `ux_auth_signing_key_single_active` 是 `WHERE status = 'ACTIVE'` 的 partial unique index；事务内尝试插入第二条 `ACTIVE` 被 PostgreSQL 以 SQLSTATE `23505` 拒绝，验证事务已回滚。
-  - 2026-06-14：补齐多实例冷启动竞争验证。
-    `mvn -pl :backend-auth-service -am test` 通过，20 个测试；新增回归覆盖并发实例先插入 ACTIVE key 后，当前实例捕获 `DataIntegrityViolationException` 并重新读取 ACTIVE key 的分支。
-    使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，创建临时库 `hdx_auth_race_20260614204826`，从空库执行 Flyway V1-V5。
-    同时启动两个 `backend-auth-service` 实例指向同一临时空库，`/actuator/health` 均为 `UP`。
-    `/oauth2/jwks` 返回相同 kid `4d60a12b-c070-4c6b-83ea-0367eb6413e7`；库内最终 `auth.auth_signing_key` 为 `total=1 active=1`，临时库已删除。
-- 2026-06-14：真实 Nacos `hdx-gateway.yml` 已确认不存在废弃的 `hdx.gateway.routes.auth-uri`，无需回写修改。gateway 仍通过 `spring.security.oauth2.resourceserver.jwt.issuer-uri` 校验 JWT，不代理认证中心路由。
-- 2026-06-14：实现账号密码登录审计与失败冷却基础能力。
-  - 新增 Flyway V6 迁移创建 `auth.auth_login_audit` 表，记录归一化登录标识、用户、登录标识、客户端类型、成功/失败、失败原因、客户端 IP、User-Agent 和尝试时间。
-  - `backend-auth-service` 登录流程在成功、账号不存在、密码错误和冷却拒绝时写入审计记录；认证失败与冷却异常不回滚审计事务。
-  - 登录失败冷却按 `hdx.auth.login-security.max-failures`、`failure-window` 和 `cooldown` 配置控制；默认 15 分钟窗口内 5 次失败后冷却 15 分钟，成功登录会使后续统计只计算成功后的失败。
-  - 真实 Nacos `hdx-auth-service.yml` 已补齐 `hdx.auth.tokens` 和 `hdx.auth.login-security`。同步过程中曾因临时脚本拆行逻辑错误写出重复顶层 `hdx` 块；已通过归一化脚本修复为单一 `hdx` 块，并用只读摘要确认 `runtime`、`tokens`、`login-security` 同处一个 `hdx` 下。
-  - `mvn -pl :backend-auth-service -am test`：通过，24 个测试覆盖登录成功审计、密码错误审计、账号不存在审计、重复失败触发冷却、成功登录重置失败计数和冷却窗口后允许重试。期间一次补丁漏加 `Duration` import 导致编译失败，已修复并重跑通过。
-  - 使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，创建临时库 `hdx_auth_migration_20260614215742`，从空库执行 Flyway V1-V6；确认版本 6 和 `auth.auth_login_audit` 存在，临时库已删除。
-  - `git -C services/backend diff --check` 与根仓库 `git diff --check` 均通过，仅保留 Git for Windows 换行提示。
-- 2026-06-14：实现错误响应稳定 code 与 Web 登录错误码映射小片。
-  - `backend-contract` 新增 `ApiErrorResponse(code, message)`，`backend-auth-service` 和 `backend-core` 的 MVC exception handler 改为返回该契约类型；后端 `message` 保持中文 fallback，UI 国际化以稳定 `code` 为事实源。
-  - OpenAPI `auth-service` 与 `gateway` 快照、expected schema 和生成 TypeScript 类型已补齐 `ApiErrorResponse`。
-  - Web BFF 解析上游 `code/message`，H3 错误 `data` 中保留 BFF 边界 `code` 与后端 `upstreamCode`；登录 store 优先按 `AUTH_INVALID_CREDENTIALS`、`AUTH_LOGIN_COOLDOWN` 等上游 code 映射 i18n key。
-  - 2026-06-14 后续补齐：`backend-gateway` 的 JWT 撤销过滤器已从 Servlet `sendError` 改为 JSON `ApiErrorResponse`，并登记 `GATEWAY_TOKEN_SESSION_MISSING`、`GATEWAY_SESSION_REVOKED`、`GATEWAY_REVOCATION_UNAVAILABLE`。
-  - 本轮普通权限执行 `mvn -pl :backend-auth-service,:backend-core,:backend-gateway -am test` 因 `backend-contract/target/maven-status` 写入失败，已按权限规则提权重跑通过。
-- 2026-06-14：继续清理安全链默认错误出口。
-  - 新增 `backend-http-support` 模块，集中提供 Spring Security `AuthenticationEntryPoint`、`AccessDeniedHandler` 和 servlet JSON 写出逻辑，避免 auth-service、gateway、core-service、all-in-one 各复制一套 `ApiErrorResponse` 写出代码。该模块只属于后端内部 HTTP 边界支撑，不作为 Web/App 端共享层；Web/App 继续通过 OpenAPI、错误码和协议契约共享。
-  - `backend-auth-service` 自有 REST API、`backend-gateway` JWT resource server、`backend-core-service` 调试入口和 `backend-all-in-one` 本机令牌入口已接入粗粒度安全错误码。OAuth2/OIDC/JWK 等 Authorization Server 标准协议端点继续保留 Spring Authorization Server 标准错误响应，不强行改成 HDX `ApiErrorResponse`。
-  - 错误码用于 UI 分组、本地化和排障关联，不要求 UI 逐字展示底层细节；服务不可用类错误应优先映射为统一用户文案。
-  - 普通权限执行 `mvn -pl :backend-auth-service,:backend-gateway,:backend-core-service,:backend-all-in-one -am test` 因 Maven 缓存/构建产物写入权限失败，已按权限规则提权重跑通过；随后 `mvn -pl :backend-all-in-one -am test` 提权重跑通过，确认新增 all-in-one 安全链测试使用内存 H2，不再生成本地 `data` 目录。
-  - `mvn -pl :backend-auth-service,:backend-gateway,:backend-core-service,:backend-all-in-one -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot` 提权执行通过，验证 auth-service、gateway、core-service 和 all-in-one 引入 `backend-http-support` 后的 Spring AOT 入口。
-  - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed -NoBuild -SkipDesktop` 提权执行通过；覆盖文档/Release/OpenAPI 契约检查、后端空白和 Maven 环境检查、Web 8 个测试文件 40 个测试、typecheck 与 lint。`-NoBuild` 跳过 Web build，后端完整测试由本轮前述 Maven 命令覆盖。
+- 后端自动化：多轮 `mvn test` 覆盖后端 7 个 Maven 模块；认证相关切片重点跑过 `backend-auth-service`、`backend-gateway`、`backend-core-service` 和 `backend-all-in-one` 的单元测试，以及对应 Spring AOT `process-aot`。
+  当前已覆盖账号密码登录、refresh 轮换、旧 refresh token 复用撤销、logout 撤销、Redis `sid` 撤销检查、当前身份投影、OpenAPI 安全放行、JWK 持久化/轮换/并发冷启动、登录审计和失败冷却、安全链 JSON 错误出口。
+- 真实服务联调：使用 `.env.local`、真实 Nacos、PostgreSQL 和 Redis 启动 auth/core/gateway，验证过 OIDC discovery、JWKS、auth-service login/refresh/logout、gateway 携带 access token 访问 `/api/v1/runtime`、logout 后复用旧 access token 被 gateway 拒绝、JWK 重启 kid 稳定和多实例空库冷启动只生成一个 ACTIVE key。
+- Web 自动化：`pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build` 多轮通过；测试覆盖 Web auth schema、加密 cookie session、CSRF、public session 不暴露 token、BFF login/refresh/logout/session、runtime/tools 认证代理、登录页 store、站内 redirect 和错误码/i18n 映射。
+  构建保留上游 sourcemap、VueUse pure annotation、chunk size、BMP 资源和 Node deprecation warning，当前不阻塞。
+- Web/浏览器联调：远程未登录访问业务页跳转 `/login`；登录页桌面与移动端截图验证通过；真实登录链路中 `xxldm / xxldm` 可通过 Web BFF 登录，public session 不泄露 token，登录后 runtime/tools 请求通过，登出后受保护请求返回 401。
+- 配置/契约验证：auth-service 与 gateway OpenAPI 快照、expected schema 和生成 TypeScript 类型已同步 `ApiErrorResponse`；真实 Nacos 已确认 gateway 不再需要废弃 `hdx.gateway.routes.auth-uri`。根仓库和后端子仓库 `git diff --check` 通过，仅保留 Git for Windows 换行提示。
+- 质量门禁：最近一次认证错误响应与安全链收口运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed -NoBuild -SkipDesktop` 通过；覆盖文档/Release/OpenAPI 契约检查、后端空白和 Maven 环境检查、Web 测试、typecheck 与 lint。`-NoBuild` 跳过 Web build，后端完整测试由同轮 Maven 命令覆盖。
 
 ## 剩余风险
 

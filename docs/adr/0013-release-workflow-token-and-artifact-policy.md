@@ -229,7 +229,7 @@ validate-inputs
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 `release.yml`。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 后续仍需补齐 App 构建、publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。
+- 后续仍需补齐 App 构建、publish、失败清理和 Desktop Full/Linux 安装包完整验证；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -246,7 +246,7 @@ validate-inputs
 - 2026-06-11：职责边界收缩。历史 Release asset 复用判断迁回主仓库 `release-start.yml`；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble。`HDX Backend Actions Bot` 与 `HDX Main Workflow Bot` 的最大权限均不再需要 `Contents: read`。
 - 2026-06-12：`release.yml` 接入 Desktop Full asset 构建第一片：新增 `resolve-backend-native` job 统一输出已校验后端 Release 资产；Desktop Full Windows/Linux job 下载同一份后端资产，生成 `backend-build.json`。
   构建阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时复制已解压 `backend/` 目录；assemble job 追加 Desktop Full asset 到 `release-manifest.json`。
-  Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和 Desktop Online 远端配置闭环仍待后续切片。
+  Desktop Rust 侧已实现复制资源、启动本机后端、健康检查、读取 `/local/session` 和退出清理的最小闭环；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成，真实安装包/AppImage 端到端验证仍待后续补齐。
 - 2026-06-13：Desktop 发布包方向改为静态 Web UI + Rust BFF，不再为 Desktop 内置 Node/Nitro 子进程。
   Web Online 继续发布 Nuxt SSR node-server asset；Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录。
-  Desktop Full Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Online Rust BFF 远端地址配置、真实安装包/AppImage 端到端验证仍待后续切片。
+  Desktop Full Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Desktop Online 后续已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。

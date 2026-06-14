@@ -18,6 +18,7 @@
 - WindowsApps/MSIX 版 PowerShell 可能干扰 Codex Windows sandbox 创建子进程，表现为普通 shell 工具调用在启动前失败，例如 `CreateProcessAsUserW failed: 1312`。
 - 如果普通 shell 工具调用在 Windows 上出现 `CreateProcessAsUserW failed: 1312`，优先检查 `pwsh` 是否来自 WindowsApps/MSIX 版。
 - 已知修复方式是卸载 WindowsApps/MSIX 版 PowerShell，安装 MSI 版 PowerShell 7，并重启 Codex Desktop。
+- 后端启动与测试依赖 GraalVM JDK 25 和 Maven 3.8.8；如果长期运行的 Codex Desktop、IDE 或终端仍继承旧 `JAVA_HOME`、`MAVEN_HOME` 或 `PATH`，先重启对应应用或终端，再判断是否是项目问题。
 - 修复后用普通权限复测：
 
 ```powershell

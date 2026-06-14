@@ -118,8 +118,8 @@
 - 2026-06-09：创建 ADR 0014，完成后端 services native 服务级 matrix 构建与聚合策略；`build_scope=services-linux-only` 允许只跑 Linux services 验证。首次远端 run `27201075082` 暴露 `actions/download-artifact@v7.0.1` 不存在，修正为 `v7.0.0` 后 run `27202869734` 通过，最终 artifact `7506747699` 通过两层 manifest 校验。
 - 2026-06-09：落地历史主仓库 Release asset 复用契约、`release-draft-minimal-assets.ps1`、`release-draft-reuse-backend-assets.ps1` 和 debug workflows。GitHub-hosted run `27209181697` 创建可复用历史 draft，run `27209326174` 复用历史后端 native asset 创建新 draft；测试 draft Release 与 tag 已按用户确认清理。
 - 2026-06-09 至 2026-06-12：补齐正式发布设计和 tag-only 操作手册；`release-start.yml` 按 root commit 中的 `services/backend` gitlink 锁定后端源码，主仓库负责历史 asset 复用判断，后端 resolver 只负责 native build 与可选 assemble 回调；手动 dry-run run `27403306816` 验证不会触发后端或 assemble。
-- 2026-06-12 至 2026-06-13：`release.yml` 接入 Web node-server、Desktop Online 和 Desktop Full asset 构建第一片；Desktop Full 通过 `resolve-backend-native` 消费后端 asset，包内携带已解压 `backend-full` 与 `backend-build.json`。Desktop 静态 Web UI + Rust BFF 已接入，Online 远端配置当时未实现，后续已在 Web/Desktop 发布产物计划中关闭。
-- 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；需要审计时看本文件 2026-06-15 压缩前的 Git 历史，重复性命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
+- 2026-06-12 至 2026-06-13：`release.yml` 接入 Web node-server、Desktop Online 和 Desktop Full asset 构建第一片；Desktop Full 通过 `resolve-backend-native` 消费后端 asset，包内携带已解压 `backend-full` 与 `backend-build.json`。Desktop 静态 Web UI + Rust BFF 已接入；Online 远端配置和认证转发后续已在 Web/Desktop 发布产物计划中关闭。
+- 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
 

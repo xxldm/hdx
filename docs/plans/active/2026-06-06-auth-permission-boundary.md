@@ -252,13 +252,11 @@
 - [x] 如发现链路缺口，按最小范围修复并补充相称测试。
 - [x] 更新本计划的验证结果和剩余风险。
 
-### 本轮联调环境记录
+### 本轮联调结论
 
-- 2026-06-07：早期 Codex shell 中 `mvn` 不在 `PATH`，首次后端后台启动未实际执行 Maven 命令；同日已将本机系统级 `JAVA_HOME`、`MAVEN_HOME` 和 `PATH` 修正为 GraalVM JDK 25 与 Maven 3.8.8，新开的 PowerShell / IDE 终端可直接使用 `java` 与 `mvn`。Codex Desktop、IDE 或长期运行的终端进程可能继承旧环境，需重启对应应用后自动生效。
-- 2026-06-07：当前 Codex shell 普通权限执行 `pnpm -v` 时因读取 `C:\Users\zengl` 触发 `EPERM`；后续 Web dev/test/build 命令按项目权限失败重试规则直接走审批/提权路径。
-- 2026-06-07：重新核对项目事实源后，后端启动使用 `services/backend/README.md` 记录的 GraalVM JDK 25 与 Maven 3.8.8；本地环境加载使用 `scripts/load-env.ps1`，当前项目 PowerShell 脚本入口要求 PowerShell 7+ / `pwsh`。
-- 2026-06-07：真实 gateway 业务请求首次失败于 `Unroutable protocol scheme: lb://hdx-core-service`；修复为 `lb://` 配置走 Spring Cloud Gateway Server Web MVC 的 `lb(serviceId)` filter，并补充 `spring-cloud-starter-loadbalancer` 依赖。
-- 2026-06-07：Web session API 首次失败于 `Web 服务配置无效。`；根因是 Nuxt runtimeConfig 将未设置的 `backendLocalTokenHeader` 与 `backendLocalToken` 表达为空字符串，而 Web schema 只允许缺省或非空字符串。已将空字符串预处理为未设置。
+- 使用 `services/backend/README.md` 记录的 GraalVM JDK 25、Maven 3.8.8、`scripts/load-env.ps1`、真实 Nacos、PostgreSQL 与 Redis 完成过 auth/core/gateway/Web dev 联调。
+- 联调期间关闭了 gateway `lb://` 路由、`spring-cloud-starter-loadbalancer`、Web runtimeConfig 空字符串预处理、Bearer 注入、logout public session 和 CSRF 刷新等链路缺口。
+- 环境 PATH、pnpm 权限和 PowerShell 入口等可复用规则已沉淀到 `docs/AGENT_WORKFLOW.md`；active plan 不再保留逐次失败过程。
 
 ### 本小步不做
 
@@ -328,7 +326,7 @@
 - 2026-06-14：持久化 JWK 与轮换基础设施完成。`auth.auth_signing_key` 保存 ACTIVE/RETIRED 私钥 JWK，启动时加载并在无 ACTIVE 时生成；V5 partial unique index 保证最多一个 ACTIVE，`NimbusJwtEncoder` 显式选择 ACTIVE 签发，ACTIVE + RETIRED 共同用于 JWKS 验签。真实 PostgreSQL、多实例冷启动竞争和重启不失效均已验证；运行期轮换管理接口仍未实现。
 - 2026-06-14：账号密码登录审计与失败冷却完成。`auth.auth_login_audit` 记录成功、账号不存在、密码错误和冷却拒绝；冷却参数来自 `hdx.auth.login-security`，真实 Nacos `hdx-auth-service.yml` 已补齐并归一化为单一 `hdx` 块。当前仅有基础账号维度冷却，验证码/MFA/异常告警等仍是剩余风险。
 - 2026-06-14：错误响应稳定 code 与安全链 JSON 出口完成。后端 MVC、gateway JWT 撤销过滤器和主要 Spring Security 默认入口返回 `ApiErrorResponse(code, message)`；Web 登录链路按 code 做 i18n 映射。`backend-http-support` 集中 servlet 安全错误写出，只属于后端内部 HTTP 边界支撑，不作为 Web/App 共享层。
-- 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；需要审计时看本文件 2026-06-15 压缩前的 Git 历史，重复性命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
+- 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
 

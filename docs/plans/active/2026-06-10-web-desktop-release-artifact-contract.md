@@ -178,7 +178,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Desktop Online 远端配置与认证转发：Online config command、远端 health 检查、Rust 主进程 token holder、login/refresh/logout 和业务请求 Bearer 注入均已实现并通过本地 Rust/Web 验证。
   Windows 真实端到端验证通过，用户在 Desktop Online 登录页填写 auth/gateway 地址并用账号密码登录成功进入应用；已修复 public session 时间字段与前端 zod schema 不匹配、logout 配置不可读时不清理本地 token 两个缺陷。
 - 根仓库质量门禁：相关阶段均运行过 `git diff --check`、子模块 diff check、`quality-gate.ps1 -Scope docs -NoBuild`、`-Scope desktop -NoBuild` 和 `-Scope web -NoBuild`；普通权限下 pnpm/Cargo 写缓存或读取用户目录失败时按权限规则提权重跑通过。
-- 逐次 CI 失败、临时 fixture 路径和完整命令输出不再保留在 active plan；需要审计时看本文件 2026-06-15 压缩前的 Git 历史，重复性命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
+- 逐次 CI 失败、临时 fixture 路径和完整命令输出不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。

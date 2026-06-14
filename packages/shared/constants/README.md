@@ -32,7 +32,6 @@
 | `VALIDATION_FAILED` | `backend-auth-service`、`backend-core` | 请求参数未通过边界校验。 |
 | `CURRENT_ACTOR_UNAVAILABLE` | `backend-core` | 当前请求没有可用登录身份。 |
 | `TOOL_DEFINITION_ALREADY_EXISTS` | `backend-core` | 工具定义键已存在。 |
-
-当前剩余缺口：
-
-- `backend-gateway` 的 JWT 撤销过滤器仍使用 Servlet `sendError` 返回中文错误；后续需要单独改为 JSON `ApiErrorResponse`，再登记网关专属错误码。
+| `GATEWAY_TOKEN_SESSION_MISSING` | `backend-gateway` | JWT 访问令牌缺少 `sid` 会话标识。 |
+| `GATEWAY_SESSION_REVOKED` | `backend-gateway` | JWT `sid` 对应会话已被撤销。 |
+| `GATEWAY_REVOCATION_UNAVAILABLE` | `backend-gateway` | gateway 暂时无法读取会话撤销状态。 |

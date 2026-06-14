@@ -50,6 +50,13 @@
         "id": { "type": "integer", "format": "int64" },
         "displayName": { "type": "string" }
       }
+    },
+    "ApiErrorResponse": {
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
+      }
     }
   },
   "gateway": {
@@ -90,6 +97,13 @@
         "toolKey": { "type": "string", "maxLength": 80 },
         "displayName": { "type": "string", "maxLength": 120 },
         "description": { "type": "string", "maxLength": 500 }
+      }
+    },
+    "ApiErrorResponse": {
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" }
       }
     }
   }

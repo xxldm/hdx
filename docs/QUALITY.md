@@ -13,7 +13,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 常用范围：
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
-- `-Scope docs`：检查关键文档可读取、根仓库空白错误、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
+- `-Scope docs`：检查关键文档可读取、根仓库空白错误、active plan 状态索引、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
 - `-Scope backend`：检查后端子模块并运行 `mvn test`。
 - `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
@@ -50,7 +50,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 如果存在 Symphony、Linear 等外部任务，是否已在本地计划、ADR、提交说明或相关文档中记录链接/编号；没有外部编号时是否写明“无”或“不适用”。
 - 如果修改了 `docs/config/nacos/` 模板，是否已按模板层级和相邻位置同步真实 Nacos Data ID；新增项是否已通知用户确认真实值，修改或删除项是否已获得用户同意；发布操作人是否符合 `docs/config/nacos/README.md`。
 - 如果修改了 `.env.example` 或 `.env.symphony.example`，是否已按模板分组和相邻位置同步对应 `.env.local` 或 `.env.symphony.local` 文件结构；新增项是否已提示用户填写真实值，修改或删除项是否已获得用户同意。
-- 如果存在本地 active 计划，当前状态、checkbox 或状态表、状态记录、验证结果和剩余风险是否已同步。
+- 如果存在本地 active 计划，顶部 `active-plan-status` 状态块、checkbox 或状态表、状态记录、验证结果和剩余风险是否已同步；`docs/plans/active/README.md` 是否已由 `scripts/sync-active-plan-status.ps1` 生成或校验。
 - 如果未创建本地计划，是否符合 `docs/plans/README.md` 的豁免条件，且最终回复是否说明变更范围、验证结果和剩余风险。
 - 如果新增或修改 `.ps1` 脚本，是否已在 PowerShell 7+ / `pwsh` 下完成相称验证，且中文输出、错误提示和帮助文本保持可读中文。
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。

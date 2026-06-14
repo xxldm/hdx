@@ -107,7 +107,8 @@ cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-
 ## 文档写入节制
 
 - 短入口只放可长期复用的当前事实和路由，不放长验证日志。
-- active plan 只保留恢复上下文所需的信息：当前状态、关键决策、最近有效验证、剩余风险和相关 commit。
+- active plan 顶部 `active-plan-status` 状态块是任务状态单一事实源；`docs/plans/active/README.md` 由脚本生成索引，其他文档不要复制细状态。
+- active plan 正文只保留恢复上下文所需的信息：关键决策、最近有效验证、剩余风险和相关 commit。
 - 命令踩坑、环境坑和可复用操作纪律写入 `docs/AGENT_WORKFLOW.md` 或自动化脚本，不写进 active plan。
 - 重复验证只记录最后一次有效结果；普通命令输出不整段粘贴。
 - 稳定长期决策进入 ADR 或架构文档；过期过程记录归档到 completed/history，而不是继续堆在 active plan。

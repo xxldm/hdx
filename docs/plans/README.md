@@ -44,7 +44,7 @@
 本地计划至少包含：
 
 - Symphony/Linear 等外部任务链接或编号；没有外部任务时写明“无”。
-- 当前状态。
+- 顶部 `active-plan-status` 状态块；`当前状态` 元数据只指向该状态块，避免同一计划内重复维护。
 - repo 内实现范围。
 - 本地代码、文档和验证 checklist。
 - 状态记录。
@@ -56,8 +56,11 @@
 
 ## 状态显示与同步
 
-- 计划状态必须使用 Markdown checkbox，或使用包含“状态”列的表格。
+- 进行中的计划必须在文件顶部维护 `active-plan-status` 状态块，字段固定为“何时读取”“当前状态”“下一步”“主要剩余风险”。
+- `docs/plans/active/README.md` 的状态表由 `scripts/sync-active-plan-status.ps1` 从各 active plan 状态块生成；不要手写编辑索引表。
+- 计划内部任务进度仍使用 Markdown checkbox，或使用包含“状态”列的表格。
 - 主要步骤完成、遇到阻塞、验证完成、最终回复前，都必须同步更新计划状态和状态记录。
 - 验证缺口、临时债务、风险、回滚条件和相关 commit 发生变化时，也必须更新本地计划。
+- 提交前运行 `pwsh -NoLogo -NoProfile -File scripts/sync-active-plan-status.ps1 -Check`，或运行包含该检查的 `scripts/quality-gate.ps1 -Scope docs`。
 - 完成后的计划应移动到 `docs/plans/completed/`，并保留关键决策和验证结果。
 - 如果完成后仍需保留在 `active/`，必须在计划中明确记录原因和下一次清理条件。

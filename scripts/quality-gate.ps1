@@ -193,6 +193,18 @@ function Invoke-DocChecks {
         -Arguments @('diff', '--check')
 
     Invoke-Step `
+        -Title 'Active 计划状态索引检查' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/sync-active-plan-status.ps1'),
+            '-Check'
+        )
+
+    Invoke-Step `
         -Title 'Release manifest 校验' `
         -WorkingDirectory $RepoRoot `
         -Command $PowerShellCommand `

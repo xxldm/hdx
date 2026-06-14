@@ -3,13 +3,17 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble。
-  Release Start 精确提交模型已调整为按 root commit 中的 `services/backend` 子模块 hash 构建后端源码，不再要求该 hash 等于后端当前 `main`；历史 Release asset 复用判断已迁回主仓库，后端 resolver 已收缩为 native build resolver。
-  Release Start 手动 dry-run 已支持预演后端来源判断且不触发后端或 assemble；Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已实现。
-  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；仍缺 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证。
+- 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
 - 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+
+<!-- active-plan-status:start -->
+- 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
+- 当前状态：后端 native 并行构建、历史复用、release start、release assemble 第一片和 Desktop Online/Full asset 接入已落地。
+- 下一步：把 App 构建、正式 publish、失败清理和 Desktop Full/Linux 安装包完整验证串入真实 release workflow。
+- 主要剩余风险：完整 tag-only 发布闭环仍未完成；Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。
+<!-- active-plan-status:end -->
 
 ## 阅读指引
 

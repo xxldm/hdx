@@ -3,14 +3,17 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：Web node-server archive、配置字段清单、启动配置入口、client/public sourcemap 关闭和 tar.gz 打包入口已实现并验证；Web node-server asset 已接入正式 `release.yml` assemble。
-  Desktop Windows Online/Full exe build 已验证，Online NSIS 中英双语安装包已验证，Desktop 第一版安装包/绿色包/AppImage 发布边界已确认；正式 `release.yml` 已接入 Desktop Online 与 Desktop Full Windows/Linux asset 构建和 manifest 追加切片。
-  Desktop Full 包内改为携带同平台已解压 `backend-full` 与 `backend-build.json`，Desktop Rust 侧已实现 sidecar 最小启动、健康检查、`/local/session` 读取、Rust BFF command 和退出清理。
-  Desktop Online/Full 发布包已改为消费 Web `desktop-static` 静态 UI，不内置 Node/Nitro 子进程；Desktop Online 已实现远端配置保存和连接检查第一片；公开端资产检查 workflow 已验证 Web 与 Desktop Online 打包路径。
-  Desktop Online 已实现远端 Rust BFF 认证转发闭环：Rust 主进程持有 access/refresh token，完成远端登录、refresh 轮换、logout 撤销和业务请求 Bearer 注入；token 不暴露给 WebView。
+- 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
 - 最后更新：2026-06-15（补充阅读指引并压缩验证记录）
+
+<!-- active-plan-status:start -->
+- 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发和 Windows 端到端验证已完成。
+- 下一步：补 Linux AppImage 端到端验证、真实 release.yml 资产上传回读和 App Online asset。
+- 主要剩余风险：完整 release 仍缺 App、正式 publish、失败清理和真实安装包矩阵验证。
+<!-- active-plan-status:end -->
 
 ## 阅读指引
 

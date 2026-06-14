@@ -3,12 +3,17 @@
 - 外部任务系统：无
 - 外部任务链接/编号：不适用
 - 外部任务是否为主计划来源：否
-- 当前状态：进行中；第 3 步认证与权限边界仍有后续风险，第 9 步部署、发布与环境管理已有 release start、release draft assemble、多后端 artifact 聚合、多历史 asset 复用、主仓库最新合格 Release 自动选择、后端 native build resolver、可选 assemble 回调。
-  Web node-server asset、Desktop Online/Full asset 构建、Desktop Full sidecar 最小启动闭环、Desktop 静态 Web UI + Rust BFF、Desktop Online 远端配置和远端 Rust BFF 认证转发也已接入。
-  仍缺 App 构建、publish、失败清理、Desktop Full 真实安装包验证、签名/公证/自动更新、release notes 和版本号策略。
+- 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
 - 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+
+<!-- active-plan-status:start -->
+- 何时读取：需要判断总体后续顺序、步骤归属或跨计划状态时。
+- 当前状态：总纲进行中；认证与权限边界、部署发布仍有后续事项。
+- 下一步：按用户确认继续第 9 步发布闭环，优先补 App、publish、失败清理和真实安装包验证。
+- 主要剩余风险：总纲不承载细节；具体实现和验证以对应 active plan、ADR 或 completed plan 为准。
+<!-- active-plan-status:end -->
 
 ## 阅读指引
 

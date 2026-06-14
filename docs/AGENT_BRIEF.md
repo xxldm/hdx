@@ -27,7 +27,7 @@
 - 后端外部入口分为 `backend-auth-service` 和 `backend-gateway`；认证中心独立签发 token，gateway 校验 JWT 并检查 Redis 会话撤销。
 - `backend-core-service` 不作为外部入口；`backend-all-in-one` 只服务 Desktop Full 本机模式，使用 H2 和本机 token。
 - Web 浏览器不直接访问后端；浏览器调 Nuxt server BFF，Nuxt server 保存敏感 token。
-- Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或后续远端登录态。
+- Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态。
 - App 不复用 Tauri，不内置 all-in-one；首版只连接远端 auth-service 与 gateway。
 - 错误响应以稳定 `code` 为跨端协议字段，后端中文 `message` 只是 fallback；UI 可以把多个 code 合并为粗粒度用户文案。
 
@@ -48,6 +48,7 @@
 - Git 提交、推送、子模块指针：`docs/GIT.md`。
 - 本地计划规则：`docs/plans/README.md`；进行中计划先读 `docs/plans/active/README.md` 再按需打开具体计划。
 - 认证、权限、登录态、错误码：先读 `docs/plans/active/README.md`，必要时再读 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
+- 认证数据模型、`auth` schema、migration 和表字段：`docs/AUTH_DATA_MODEL.md`。
 - Release、后端 native artifact、GitHub Actions 产物复用：先读 `docs/plans/active/README.md`，再按任务读 `docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`。
 - Desktop Full/Online：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`，需要发布上下文时再读 release 计划。
 - App：`apps/mobile/README.md`、`docs/adr/0009-mobile-native-online-first.md`。

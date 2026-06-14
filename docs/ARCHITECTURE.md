@@ -126,12 +126,12 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
 - Desktop Full 发布包当前以公开 `backend-full` archive 为校验事实源，并在打包阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Desktop 资源。
   Desktop Full 运行时已实现最小 sidecar 闭环：复制内置资源到用户数据目录、启动本机后端、健康检查、读取 `/local/session` 并在退出时清理进程。
   Desktop 发布包改为消费 `apps/web` 的 `desktop-static` 静态输出；Desktop 静态 UI 通过 Rust BFF command 调用本机 sidecar，WebView 不接触本机 token。
-  Desktop Online 已实现远端地址填写、用户级配置持久化和 `/actuator/health` 连接检查第一片；Online Rust BFF 认证转发和远端登录态保存仍待后续实现。
+  Desktop Online 已实现远端地址填写、用户级配置持久化、`/actuator/health` 连接检查、远端登录、refresh、logout 和业务请求 Bearer 注入；远端 access/refresh token 只保存在 Rust 主进程内。
 - `services/backend/.github/workflows/backend-release-resolve.yml` 已收缩为后端 native build resolver：只按输入的 `backend_commit` checkout 后端源码、计算必需资产对应的 native build 范围、调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   它可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 `release.yml` assemble；不读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
-正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 认证转发闭环串联起来。
+正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理、Desktop Full/Linux 安装包完整验证和 release artifact 上下文一致性串成完整发布闭环。
 
 ## Web 第一阶段架构
 
@@ -159,7 +159,7 @@ Web 浏览器代码不直接访问后端地址。
 
 - Desktop 静态构建使用 `HDX_WEB_BUILD_TARGET=desktop-static`，生成 `ssr: false` 的静态输出供 Tauri WebView 消费。
 - Web store 通过 `app/utils/hdx-api-client.ts` 选择传输方式：Web Online 调 Nuxt server BFF，Desktop WebView 调 Tauri Rust BFF command。
-- Desktop Rust BFF 负责持有本机 sidecar token 或后续远端登录态；WebView 不保存本机 token、access token 或 refresh token。
+- Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态；WebView 不保存本机 token、access token 或 refresh token。
 
 ## 待决策事项
 

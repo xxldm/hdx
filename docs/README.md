@@ -10,6 +10,7 @@
 - `AGENT_WORKFLOW.md`：智能体命令执行、权限失败、PowerShell 与本地环境纪律。
 - `GIT.md`：Git 提交、推送和智能体提交纪律。
 - `ENVIRONMENT.md`：本地、Symphony、后端部署和前端部署的环境配置分层。
+- `AUTH_DATA_MODEL.md`：认证中心 `auth` schema、表用途、关键字段、约束和维护要求。
 - `HARNESS_ENGINEERING.md`：Harness Engineering 实践到本项目约束的映射。
 - `RELEASE_RUNBOOK.md`：tag-only 日常发布流程和失败处理。
 - `adr/`：架构决策记录。

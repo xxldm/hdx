@@ -14,7 +14,7 @@
 ## 读取建议
 
 - 只需要下一步方向时，先读本索引和 `docs/AGENT_BRIEF.md`。
-- 做认证或权限代码改动时，读认证计划的“已确认决策”“剩余风险”和最近状态记录；不要先通读表字段全清单。
+- 做认证或权限代码改动时，读认证计划的“已确认决策”“剩余风险”和最近状态记录；改 migration、实体模型或 JDBC repository 时再读 `docs/AUTH_DATA_MODEL.md`。
 - 做 release workflow 或 artifact 改动时，先判断是后端 native 复用问题还是 Web/Desktop 产物契约问题，再打开对应计划。
 - 做 Desktop Online/Full 改动时，优先读 `apps/desktop/README.md` 和 Web/Desktop 发布产物计划；涉及认证边界再读认证计划。
 - 完成任务后，只把恢复上下文必需的事实、验证摘要和剩余风险写回对应计划；重复过程日志应收敛。

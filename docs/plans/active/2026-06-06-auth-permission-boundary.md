@@ -542,6 +542,11 @@
   - `AuthorizationServerSecurityConfiguration` 不再每次启动生成临时密钥，改为通过 `@Bean` 创建 DB-backed JWK source。
   - 密钥轮换路径：插入新 ACTIVE 密钥 → 将旧密钥 UPDATE 为 RETIRED → 两个密钥都出现在 `/oauth2/jwks`，新 token 用新密钥签发，旧 token 仍可验签直到过期。
   - `mvn -pl :backend-auth-service -am test`：通过，18 个测试包含 3 个新 JWK 持久化测试（空库自动生成、跨实例复用、轮换多密钥共存）。
+  - 2026-06-14：JWK 持久化真实 PostgreSQL 联调验证通过。
+    启动 auth-service（service profile 连接 PostgreSQL 18.4），Flyway 自动执行 V4 迁移从 version 3 升到 4，创建 `auth.auth_signing_key` 表。
+    首次启动自动生成 RSA 2048 密钥并持久化，`/oauth2/jwks` 返回 1 个 key，登录签发的 token kid 与 JWKS 匹配。
+    重启 auth-service 后 JWKS kid 保持不变（`b58cff10-7185-436a-97b3-bf91c452a31d`），新签发 token kid 也一致；token 通过 gateway 请求 `/api/v1/runtime` 返回 200。
+    确认重启不再使已签发 token 失效。
 
 ## 剩余风险
 

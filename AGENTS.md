@@ -4,14 +4,12 @@
 
 ## 先读地图
 
-开始任何实现前，先阅读这些文件：
+开始任何实现前，先阅读短入口和硬约束：
 
+- `docs/AGENT_BRIEF.md`：低 token 工作入口、当前事实摘要与详细文档路由。
 - `docs/CONSTRAINTS.md`：项目硬约束与工程纪律。
-- `docs/ARCHITECTURE.md`：暂定架构边界与依赖方向。
-- `docs/QUALITY.md`：质量门禁、测试与验证要求。
-- `docs/AGENT_WORKFLOW.md`：智能体命令执行、权限失败、PowerShell 与本地环境纪律。
-- `docs/GIT.md`：Git 提交、推送与智能体提交纪律。
-- `docs/adr/0001-harness-engineering-constraints.md`：本轮约束的决策记录。
+
+然后按 `docs/AGENT_BRIEF.md` 的“按需阅读路由”打开任务相关详细文档。不要默认通读所有 active plan、ADR 或长文档；只有当任务触碰对应边界时再读取，例如架构变更读 `docs/ARCHITECTURE.md`，提交和推送读 `docs/GIT.md`，权限失败读 `docs/AGENT_WORKFLOW.md`，质量门禁读 `docs/QUALITY.md`。
 
 ## 硬性规则
 
@@ -36,3 +34,4 @@
 - 发现文档与代码不一致时，把不一致当作缺陷处理：要么修正文档，要么修正代码。
 - 当约束阻碍实现时，不绕过约束；先更新设计记录，说明为什么需要调整。
 - 输出应优先让后续智能体可读：明确入口、边界、验证命令和失败处理。
+- 为降低 token 消耗，文档更新应优先写当前事实、关键决策、验证摘要和剩余风险；不要把完整过程日志、大段命令输出或重复验证结果堆进 active plan。

@@ -12,6 +12,7 @@ HDX 是一个工具箱项目，当前暂定包含四个交付面：
 ## 文档入口
 
 - `AGENTS.md`：智能体工作入口与硬性规则。
+- `docs/AGENT_BRIEF.md`：低 token 智能体短入口、当前事实摘要与详细文档路由。
 - `docs/CONSTRAINTS.md`：项目约束。
 - `docs/ARCHITECTURE.md`：暂定架构。
 - `docs/QUALITY.md`：质量门禁。

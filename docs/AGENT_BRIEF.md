@@ -34,8 +34,8 @@
 
 - 认证边界：账号密码登录、refresh/logout、Redis 撤销、Web 登录页、当前身份接口、错误码契约和安全链 JSON 错误已实现。
 - 认证剩余风险：尚未实现注册、找回密码、验证码、MFA、用户管理、OAuth2 client 初始化/管理和 JWK 运行期轮换管理接口。
-- Desktop：Full sidecar 最小闭环已实现；Online 已有远端地址保存和健康检查，远端登录态保存与认证转发仍待实现。
-- Release：正式 tag-only 发布入口已有第一版 dry-run/assemble/reuse 能力，仍未完成正式 publish、App 构建、失败清理和真实安装包验证。
+- Desktop：Full sidecar 最小闭环已实现；Online 已有远端地址保存、健康检查、远端登录、refresh、logout 和业务请求 Bearer 注入，token 不暴露给 WebView。
+- Release：正式 tag-only 发布入口已有第一版 dry-run/assemble/reuse 能力，仍未完成正式 publish、App 构建、失败清理和 Linux/安装包完整验证。
 - 文档体量控制：active plan 只记录当前状态、关键决策、验证摘要和剩余风险；历史过程日志应归档或收敛，避免无限增长。
 
 ## 按需阅读路由
@@ -45,9 +45,9 @@
 - 质量门禁、测试和提交前检查：`docs/QUALITY.md`。
 - 命令权限、PowerShell、提权失败处理：`docs/AGENT_WORKFLOW.md`。
 - Git 提交、推送、子模块指针：`docs/GIT.md`。
-- 本地计划规则：`docs/plans/README.md`。
-- 认证、权限、登录态、错误码：`docs/plans/active/2026-06-06-auth-permission-boundary.md`。
-- Release、后端 native artifact、GitHub Actions 产物复用：`docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md`、`docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`。
+- 本地计划规则：`docs/plans/README.md`；进行中计划先读 `docs/plans/active/README.md` 再按需打开具体计划。
+- 认证、权限、登录态、错误码：先读 `docs/plans/active/README.md`，必要时再读 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
+- Release、后端 native artifact、GitHub Actions 产物复用：先读 `docs/plans/active/README.md`，再按任务读 `docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`。
 - Desktop Full/Online：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`，需要发布上下文时再读 release 计划。
 - App：`apps/mobile/README.md`、`docs/adr/0009-mobile-native-online-first.md`。
 - OpenAPI/shared 契约：`packages/shared/README.md`、`docs/adr/0006-openapi-and-shared-contract-boundary.md`、`docs/adr/0007-openapi-typescript-generation-strategy.md`。

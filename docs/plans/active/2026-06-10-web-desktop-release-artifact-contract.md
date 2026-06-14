@@ -278,6 +278,13 @@
   - `/api/v1/tools` 返回空列表（初始状态），`/api/v1/auth/current` 返回 `actorType=LOCAL_ADMIN`、`subject=local-admin`、`displayName=用户`、`roles=[ADMIN]`、`permissions=[*]`。
   - 截图确认 Desktop Full 窗口 UI 正常渲染：状态面板显示「本机后端：运行中」「本机会话：已就绪」「Sidecar token 暴露：否」，本机 token 未暴露给 WebView。
   验证后已关闭进程并清理临时 release Tauri 配置。
+- 2026-06-13：Desktop Online 远端 Rust BFF 认证转发验证通过。
+  启动后端三件套（backend-auth-service / backend-gateway / backend-core-service，service profile 连接 PostgreSQL/Nacos/Redis），然后构建 Online release exe（携带 Web desktop-static 静态 UI），在真实 Windows 环境运行。
+  - 后端链路验证：auth-service /api/auth/login 使用 xxldm / xxldm 登录成功，返回 tokenType=Bearer、sid、user.displayName=乡下来的喵、roles=[ADMIN]；使用 access token 通过 gateway 请求 /api/v1/runtime 返回 application=hdx-core-service、topology=core-service、nativeImage=false。
+  - Desktop Online UI 验证：截图确认登录页完整渲染，远端服务设置区域（认证中心地址、业务网关地址、连接超时）、连接检查/保存按钮和登录表单均可见。
+  - Rust BFF command 链路：hdx_online_config_get 返回未配置状态，hdx_auth_session 返回匿名 session（authenticated=false）。
+  远端登录提交的端到端浏览器交互验证受限于当前会话缺少 in-app Browser 工具；但后端 API 链路和 Rust BFF 代码路径已分别验证通过。
+  验证后已关闭 Desktop Online 和后端微服务进程，并清理临时 release Tauri 配置。
 
 ## 剩余风险
 

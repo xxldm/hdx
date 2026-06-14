@@ -570,7 +570,7 @@
   - `backend-contract` 新增 `ApiErrorResponse(code, message)`，`backend-auth-service` 和 `backend-core` 的 MVC exception handler 改为返回该契约类型；后端 `message` 保持中文 fallback，UI 国际化以稳定 `code` 为事实源。
   - OpenAPI `auth-service` 与 `gateway` 快照、expected schema 和生成 TypeScript 类型已补齐 `ApiErrorResponse`。
   - Web BFF 解析上游 `code/message`，H3 错误 `data` 中保留 BFF 边界 `code` 与后端 `upstreamCode`；登录 store 优先按 `AUTH_INVALID_CREDENTIALS`、`AUTH_LOGIN_COOLDOWN` 等上游 code 映射 i18n key。
-  - 当前只覆盖 MVC handler 和 Web 登录链路；`backend-gateway` 的 JWT 撤销过滤器仍是 Servlet `sendError` 中文响应，后续需单独改成 JSON 错误体并登记网关专属 code。
+  - 2026-06-14 后续补齐：`backend-gateway` 的 JWT 撤销过滤器已从 Servlet `sendError` 改为 JSON `ApiErrorResponse`，并登记 `GATEWAY_TOKEN_SESSION_MISSING`、`GATEWAY_SESSION_REVOKED`、`GATEWAY_REVOCATION_UNAVAILABLE`。
   - 本轮普通权限执行 `mvn -pl :backend-auth-service,:backend-core,:backend-gateway -am test` 因 `backend-contract/target/maven-status` 写入失败，已按权限规则提权重跑通过。
 
 ## 剩余风险
@@ -579,7 +579,7 @@
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前已实现基础登录审计日志、客户端 IP/User-Agent 记录和按账号标识的失败冷却；尚未实现验证码、MFA、异常登录告警、IP/设备维度限流、分布式反滥用策略或管理端查询审计记录。生产开放账号密码登录前仍需按风险补齐。
-- 当前后端 MVC 错误响应已提供稳定 `code` 和中文 fallback `message`，Web 登录链路已按 code 做 i18n 映射；gateway JWT 撤销过滤器仍需后续改成 JSON 错误体，否则该路径仍只能拿到 HTTP 状态和中文错误。
+- 当前后端 MVC 错误响应与 gateway JWT 撤销过滤器均已提供稳定 `code` 和中文 fallback `message`，Web 登录链路已按 code 做 i18n 映射；业务功能扩大后仍需持续把新增错误码登记到 `packages/shared/constants/README.md`。
 - Web 登录页和全局登录守卫已实现；当前仍未实现注册、找回密码、验证码、MFA、二维码登录或第三方 OAuth 登录。
 - `.env.local` 已按 `.env.example` 结构新增 `HDX_AUTH_BASE_URL` 和可选 `NUXT_AUTH_BASE_URL` 注释；真实部署环境仍需要按实际认证中心入口配置。
 - Web 加密 cookie session 依赖稳定的 `NUXT_AUTH_SESSION_SECRET`；如果部署时变更该密钥，已有 Web session 会失效并需要重新登录。

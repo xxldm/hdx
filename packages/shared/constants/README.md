@@ -17,6 +17,7 @@
 
 - `code` 是跨端稳定协议字段，UI 应优先按 `code` 做本地化文案映射。
 - `message` 是中文 fallback 文案，用于兜底展示和排障阅读，不作为 UI 国际化事实源。
+- UI 不需要逐字展示所有错误细节；同一类后端错误码可以映射为统一用户文案，例如服务暂时不可用、请重新登录或无权操作。
 - Web BFF 自己的边界错误使用 `code` 表示 BFF 错误类型；透传后端错误码时使用 `upstreamCode` 保存后端原始 `code`。
 
 当前已登记的后端错误码：
@@ -28,10 +29,18 @@
 | `AUTH_REFRESH_TOKEN_INVALID` | `backend-auth-service` | refresh token 无效、过期、已消费或会话不可用。 |
 | `AUTH_REQUEST_INVALID` | `backend-auth-service` | 认证请求字段语义无效，例如客户端类型不支持。 |
 | `AUTH_REVOCATION_UNAVAILABLE` | `backend-auth-service` | 登录会话撤销状态暂时不可写入或不可用。 |
+| `AUTH_AUTHENTICATION_REQUIRED` | `backend-auth-service` | 认证中心自有 REST API 需要登录。 |
+| `AUTH_ACCESS_DENIED` | `backend-auth-service` | 认证中心自有 REST API 已登录但无权访问。 |
 | `REQUEST_BODY_INVALID` | `backend-auth-service` | JSON 请求体无法读取或格式无效。 |
 | `VALIDATION_FAILED` | `backend-auth-service`、`backend-core` | 请求参数未通过边界校验。 |
 | `CURRENT_ACTOR_UNAVAILABLE` | `backend-core` | 当前请求没有可用登录身份。 |
 | `TOOL_DEFINITION_ALREADY_EXISTS` | `backend-core` | 工具定义键已存在。 |
+| `CORE_AUTHENTICATION_REQUIRED` | `backend-core-service` | 核心服务调试入口需要登录。 |
+| `CORE_ACCESS_DENIED` | `backend-core-service` | 核心服务调试入口已登录但无权访问。 |
+| `GATEWAY_AUTHENTICATION_REQUIRED` | `backend-gateway` | gateway 业务入口需要登录或访问令牌无效。 |
+| `GATEWAY_ACCESS_DENIED` | `backend-gateway` | gateway 业务入口已登录但无权访问。 |
 | `GATEWAY_TOKEN_SESSION_MISSING` | `backend-gateway` | JWT 访问令牌缺少 `sid` 会话标识。 |
 | `GATEWAY_SESSION_REVOKED` | `backend-gateway` | JWT `sid` 对应会话已被撤销。 |
 | `GATEWAY_REVOCATION_UNAVAILABLE` | `backend-gateway` | gateway 暂时无法读取会话撤销状态。 |
+| `LOCAL_AUTHENTICATION_REQUIRED` | `backend-all-in-one` | 本机 all-in-one 业务入口需要本机认证。 |
+| `LOCAL_ACCESS_DENIED` | `backend-all-in-one` | 本机 all-in-one 业务入口已认证但无权访问。 |

@@ -549,11 +549,15 @@
     首次启动自动生成 RSA 2048 密钥并持久化，`/oauth2/jwks` 返回 1 个 key，登录签发的 token kid 与 JWKS 匹配。
     重启 auth-service 后 JWKS kid 保持不变（`b58cff10-7185-436a-97b3-bf91c452a31d`），新签发 token kid 也一致；token 通过 gateway 请求 `/api/v1/runtime` 返回 200。
     确认重启不再使已签发 token 失效。
+  - 2026-06-14：PostgreSQL V5 迁移和唯一 ACTIVE 约束实机验证通过。
+    使用 `.env.local` 连接真实 Nacos/PostgreSQL 18.4，Flyway Maven Plugin 将 `auth` schema 从 version 4 升到 5。
+    查询确认 `ux_auth_signing_key_single_active` 是 `WHERE status = 'ACTIVE'` 的 partial unique index；事务内尝试插入第二条 `ACTIVE` 被 PostgreSQL 以 SQLSTATE `23505` 拒绝，验证事务已回滚。
 
 ## 剩余风险
 
 - JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。V5 唯一索引限制同时最多只有一个 ACTIVE，`JwtEncoder` 显式选择 ACTIVE 签发；重启不再使已签发 token 失效。后续仍需补齐密钥轮换管理接口，接口必须保证 retire/activate 原子性并记录审计信息。
-- 本轮未重新执行真实 PostgreSQL 的 V5 迁移联调或多实例冷启动竞争验证；V5 使用 PostgreSQL partial unique index，后续真实环境验证时需要确认迁移可应用且第二个 ACTIVE 插入会被数据库拒绝。
+- 本轮已补齐真实 PostgreSQL 的 V5 迁移联调和第二条 `ACTIVE` 拒绝验证；尚未执行多实例空库冷启动竞争端到端验证。
+  V5 数据库约束可以防止双 ACTIVE 落库，但并发首次启动时失败实例的重试或降级体验仍需后续专门验证。
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。

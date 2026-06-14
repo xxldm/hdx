@@ -286,12 +286,19 @@
   远端登录提交的端到端浏览器交互验证受限于当前会话缺少 in-app Browser 工具；但后端 API 链路和 Rust BFF 代码路径已分别验证通过。
   验证后已关闭 Desktop Online 和后端微服务进程，并清理临时 release Tauri 配置。
 
+- 2026-06-14：Desktop Online 远端登录端到端交互验证通过，并修复 session schema 不匹配缺陷。
+  启动后端三件套（service profile），构建 Online release exe（Web desktop-static + Rust BFF），在 Windows 环境实际填表单点登录。
+  - 缺陷发现与修复：Rust BFF `WebAuthPublicSession` / `OnlinePublicSession` 的 `accessTokenExpiresAt` / `refreshTokenExpiresAt` 原为 `Option<u64>`（epoch 秒），但前端 zod schema 期望 `z.string().datetime()`（ISO 字符串）。登录在后端成功返回 token 后，前端 zod 校验失败，显示「账号或密码不正确，或认证中心暂时不可用」。
+    修复方式：`RemoteTokenSession` 同时保留 epoch u64（内部 refresh 判断用）和原始 ISO 字符串；public session 的 expires_at 字段改为 `Option<String>`，与 Web BFF 行为一致。
+  - 交互验证：用户在 Desktop Online 登录页填写远端服务地址（认证中心 `http://localhost:18082`、网关 `http://localhost:18080`），使用 xxldm / xxldm 登录成功，进入应用主界面。
+  - 构建流程：按文档记录的正确流程——`apps/web` 运行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri`，然后生成临时 release Tauri 配置（`frontendDist` 指向 `../../web/target/desktop-tauri`，`beforeBuildCommand` 置空），执行 `tauri build --config ... --features flavor-online --no-bundle`。
+  验证后已清理临时 release Tauri 配置。
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
 - Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查。
   后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
-- Desktop Online 已实现远端地址保存、健康检查和远端 Rust BFF 认证转发闭环（登录、refresh 轮换、logout 撤销、业务请求 Bearer 注入），但真实安装包/AppImage 启动后端到端验证仍未完成。
+- Desktop Online 远端登录端到端交互验证已完成（Windows）：用户在 Desktop Online 登录页填写远端服务地址并使用账号密码登录成功，进入应用主界面；并修复了 Rust BFF session schema 与前端 zod schema 不匹配的缺陷。
   本轮未验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
 - Desktop Full sidecar 最小运行时闭环、Rust BFF 和真实安装包端到端验证已完成（Windows）；Linux AppImage 端到端验证仍待后续补齐。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。

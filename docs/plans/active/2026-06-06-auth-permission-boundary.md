@@ -540,8 +540,10 @@
   - 新增 Flyway V4 迁移创建 `auth.auth_signing_key` 表（key_id、private_key_jwk、status、activated_at、retired_at）。
   - 新增 `AuthSigningKeyRepository`（JDBC）和 `AuthSigningKeyJwkSource`（`JWKSource<SecurityContext>`），启动时加载所有 ACTIVE 和 RETIRED 密钥；无 ACTIVE 密钥时自动生成 RSA 2048 密钥并持久化。
   - `AuthorizationServerSecurityConfiguration` 不再每次启动生成临时密钥，改为通过 `@Bean` 创建 DB-backed JWK source。
-  - 密钥轮换路径：插入新 ACTIVE 密钥 → 将旧密钥 UPDATE 为 RETIRED → 两个密钥都出现在 `/oauth2/jwks`，新 token 用新密钥签发，旧 token 仍可验签直到过期。
+  - 2026-06-14 修复轮换签发与多实例冷启动风险：新增 Flyway V5 唯一索引，限制 `auth.auth_signing_key` 同时最多只有一个 ACTIVE；`NimbusJwtEncoder` 显式选择当前 ACTIVE key 签发，新 token 不再因 ACTIVE + RETIRED 共存而签发失败。
+  - 轮换语义收敛为：唯一 ACTIVE 用于新 token 签发，ACTIVE + RETIRED 共同出现在 `/oauth2/jwks` 供旧 token 验签。当前尚未提供运行期轮换管理接口；后续接口必须用事务或锁保证 retire/activate 原子性。
   - `mvn -pl :backend-auth-service -am test`：通过，18 个测试包含 3 个新 JWK 持久化测试（空库自动生成、跨实例复用、轮换多密钥共存）。
+  - `mvn -pl :backend-auth-service -am test`：通过，19 个测试；新增覆盖轮换后 `NimbusJwtEncoder` 使用 ACTIVE key 签发，以及 service profile OpenAPI 安全测试使用真实 H2/JDBC 签名表而不是 mock 掉持久化边界。Maven 保留一次 `maven-compiler-plugin` mojo status 写入 warning，不阻塞构建结果。
   - 2026-06-14：JWK 持久化真实 PostgreSQL 联调验证通过。
     启动 auth-service（service profile 连接 PostgreSQL 18.4），Flyway 自动执行 V4 迁移从 version 3 升到 4，创建 `auth.auth_signing_key` 表。
     首次启动自动生成 RSA 2048 密钥并持久化，`/oauth2/jwks` 返回 1 个 key，登录签发的 token kid 与 JWKS 匹配。
@@ -550,7 +552,8 @@
 
 ## 剩余风险
 
-- JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。重启不再使已签发 token 失效。密钥轮换可通过插入新 ACTIVE 密钥并将旧密钥标记为 RETIRED 实现；轮换后旧密钥仍可用于验签，直到对应 token 自然过期。后续可补齐轮换管理接口。
+- JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。V5 唯一索引限制同时最多只有一个 ACTIVE，`JwtEncoder` 显式选择 ACTIVE 签发；重启不再使已签发 token 失效。后续仍需补齐密钥轮换管理接口，接口必须保证 retire/activate 原子性并记录审计信息。
+- 本轮未重新执行真实 PostgreSQL 的 V5 迁移联调或多实例冷启动竞争验证；V5 使用 PostgreSQL partial unique index，后续真实环境验证时需要确认迁移可应用且第二个 ACTIVE 插入会被数据库拒绝。
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。
 - 当前已实现受环境变量控制的初始化管理员 bootstrap；真实登录前需要在启动环境中设置 `HDX_AUTH_BOOTSTRAP_ADMIN_USERNAME` 和 `HDX_AUTH_BOOTSTRAP_ADMIN_PASSWORD`，或用后续用户管理能力创建账号。
 - 当前尚未实现登录限流、失败次数锁定/冷却、登录审计日志、设备信息记录或异常登录告警；生产开放账号密码登录前必须补齐。

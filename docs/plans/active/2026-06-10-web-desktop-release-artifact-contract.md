@@ -293,13 +293,16 @@
   - 交互验证：用户在 Desktop Online 登录页填写远端服务地址（认证中心 `http://localhost:18082`、网关 `http://localhost:18080`），使用 xxldm / xxldm 登录成功，进入应用主界面。
   - 构建流程：按文档记录的正确流程——`apps/web` 运行 `node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri`，然后生成临时 release Tauri 配置（`frontendDist` 指向 `../../web/target/desktop-tauri`，`beforeBuildCommand` 置空），执行 `tauri build --config ... --features flavor-online --no-bundle`。
   验证后已清理临时 release Tauri 配置。
+- 2026-06-14：修复 Desktop Online logout 本地清理语义。
+  `OnlineSessionHolder` 新增 `clear_local()`，`hdx_auth_logout` 在远端配置缺失、损坏或读取失败时也会清理 Rust 主进程内存中的 access/refresh token；有配置时仍尽力调用认证中心 logout，再清理本地 session。
+  本地执行 `cargo test --features flavor-online online_session`、`cargo test --features flavor-full` 和 `cargo test --features flavor-online`，均通过；Full/Online 两个 feature 各 19 个 Rust 单元测试通过。
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
 - Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查。
   后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
 - Desktop Online 远端登录端到端交互验证已完成（Windows）：用户在 Desktop Online 登录页填写远端服务地址并使用账号密码登录成功，进入应用主界面；并修复了 Rust BFF session schema 与前端 zod schema 不匹配的缺陷。
-  本轮未验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
+  Rust BFF logout 已修复为无论配置是否可读都会清理本地内存 token。本轮未重新验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
 - Desktop Full sidecar 最小运行时闭环、Rust BFF 和真实安装包端到端验证已完成（Windows）；Linux AppImage 端到端验证仍待后续补齐。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 

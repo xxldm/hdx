@@ -159,11 +159,11 @@
 
 ## 剩余风险
 
-- 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK 已完成（密钥存储在 PostgreSQL，重启不再使 token 失效）、登录安全增强和 App 登录态尚未完成。
+- 第 3 步认证与权限边界仍有后续风险：desktop all-in-one 本机 token 与外部服务端登录态切换、持久 JWK 已完成（密钥存储在 PostgreSQL，重启不再使 token 失效，且已补齐唯一 ACTIVE 约束和签发 selector）、登录安全增强、JWK 轮换管理接口和 App 登录态尚未完成。
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop 的 all-in-one sidecar 最小启动、本机 token 读取、Rust BFF command 和退出清理已实现。
   Desktop 静态 Web UI 启动闭环、Desktop Online 远端配置、自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
-  Desktop Online 远端 Rust BFF 认证转发（登录/refresh/logout/业务请求）已实现。
+  Desktop Online 远端 Rust BFF 认证转发（登录/refresh/logout/业务请求）已实现，logout 已修复为配置不可读时也清理 Rust 主进程内存 token。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
 - 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、App 真实打包、Desktop Full 真实安装包验证、Desktop Online 远端配置、完整 release artifact 上下文一致性、正式 publish、安装器签名、公证、自动更新、release notes 和版本号策略。
 - 第 9 步当前子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md` 已收口 Web/Desktop 发布产物契约、Desktop Full asset 打包第一片、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF。

@@ -10,6 +10,11 @@
   Desktop Online 已实现远端 Rust BFF 认证转发闭环：Rust 主进程持有 access/refresh token，完成远端登录、refresh 轮换、logout 撤销和业务请求 Bearer 注入；token 不暴露给 WebView。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
+- 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+
+## 阅读指引
+
+Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust BFF 和 Tauri 打包读这里。认证语义、JWT/Redis 撤销和错误码读认证计划；后端 native 来源、复用和 release start/resolver 读 release native 计划。
 
 ## 目标
 
@@ -33,13 +38,13 @@
 - Desktop 位于 `apps/desktop/`，采用 Tauri + Rust + Vite + TypeScript，已有 Full/Online flavor 配置和 `build:full`、`build:online` 脚本。
 - Desktop 本地 dev 仍以只读状态面板和 capability 空壳作为首屏；发布包改为使用 Web `desktop-static` 静态 UI。
   Full 运行时已能复制已解压 `backend-full`、启动真实 `backend-all-in-one`，并通过 Rust BFF command 访问本机后端。
-  Online 已实现远端地址填写、用户级配置持久化和 `/actuator/health` 连接检查第一片；远端认证转发仍待实现。
+  Online 已实现远端地址填写、用户级配置持久化、`/actuator/health` 连接检查和远端 Rust BFF 认证转发。
 - Desktop Windows 当前可生成 `HDX Desktop Online.exe`、`HDX Desktop Full.exe` 和 Online NSIS 安装包；NSIS 已配置 `SimpChinese`、`English` 和语言选择器。当前安装包未签名。
 - Desktop Windows NSIS 安装包显式配置为当前用户安装；Windows WebView2 Runtime 使用 Tauri `webviewInstallMode` 的 `embedBootstrapper` 检查和引导安装。
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片。
   Web node-server asset、Desktop Online asset、Desktop Full asset、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已接入。
-  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 认证转发闭环。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
+  Desktop Online 认证转发闭环已实现；仍缺 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
 
 ## 已确认结论
 
@@ -157,7 +162,6 @@
 - Web 发布包不能再被模糊描述为静态包；必须明确 Nuxt SSR/BFF 的第一版交付形态。
 - Desktop Online 与 Desktop Full 的第一版 asset 命名、平台矩阵、校验方式和 manifest 记录方式明确。
 - 后续接入 `release.yml` 时，可以按本文结论实现构建 job，而不是在 workflow 中临时猜包结构。
-- 尚未实现的能力必须明确标为未实现，尤其是真实安装包/AppImage 端到端验证、Desktop Online 远端 Rust BFF 认证转发和自动更新。
 - Desktop Online 远端 Rust BFF 认证转发已实现：登录、refresh 轮换、logout 撤销和业务请求 Bearer 注入闭环已在 Rust 主进程内完成，token 不暴露给 WebView。
 - 尚未实现的能力必须明确标为未实现，尤其是真实安装包/AppImage 端到端验证和自动更新。
 
@@ -235,7 +239,7 @@
   同时运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope desktop -NoBuild`，均通过；仅保留 Git for Windows 行尾转换提示。
 - 2026-06-13：Desktop 发布包方向调整为静态 Web UI + Rust BFF。`apps/web` 新增 API adapter 和 `build-desktop-static.mjs`，默认 Web Online 仍走 Nuxt server BFF。
   Desktop WebView 检测到 Tauri runtime 后改走 Rust BFF command；`apps/desktop` 移除本机 Web/Nuxt server 管理器，新增 Full flavor Rust BFF command。
-  Rust BFF 通过 sidecar `/local/session` token 访问本机 `/api/v1/runtime` 和 `/api/v1/tools`，但 token 不返回 WebView。Online Rust BFF 远端配置仍未实现。
+  Rust BFF 通过 sidecar `/local/session` token 访问本机 `/api/v1/runtime` 和 `/api/v1/tools`，但 token 不返回 WebView。Online Rust BFF 远端配置当时仍未实现，后续已在本计划中关闭。
   `release.yml` 和 `check-public-release-assets.yml` 的 Desktop job 会构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录。
 - 2026-06-13：Desktop 静态 Web UI + Rust BFF 本地验证通过。
   Web 侧执行 `node_modules\.bin\vitest.CMD run`、`node_modules\.bin\eslint.CMD .`、`node_modules\.bin\nuxt.CMD typecheck` 和 `node scripts/build-desktop-static.mjs --out-dir dist/desktop-tauri-test`，均通过。

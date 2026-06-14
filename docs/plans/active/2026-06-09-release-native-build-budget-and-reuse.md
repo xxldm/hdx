@@ -6,10 +6,14 @@
 - 当前状态：进行中；后端 native 构建并行和历史复用策略已落地，主仓库 `release-start.yml` 和 `release.yml` 已有第一版，Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble。
   Release Start 精确提交模型已调整为按 root commit 中的 `services/backend` 子模块 hash 构建后端源码，不再要求该 hash 等于后端当前 `main`；历史 Release asset 复用判断已迁回主仓库，后端 resolver 已收缩为 native build resolver。
   Release Start 手动 dry-run 已支持预演后端来源判断且不触发后端或 assemble；Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已实现。
-  仍缺 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环。
+  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；仍缺 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-13
+- 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+
+## 阅读指引
+
+后端 native 构建额度、历史 Release asset 复用、release start/resolver 边界和 tag-only 发布入口读这里。Web node-server、Desktop asset、Rust BFF 和安装包细节读 `2026-06-10-web-desktop-release-artifact-contract.md`。
 
 ## 目标
 
@@ -74,7 +78,7 @@
 - [x] 收缩发布职责边界：主仓库 `release-start.yml` 负责历史 Release asset 复用判断；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble；两个 GitHub App 最大权限均不再需要 `Contents: read`。
 - [x] 增强 Release Start 手动 dry-run：`dry_run=true` 时也预演历史 Release asset 复用判断，但不触发主仓库 `release.yml` 或后端 resolver。
 - [x] 后续完善 `.github/workflows/release.yml`，把 Desktop Full Windows/Linux asset 构建接入真实 draft assemble。
-- [ ] 后续完善 `.github/workflows/release.yml`，把 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环整合成完整真实 GitHub Release workflow。
+- [ ] 后续完善 `.github/workflows/release.yml`，把 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
 
@@ -107,7 +111,7 @@
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 - 当前历史复用入口为保持 `backend-native-manifest.json` provenance，不重命名复用的后端 native asset；如需按新版本重命名，需要先设计 manifest rewrite 和校验规则。
 - 正式 tag-only 自动发布链路已有 start、主仓库历史后端 asset 复用判断、后端 native build resolver、主仓库 assemble 第一片、Web node-server asset 构建、Desktop Online asset 构建、Desktop Full asset 构建、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF。
-  后续实现时仍必须按 ADR 0013/0014 补齐 App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环，避免直接复制 debug workflow 拼接成正式发布。
+  后续实现时仍必须按 ADR 0013/0014 补齐 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证，避免直接复制 debug workflow 拼接成正式发布。
 
 ## 状态记录
 
@@ -159,9 +163,9 @@
   当前没有合格历史 Release，所以 `backend_build_required=true`。dry-run 按预期跳过 `触发主仓库 release assemble`、`生成后端仓库 GitHub App token` 和 `触发后端 release resolve`，后端仓库未产生新的 resolver/native build run。
 - 2026-06-12：主仓库 `release.yml` 接入 Desktop Full asset 构建第一片。新增 `resolve-backend-native` job，统一下载、解析、校验后端 Actions artifact 或历史 Release asset，并上传 `release-backend-assets` 临时 artifact。
   Desktop Full Windows/Linux job 下载该资产，生成 `backend-build.json`，并改为把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Tauri resources，Windows 绿色包同时复制已解压 `backend/` 目录。
-  assemble job 追加 Desktop Full assets 到 `release-manifest.json`。Desktop Full Rust 侧已实现复制资源、启动 sidecar、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证和 Desktop Online 远端配置闭环仍未完成。
+  assemble job 追加 Desktop Full assets 到 `release-manifest.json`。Desktop Full Rust 侧已实现复制资源、启动 sidecar、健康检查、读取 `/local/session` 和退出清理的最小闭环；真实安装包/AppImage 端到端验证仍未完成。
 - 2026-06-13：Desktop 发布包方向调整为静态 Web UI + Rust BFF。Web Online 继续发布 Nuxt SSR node-server asset；Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出。
-  Tauri `frontendDist` 指向该静态目录；Full flavor 的 Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Online 远端配置仍未实现。
+  Tauri `frontendDist` 指向该静态目录；Full flavor 的 Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Online 远端配置当时仍未实现，后续已在 Web/Desktop 发布产物计划中关闭。
 
 ## 验证结果
 
@@ -203,7 +207,7 @@
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
 - 完整真实 tag-only 发布已有设计记录和日常操作手册；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已有第一片。
-  App 构建、正式 publish、失败清理、Desktop Full 真实安装包验证和 Desktop Online 远端配置闭环仍未串成完整 workflow。
+  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证仍未串成完整 workflow。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化，当前 hash 由 release start 自动计算。
 - 后端 workflow 控制平面仍通过后端仓库 `main` 上的 workflow 文件启动；源码 checkout 已锁定 `backend_commit`，但如果未来需要复现旧 workflow 逻辑本身，需要另行设计 workflow 版本化或 release 分支策略。
 - 主仓库 release start 当前通过 `workflow_dispatch` 触发后续 workflow；若给很旧的 root commit 打 tag，而该 tag 对应提交本身没有当前发布 workflow，需要改用当前 `main` 上的手动入口或后续设计 workflow 版本化策略。

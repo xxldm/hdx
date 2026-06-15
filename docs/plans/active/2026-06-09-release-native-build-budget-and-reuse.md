@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-15（真实 preview tag 发布成功）
+- 最后更新：2026-06-15（真实 Full Linux AppImage 暴露后端 native 缺陷，后端已修复待新预览包复测）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.2` 真实 tag-only 预览发布已成功：release start、后端 resolver/native 构建、主仓库 Web/Desktop Online/Desktop Full 构建、远端 asset 回读校验和 publish 均通过；Release 为 GitHub prerelease，未标记 Latest，Desktop asset manifest `channel=preview`。
-- 下一步：清理测试用 preview Release/tag（至少 `v0.0.0-preview.1` 失败 draft，按确认再处理 `v0.0.0-preview.2`），然后演练失败 draft/tag 清理流程并做真实 backend-full Linux AppImage 启动验证。
-- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease；Full Linux smoke 不等于真实后端 AppImage 启动验证，Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.2` 真实 tag-only 预览发布已成功，且已在本机 Ubuntu WSL 真实运行 Full Linux AppImage；UI 可启动，但内置 `backend-full` sidecar 因 Spring Boot 4 Jackson 3 与项目内 Jackson 2 `ObjectMapper` 注入类型不匹配启动失败。后端已改为使用 `tools.jackson.databind.ObjectMapper`，本地测试和 all-in-one AOT package 已通过。
+- 下一步：提交并推送后端修复，更新根仓库子模块指针后发布 `v0.0.0-preview.3`，再在本机 Ubuntu WSL 复测 `HDX.Desktop.Full_linux-x64_v0.0.0-preview.3.AppImage` 的真实 sidecar 启动、`/local/session` 和工作台数据加载；随后清理测试用 preview Release/tag 并演练失败 draft/tag 清理流程。
+- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease且 Full Linux AppImage 的 sidecar 已确认不可用；后端修复尚未经过真实 Linux native-image release 产物和新版 AppImage 复测。Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -128,6 +128,7 @@
 - 2026-06-15：`release-start.yml` 按 tag 形态区分发布类型：`v1.2.3` 为 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 为 preview 预览发布。`release.yml` 增加 `release_mode=draft|publish`，真实 tag 链路传 `publish`，手动入口默认 `draft`；preview 发布为 GitHub prerelease 且不标记为 Latest，Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。
 - 2026-06-15：真实推送 `v0.0.0-preview.1` 触发 tag-only 发布验证。`Release Start` run `27532492338` 成功；后端 resolver run `27532509974` 成功，完成 `backend-full` Linux/Windows native 和 Linux `backend-services` 构建并回调主仓库；主仓库 `release.yml` run `27534125174` 成功完成后端资产解析、Web node-server、Desktop Online/Full Windows/Linux 构建、draft Release 创建和 13 个资产上传。最终失败于 publish 前“远端 Release 资产校验”，根因是 workflow 使用 `pwsh -File scripts/release-manifest-check.ps1 ... -ScanPath $downloadedAssetPaths` 传递多文件数组，PowerShell 子进程参数绑定把首个 tar.gz 误绑定为 `ReleaseContractsDir`；失败 draft `v0.0.0-preview.1` 已保留，未发布。
 - 2026-06-15：提交 `6348a31 修复：稳定远端发布资产校验` 后推送 `v0.0.0-preview.2` 复测成功。`Release Start` run `27535070134` 成功；后端 resolver run `27535085705` 成功；主仓库 assemble run `27536663826` 成功。GitHub Release `v0.0.0-preview.2` 已发布，`draft=false`、`prerelease=true`、`make_latest=null`，共 13 个资产。下载远端 `release-manifest.json` 确认 root commit 为 `6348a311b1a829fee9528fe83ee424ae45582cba`，backend/web/desktop commits 分别为 `acc8e1f25a91561ad68020e49d66c50b52e21378`、`dc41f0b65171012026368f53fe36cc92d68150f3`、`b0cfb45ea65ee05923c7668433b53e9e3115050b`，Desktop Online/Full 六个资产均为 `channel=preview`。
+- 2026-06-15：本机 Ubuntu WSL 真实运行 `HDX.Desktop.Full_linux-x64_v0.0.0-preview.2.AppImage`。补齐 WSL GUI/WebKit 运行依赖和 CJK 字体后，Desktop Full UI 可启动并显示中文，但页面提示后端暂时不可用。sidecar 日志位于 `/home/xxldm/.local/share/cn.hdx.desktop.full/backend/logs/`，确认 `backend-full` 已启动到 H2/Flyway/JPA 后失败于 `LocalTokenSecurityConfiguration.allInOneSecurityFilterChain` 参数 `com.fasterxml.jackson.databind.ObjectMapper` 无 bean。根因是 Spring Boot 4 自动配置提供 Jackson 3 `tools.jackson.databind.ObjectMapper`，而 `backend-http-support` 与安全配置仍注入 Jackson 2 类型；测试里手写 Jackson 2 bean 曾掩盖生产缺口。后端已改为使用 Jackson 3 类型并移除安全配置测试里的手写旧 mapper。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
@@ -138,13 +139,14 @@
 - 发布控制面验证：`check-release-app-token.yml` run `27402944650` 通过；`Release Start` 手动 dry-run run `27403306816` 通过，确认 dry-run 只预演后端来源判断，不触发主仓库 assemble、后端 App token 或后端 resolver。
 - 公开端资产检查：run `27528781158` 确认 Desktop Full Linux AppImage 合成资源 smoke 通过；同一 run 暴露 Windows Online 打包脚本受旧缓存 NSIS 产物干扰，当前已补按版本精确匹配和 fixture 回归；run `27529656045` 已确认全部 job 通过。
 - 真实 preview tag 验证：`v0.0.0-preview.1` 对应 `release-start` run `27532492338`、后端 resolver run `27532509974` 和主仓库 assemble run `27534125174`。该链路已证明后端 native、Web、Desktop Online/Full 构建、draft 创建和资产上传可达；失败点限定在 publish 前远端 manifest 校验传参，已按单目录扫描方式修复。`v0.0.0-preview.2` 对应 `release-start` run `27535070134`、后端 resolver run `27535085705` 和主仓库 assemble run `27536663826`，已成功 publish 为 prerelease，未标记 Latest，远端 manifest 校验通过且 Desktop asset channel 为 `preview`。
+- 真实 Full Linux AppImage 验证：`v0.0.0-preview.2` 在本机 Ubuntu WSL 可启动 Desktop UI，但内置 `backend-full` sidecar 启动失败于 Jackson 2/3 `ObjectMapper` 类型不匹配。后端修复后已运行 `mvn -pl :backend-all-in-one -am test`、`mvn -pl :backend-core-service -am test '-Dtest=CoreServiceSecurityConfigurationTest' '-Dsurefire.failIfNoSpecifiedTests=false'`、`mvn -pl :backend-gateway -am test '-Dtest=GatewaySecurityConfigurationTest,JwtSessionRevocationFilterTest' '-Dsurefire.failIfNoSpecifiedTests=false'`、`mvn -pl :backend-auth-service -am test '-Dtest=AuthServiceOpenApiSecurityTest' '-Dsurefire.failIfNoSpecifiedTests=false'` 和 `mvn -pl :backend-all-in-one -am -Pnative package '-DskipTests' '-Dnative.skip=true'`，均通过；尚需新 preview release 产物复测。
 - 本地质量门禁：多次 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 通过，覆盖关键文档、release manifest、Desktop Release asset 打包 fixture、OpenAPI 契约、OpenAPI 类型生成和 Web 类型对齐检查；后端 `-NoBuild` 检查仅保留 Maven/Jansi Java 25 warning，不影响静态校验结论。
 
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 完整真实 tag-only 预览发布已由 `v0.0.0-preview.2` 验证通过；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、远端 asset 回读 manifest 校验、Desktop Full sidecar 最小启动闭环、Desktop 静态 Web UI + Rust BFF、preview 发布和 publish 已有第一片。
-  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；失败 draft 人工清理演练、stable 正式发布验证和 Desktop Full 真实 backend-full AppImage 启动验证仍未完成。App 当前暂不进入发布闭环。
+- 完整真实 tag-only 预览发布已由 `v0.0.0-preview.2` 验证通过；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、远端 asset 回读 manifest 校验、preview 发布和 publish 已有第一片。
+  Desktop Full Linux 真实 AppImage 已实测暴露内置 `backend-full` sidecar 启动缺陷，后端已修复但尚未通过新版 Linux native/AppImage 复测；Desktop Online 远端配置和远端 Rust BFF 认证转发已实现。失败 draft 人工清理演练、stable 正式发布验证和 Desktop Full 真实 backend-full AppImage 复测仍未完成。App 当前暂不进入发布闭环。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化，当前 hash 由 release start 自动计算。
 - 后端 workflow 控制平面仍通过后端仓库 `main` 上的 workflow 文件启动；源码 checkout 已锁定 `backend_commit`，但如果未来需要复现旧 workflow 逻辑本身，需要另行设计 workflow 版本化或 release 分支策略。
 - 主仓库 release start 当前通过 `workflow_dispatch` 触发后续 workflow；若给很旧的 root commit 打 tag，而该 tag 对应提交本身没有当前发布 workflow，需要改用当前 `main` 上的手动入口或后续设计 workflow 版本化策略。

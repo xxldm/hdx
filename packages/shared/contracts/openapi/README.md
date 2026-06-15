@@ -62,7 +62,9 @@ pwsh -NoLogo -NoProfile -File scripts/openapi-generate-types.ps1 -Check
 
 ## Web 类型对齐
 
-`web-type-compatibility.ts` 是只读编译期检查文件，用于确认 Web Zod schema 推导出的类型和 OpenAPI 生成类型仍兼容。它不生成运行时代码，不替代 Web Zod 边界校验。
+`scripts/checks/openapi-web-type-compatibility.ts` 是只读编译期检查文件，用于确认 Web Zod schema 推导出的类型和 OpenAPI 生成类型仍兼容。它不生成运行时代码，不替代 Web Zod 边界校验。
+
+该检查文件放在 `scripts/checks/`，因为它会同时读取 shared 生成类型和 Web 手写类型；它属于跨边界验证资产，不属于 `packages/shared` 可被端侧消费的契约资产。
 
 ```powershell
 pwsh -NoLogo -NoProfile -File scripts/openapi-web-type-check.ps1

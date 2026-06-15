@@ -12,7 +12,7 @@ if ([string]::IsNullOrWhiteSpace($WebRoot)) {
 }
 
 if ([string]::IsNullOrWhiteSpace($CompatibilityFile)) {
-    $CompatibilityFile = Join-Path $RepoRoot 'packages/shared/contracts/openapi/web-type-compatibility.ts'
+    $CompatibilityFile = Join-Path $RepoRoot 'scripts/checks/openapi-web-type-compatibility.ts'
 }
 
 function Get-LocalVueTscCommand {

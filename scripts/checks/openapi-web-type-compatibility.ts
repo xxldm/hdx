@@ -2,22 +2,22 @@ import type {
   AuthLoginRequest,
   AuthTokenResponse,
   AuthUserResponse
-} from '../../generated/openapi/auth-service'
+} from '../../packages/shared/generated/openapi/auth-service'
 import type {
   CreateToolRequest as OpenApiCreateToolRequest,
   RuntimeInfoResponse,
   ToolRecordResponse
-} from '../../generated/openapi/gateway'
+} from '../../packages/shared/generated/openapi/gateway'
 import type {
   CreateToolRequest as WebCreateToolRequest,
   RuntimeInfo,
   ToolRecord
-} from '../../../../apps/web/app/types/hdx-api'
+} from '../../apps/web/app/types/hdx-api'
 import type {
   BackendAuthTokenResponse,
   BackendAuthUser,
   WebAuthLoginRequest
-} from '../../../../apps/web/app/types/hdx-auth'
+} from '../../apps/web/app/types/hdx-auth'
 
 type Assert<T extends true> = T
 type IsAssignable<From, To> = [From] extends [To] ? true : false

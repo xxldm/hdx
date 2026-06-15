@@ -14,14 +14,14 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
 - `-Scope docs`：检查关键文档可读取、根仓库空白错误、active plan 状态索引、Release manifest 契约、Desktop Release asset 打包 fixture、OpenAPI 契约和 OpenAPI/Web 类型对齐。
-- `-Scope backend`：检查后端子模块并运行 `mvn test`。
+- `-Scope backend`：检查后端子模块、Boot 4 Jackson 兼容性，并运行 `mvn test` 和 `backend-all-in-one` AOT/package smoke。
 - `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
 - `-Scope all`：按顺序运行文档、后端、Web 和 Desktop 检查。
 
 轻量控制参数：
 
-- `-NoBuild`：后端只检查 Maven 环境，Web 跳过 build，Desktop 跳过 TypeScript/Rust 编译；适合先验证脚本分支和基础环境。
+- `-NoBuild`：后端仍运行空白检查和 Boot 4 Jackson 兼容检查，但跳过测试与 AOT/package smoke，只检查 Maven 环境；Web 跳过 build，Desktop 跳过 TypeScript/Rust 编译；适合先验证脚本分支和基础环境。
 - `-SkipBackend`：跳过后端检查。
 - `-SkipWeb`：跳过 Web 检查。
 - `-SkipDesktop`：跳过 Desktop 检查。
@@ -31,6 +31,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 脚本只覆盖本地常用质量门禁，不替代远端 CI。
 - 仓库内 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文。
 - 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
+- 后端 `backend-all-in-one` AOT/package smoke 使用 `-Pnative package -Dnative.skip=true` 覆盖 Spring AOT 与打包路径，但不生成真实 native executable。Desktop Full Linux AppImage 真实运行属于 release 产物发布后的验证，不作为本地日常质量门禁。
 - 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
 - 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/AGENT_WORKFLOW.md` 的权限失败重试规则处理。
 

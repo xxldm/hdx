@@ -6,12 +6,12 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
-- 最后更新：2026-06-15（Full Linux AppImage 真实运行暴露后端 sidecar 缺陷）
+- 最后更新：2026-06-15（Full Linux AppImage 缺陷已转入后端门禁，待新版预览包复测）
 
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
-- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证和公开端资产检查均已通过；`v0.0.0-preview.2` Full Linux AppImage 已在本机 Ubuntu WSL 真实运行，UI 可启动，但内置 `backend-full` sidecar 因后端 Jackson 2/3 `ObjectMapper` 类型不匹配启动失败。后端已修复并通过本地测试/AOT package，待新预览包复测。
-- 下一步：发布包含后端修复的 `v0.0.0-preview.3`，在本机 Ubuntu WSL 复测 Full Linux AppImage 的真实 sidecar 启动、`/local/session` 和工作台数据加载；之后继续失败 draft 人工清理演练和安装包矩阵验证。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证和公开端资产检查均已通过；`v0.0.0-preview.2` Full Linux AppImage 真实运行暴露后端 Jackson 2/3 缺陷，后端已修复并把静态检查和 all-in-one AOT/package smoke 固化到门禁。
+- 下一步：发布包含后端修复与门禁补强的 `v0.0.0-preview.3`，在本机 Ubuntu WSL 做 release 后真实 AppImage smoke，复测 sidecar 启动、`/local/session` 和工作台数据加载；之后继续失败 draft 人工清理演练和安装包矩阵验证。
 - 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用；后端修复尚未进入真实 release native/AppImage 产物验证。完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 

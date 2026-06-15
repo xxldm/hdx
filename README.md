@@ -43,7 +43,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 - `changed`：根据 Git 改动选择需要验证的文档、后端、Web 或 Desktop。
 - `docs`：只检查关键文档和根仓库空白错误。
-- `backend`：运行后端 Maven 检查。
+- `backend`：运行后端 Boot 4 Jackson 兼容检查、Maven 测试和 all-in-one AOT/package smoke。
 - `web`：运行 Web test/typecheck/lint/build。
 - `desktop`：检查 Desktop 骨架；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
 - `all`：运行全部本地常用检查。

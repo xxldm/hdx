@@ -97,6 +97,17 @@ function Invoke-DocChecks {
         )
 
     Invoke-Step `
+        -Title 'Desktop Release asset 打包 fixture 检查' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/check-desktop-release-asset-packaging.ps1')
+        )
+
+    Invoke-Step `
         -Title 'OpenAPI 契约检查' `
         -WorkingDirectory $RepoRoot `
         -Command $PowerShellCommand `

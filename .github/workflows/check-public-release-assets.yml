@@ -743,10 +743,16 @@ jobs:
           $ErrorActionPreference = 'Stop'
 
           $appImageDir = 'apps/desktop/src-tauri/target/release/bundle/appimage'
-          $appImages = @(Get-ChildItem -LiteralPath $appImageDir -Filter '*.AppImage' -File)
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          $appImageFilter = "HDX.Desktop.Full_$tauriVersion`_*.AppImage"
+          $appImages = @(Get-ChildItem -LiteralPath $appImageDir -Filter $appImageFilter -File)
           if ($appImages.Count -ne 1) {
-            $names = $appImages | ForEach-Object { $_.Name } | Join-String -Separator ', '
-            throw "无法唯一定位 Desktop Full AppImage，候选：$names"
+            $matchedNames = if ($appImages.Count -lt 1) { '无' } else { ($appImages | ForEach-Object { $_.Name }) -join ', ' }
+            $allNames = (Get-ChildItem -LiteralPath $appImageDir -File | ForEach-Object { $_.Name }) -join ', '
+            if ([string]::IsNullOrWhiteSpace($allNames)) {
+              $allNames = '无'
+            }
+            throw "无法唯一定位 Desktop Full AppImage，匹配模式：$appImageFilter；匹配候选：$matchedNames；目录候选：$allNames"
           }
 
           chmod +x $appImages[0].FullName

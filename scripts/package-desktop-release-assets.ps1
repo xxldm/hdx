@@ -61,14 +61,45 @@ New-Item -ItemType Directory -Path $outputFull -Force | Out-Null
 $flavorTitle = if ($Flavor -eq 'online') { 'Online' } else { 'Full' }
 $productName = "HDX.Desktop.$flavorTitle"
 $binaryName = "HDX Desktop $flavorTitle"
+$tauriVersion = $Version.Substring(1) -replace '\+.*$', ''
+Assert-Pattern -Name 'TauriVersion' -Value $tauriVersion -Pattern '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$' -Message '必须是 release tag 去掉前缀 v 和 build metadata 后的 Tauri 版本。'
+
+function Format-CandidateNames {
+    param([object[]]$Candidates)
+
+    if ($Candidates.Count -lt 1) {
+        return '无'
+    }
+
+    return ($Candidates | ForEach-Object { $_.Name }) -join ', '
+}
+
+function Select-SingleBundleFile {
+    param(
+        [Parameter(Mandatory = $true)][string]$Directory,
+        [Parameter(Mandatory = $true)][string]$Filter,
+        [Parameter(Mandatory = $true)][string]$Description
+    )
+
+    if (-not (Test-Path -LiteralPath $Directory -PathType Container)) {
+        throw "$Description 目录不存在：$Directory"
+    }
+
+    $matchedCandidates = @(Get-ChildItem -LiteralPath $Directory -Filter $Filter -File)
+    if ($matchedCandidates.Count -ne 1) {
+        $allCandidates = @(Get-ChildItem -LiteralPath $Directory -File)
+        throw "无法唯一定位 $Description，匹配模式：$Filter；匹配候选：$(Format-CandidateNames -Candidates $matchedCandidates)；目录候选：$(Format-CandidateNames -Candidates $allCandidates)"
+    }
+
+    return $matchedCandidates[0]
+}
 
 if ($Platform -eq 'windows-x64') {
     $nsisDir = Join-Path $desktopRootFull 'src-tauri/target/release/bundle/nsis'
-    $setupCandidates = @(Get-ChildItem -LiteralPath $nsisDir -Filter '*setup.exe' -File)
-    if ($setupCandidates.Count -ne 1) {
-        $names = $setupCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
-        throw "无法唯一定位 NSIS 安装包，候选：$names"
-    }
+    $setupFile = Select-SingleBundleFile `
+        -Directory $nsisDir `
+        -Filter "$productName`_$tauriVersion`_x64-setup.exe" `
+        -Description 'NSIS 安装包'
 
     $portableExePath = Join-Path $desktopRootFull "src-tauri/target/release/$binaryName.exe"
     if (-not (Test-Path -LiteralPath $portableExePath -PathType Leaf)) {
@@ -77,7 +108,7 @@ if ($Platform -eq 'windows-x64') {
 
     $setupAssetName = "$productName`_$Platform`_$Version`_setup.exe"
     $portableAssetName = "$productName`_$Platform`_$Version`_portable.zip"
-    Copy-Item -LiteralPath $setupCandidates[0].FullName -Destination (Join-Path $outputFull $setupAssetName) -Force
+    Copy-Item -LiteralPath $setupFile.FullName -Destination (Join-Path $outputFull $setupAssetName) -Force
 
     $portableRoot = Join-Path $targetRoot "desktop-portable/$Flavor-$Platform"
     if (Test-Path -LiteralPath $portableRoot) {
@@ -127,14 +158,13 @@ if ($Platform -eq 'windows-x64') {
 }
 elseif ($Platform -eq 'linux-x64') {
     $appImageDir = Join-Path $desktopRootFull 'src-tauri/target/release/bundle/appimage'
-    $appImageCandidates = @(Get-ChildItem -LiteralPath $appImageDir -Filter '*.AppImage' -File)
-    if ($appImageCandidates.Count -ne 1) {
-        $names = $appImageCandidates | ForEach-Object { $_.Name } | Join-String -Separator ', '
-        throw "无法唯一定位 AppImage，候选：$names"
-    }
+    $appImageFile = Select-SingleBundleFile `
+        -Directory $appImageDir `
+        -Filter "$productName`_$tauriVersion`_*.AppImage" `
+        -Description 'AppImage'
 
     $appImageAssetName = "$productName`_$Platform`_$Version.AppImage"
-    Copy-Item -LiteralPath $appImageCandidates[0].FullName -Destination (Join-Path $outputFull $appImageAssetName) -Force
+    Copy-Item -LiteralPath $appImageFile.FullName -Destination (Join-Path $outputFull $appImageAssetName) -Force
 
     Write-Host "Desktop Linux asset：$appImageAssetName"
 }

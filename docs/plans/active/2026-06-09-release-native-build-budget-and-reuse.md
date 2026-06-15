@@ -6,12 +6,12 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-15（补充阅读指引并收敛当前状态）
+- 最后更新：2026-06-15（记录公开端资产检查与旧缓存产物修复）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：后端 native 并行构建、历史复用、release start、release assemble 第一片和 Desktop Online/Full asset 接入已落地。
-- 下一步：触发公开端资产检查远端 run 后，继续把 App 构建、正式 publish、失败清理和真实 backend-full Linux AppImage 启动验证串入发布闭环。
+- 当前状态：后端 native 并行构建、历史复用、release start、release assemble 第一片和 Desktop Online/Full asset 接入已落地；Desktop Full Linux AppImage 合成资源 smoke 已在公开端资产检查 run 中通过，当前正在收尾旧缓存 Tauri bundle 干扰修复。
+- 下一步：推送 Desktop 打包脚本修复后，重新触发公开端资产检查远端 run；如果通过，再继续把 App 构建、正式 publish、失败清理和真实 backend-full Linux AppImage 启动验证串入发布闭环。
 - 主要剩余风险：完整 tag-only 发布闭环仍未完成；Full Linux smoke 不等于真实后端 AppImage 启动验证，Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。
 <!-- active-plan-status:end -->
 
@@ -123,15 +123,17 @@
 - 2026-06-09：落地历史主仓库 Release asset 复用契约、`release-draft-minimal-assets.ps1`、`release-draft-reuse-backend-assets.ps1` 和 debug workflows。GitHub-hosted run `27209181697` 创建可复用历史 draft，run `27209326174` 复用历史后端 native asset 创建新 draft；测试 draft Release 与 tag 已按用户确认清理。
 - 2026-06-09 至 2026-06-12：补齐正式发布设计和 tag-only 操作手册；`release-start.yml` 按 root commit 中的 `services/backend` gitlink 锁定后端源码，主仓库负责历史 asset 复用判断，后端 resolver 只负责 native build 与可选 assemble 回调；手动 dry-run run `27403306816` 验证不会触发后端或 assemble。
 - 2026-06-12 至 2026-06-13：`release.yml` 接入 Web node-server、Desktop Online 和 Desktop Full asset 构建第一片；Desktop Full 通过 `resolve-backend-native` 消费后端 asset，包内携带已解压 `backend-full` 与 `backend-build.json`。Desktop 静态 Web UI + Rust BFF 已接入；Online 远端配置和认证转发后续已在 Web/Desktop 发布产物计划中关闭。
+- 2026-06-15：`Check Public Release Assets` run `27528781158` 中新增 Desktop Full Linux AppImage 合成资源 smoke 通过；workflow 总体失败于 Windows Online asset 整理，根因是 Rust target cache 中保留旧 NSIS 安装包，而 `package-desktop-release-assets.ps1` 只按 `*setup.exe` 模糊定位。当前已改为按当前 release version 精确选择 Tauri bundle，并新增本地 fixture 覆盖旧缓存产物共存场景。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
 
-- 本计划有效验证以当前摘要为准：`actionlint` 覆盖后端 native workflow、release start、release assemble、debug reuse 和 app-token check workflow；`git diff --check` 与后端子仓库 diff check 通过，仅保留 Git for Windows 换行提示。
+- 本计划有效验证以当前摘要为准：`actionlint` 覆盖后端 native workflow、release start、release assemble、debug reuse、公开端资产检查和 app-token check workflow；`git diff --check` 与后端子仓库 diff check 通过，仅保留 Git for Windows 换行提示。
 - 后端 native services 并行构建远端验证：GitHub-hosted run `27202869734` 通过，三个 Linux service binary job 并行成功，最终 `backend-services-linux-x64` artifact 下载、聚合、sha256/size、禁止文件扫描和两层 manifest 校验通过。
 - 历史 Release asset 复用验证：本地 draft minimal/reuse 脚本 dry-run 通过；GitHub-hosted run `27209181697` 和 `27209326174` 分别验证历史 draft 创建与历史后端 native asset 复用；远端 manifest 回读确认 `historical-release-asset` 来源和 `backendNativeFingerprint`。
 - 发布控制面验证：`check-release-app-token.yml` run `27402944650` 通过；`Release Start` 手动 dry-run run `27403306816` 通过，确认 dry-run 只预演后端来源判断，不触发主仓库 assemble、后端 App token 或后端 resolver。
-- 本地质量门禁：多次 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 通过，覆盖关键文档、release manifest、OpenAPI 契约、OpenAPI 类型生成和 Web 类型对齐检查；后端 `-NoBuild` 检查仅保留 Maven/Jansi Java 25 warning，不影响静态校验结论。
+- 公开端资产检查：run `27528781158` 确认 Desktop Full Linux AppImage 合成资源 smoke 通过；同一 run 暴露 Windows Online 打包脚本受旧缓存 NSIS 产物干扰，当前已补按版本精确匹配和 fixture 回归，待推送后重新触发。
+- 本地质量门禁：多次 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 通过，覆盖关键文档、release manifest、Desktop Release asset 打包 fixture、OpenAPI 契约、OpenAPI 类型生成和 Web 类型对齐检查；后端 `-NoBuild` 检查仅保留 Maven/Jansi Java 25 warning，不影响静态校验结论。
 
 ## 剩余风险
 

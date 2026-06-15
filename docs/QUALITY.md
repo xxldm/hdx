@@ -13,7 +13,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 常用范围：
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
-- `-Scope docs`：检查关键文档可读取、根仓库空白错误、active plan 状态索引、Release manifest 契约、OpenAPI 契约和 OpenAPI/Web 类型对齐。
+- `-Scope docs`：检查关键文档可读取、根仓库空白错误、active plan 状态索引、Release manifest 契约、Desktop Release asset 打包 fixture、OpenAPI 契约和 OpenAPI/Web 类型对齐。
 - `-Scope backend`：检查后端子模块并运行 `mvn test`。
 - `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
@@ -59,6 +59,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 如果改动 OpenAPI 快照、`scripts/openapi-generate-types.ps1` 或 `packages/shared/generated/openapi/`，是否已运行 `scripts/openapi-generate-types.ps1 -Check`；如果生成结果预期变化，是否先运行 `scripts/openapi-generate-types.ps1` 并提交生成物。
 - 如果改动 Web Zod schema、OpenAPI 生成类型或 `scripts/checks/openapi-web-type-compatibility.ts`，是否已运行 `scripts/openapi-web-type-check.ps1`，确认 Web 手写类型和 OpenAPI 生成类型仍保持编译期兼容。
 - 如果改动 `packages/shared/contracts/release/*.schema.json`、release manifest 示例或 release 校验脚本，是否已运行 `scripts/release-manifest-check.ps1`，并检查 ADR 0012 和 release 契约说明仍一致。
+- 如果改动 Desktop Release asset 打包脚本或相关 workflow，是否已运行 `scripts/check-desktop-release-asset-packaging.ps1`，确认旧缓存 bundle 与当前版本 bundle 共存时仍只选择当前版本产物。
 
 ## 测试策略
 

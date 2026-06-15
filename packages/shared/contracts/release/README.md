@@ -38,6 +38,8 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `scripts/release-append-desktop-assets.ps1`：消费 Desktop workflow 整理后的 Release asset 目录，把 Desktop installer、portable zip 或 AppImage 追加到 `release-manifest.json`，写入 `sources.desktop`，重算 `SHA256SUMS` 并复跑 Release manifest 校验。
 - `scripts/release-resolve-backend-sources.ps1`：消费候选历史主仓库 Release asset 目录和 required assets 列表，校验 sha256/size、OpenAPI hash 和 backend native fingerprint 后，输出可直接交给主仓库 `release.yml` 的 `backend_sources_json`。当前只覆盖历史 Release asset 可复用路径，匹配失败时要求后续运行后端 native workflow。
 
+本地回归入口 `scripts/check-desktop-release-asset-packaging.ps1` 使用 fixture 覆盖 Desktop asset 打包脚本，确认 Tauri bundle 目录中旧版本产物与当前版本产物共存时，脚本仍按当前 release version 精确选择 NSIS/AppImage。
+
 历史复用入口当前不重命名复用的后端 native asset。原因是历史 `backend-native-manifest.json` 会记录原始 archive 文件名；若要把复用 archive 改成新版本文件名，需要先设计 manifest rewrite 和对应校验规则。
 
 ## 文件职责

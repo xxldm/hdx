@@ -159,6 +159,17 @@ function Invoke-BackendChecks {
         -Command 'git' `
         -Arguments @('diff', '--check')
 
+    Invoke-Step `
+        -Title '后端 Boot 4 Jackson 兼容检查' `
+        -WorkingDirectory $BackendRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $BackendRoot 'scripts/check-boot4-jackson.ps1')
+        )
+
     if ($NoBuild) {
         Invoke-Step `
             -Title '后端 Maven 环境检查' `
@@ -174,6 +185,13 @@ function Invoke-BackendChecks {
         -WorkingDirectory $BackendRoot `
         -Command $MavenPath `
         -Arguments @('test') `
+        -Environment $toolEnv
+
+    Invoke-Step `
+        -Title '后端 all-in-one AOT 打包 smoke' `
+        -WorkingDirectory $BackendRoot `
+        -Command $MavenPath `
+        -Arguments @('-pl', ':backend-all-in-one', '-am', '-Pnative', 'package', '-DskipTests', '-Dnative.skip=true') `
         -Environment $toolEnv
 }
 

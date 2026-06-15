@@ -1356,13 +1356,12 @@ jobs:
 
           $remoteBackendNativeManifestPath = Join-Path $downloadRoot 'backend-native-manifest.json'
           $remoteReleaseManifestPath = Join-Path $downloadRoot 'release-manifest.json'
-          $downloadedAssetPaths = @(Get-ChildItem -LiteralPath $downloadRoot -File | Sort-Object Name | ForEach-Object { $_.FullName })
           pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
             -SkipExamples `
             -BackendNativeManifestPath $remoteBackendNativeManifestPath `
             -ReleaseManifestPath $remoteReleaseManifestPath `
             -AssetRoot $downloadRoot `
-            -ScanPath $downloadedAssetPaths
+            -ScanPath $downloadRoot
           if ($LASTEXITCODE -ne 0) {
             throw "远端 Release asset manifest 校验失败，退出码：$LASTEXITCODE"
           }

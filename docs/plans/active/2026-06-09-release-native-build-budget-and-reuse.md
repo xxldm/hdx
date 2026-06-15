@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-15（接入 stable/preview 发布与 publish 开关）
+- 最后更新：2026-06-15（真实 preview tag 验证暴露远端校验传参问题）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：后端 native 并行构建、历史复用、release start、release assemble、Desktop Online/Full asset 接入、公开端资产检查、stable/preview 发布区分和 `release_mode=publish` 已接入；旧缓存 Tauri bundle 干扰修复已由 run `27529656045` 确认关闭。
-- 下一步：继续做真实 tag-only 发布链路验证、失败 draft 人工清理演练和真实 backend-full Linux AppImage 启动验证。
-- 主要剩余风险：完整 tag-only 发布闭环仍缺真实版本端到端验证；Full Linux smoke 不等于真实后端 AppImage 启动验证，Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.1` 真实 tag 链路已验证 release start、后端 resolver、后端 native 构建、主仓库 Web/Desktop Online/Desktop Full 构建、draft 创建和资产上传均成功；主仓库 publish 前远端校验失败，根因是 `pwsh -File` 边界把 `-ScanPath` 多文件数组拆成位置参数，现已修正为扫描远端下载目录。
+- 下一步：提交并推送远端校验传参修复，用新的 preview tag 重跑真实 tag-only 发布链路；确认 prerelease/not latest、manifest `channel=preview` 后再演练失败 draft/tag 清理和真实 backend-full Linux AppImage 启动验证。
+- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，尚未 publish；完整 tag-only 发布闭环仍缺修复后的成功发布验证。Full Linux smoke 不等于真实后端 AppImage 启动验证，Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -126,6 +126,7 @@
 - 2026-06-12 至 2026-06-13：`release.yml` 接入 Web node-server、Desktop Online 和 Desktop Full asset 构建第一片；Desktop Full 通过 `resolve-backend-native` 消费后端 asset，包内携带已解压 `backend-full` 与 `backend-build.json`。Desktop 静态 Web UI + Rust BFF 已接入；Online 远端配置和认证转发后续已在 Web/Desktop 发布产物计划中关闭。
 - 2026-06-15：`Check Public Release Assets` run `27528781158` 中新增 Desktop Full Linux AppImage 合成资源 smoke 通过；workflow 总体失败于 Windows Online asset 整理，根因是 Rust target cache 中保留旧 NSIS 安装包，而 `package-desktop-release-assets.ps1` 只按 `*setup.exe` 模糊定位。当前已改为按当前 release version 精确选择 Tauri bundle，并新增本地 fixture 覆盖旧缓存产物共存场景；run `27529656045` 已确认 Web、Desktop Online Windows/Linux 和 Desktop Full Linux 全部通过。
 - 2026-06-15：`release-start.yml` 按 tag 形态区分发布类型：`v1.2.3` 为 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 为 preview 预览发布。`release.yml` 增加 `release_mode=draft|publish`，真实 tag 链路传 `publish`，手动入口默认 `draft`；preview 发布为 GitHub prerelease 且不标记为 Latest，Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。
+- 2026-06-15：真实推送 `v0.0.0-preview.1` 触发 tag-only 发布验证。`Release Start` run `27532492338` 成功；后端 resolver run `27532509974` 成功，完成 `backend-full` Linux/Windows native 和 Linux `backend-services` 构建并回调主仓库；主仓库 `release.yml` run `27534125174` 成功完成后端资产解析、Web node-server、Desktop Online/Full Windows/Linux 构建、draft Release 创建和 13 个资产上传。最终失败于 publish 前“远端 Release 资产校验”，根因是 workflow 使用 `pwsh -File scripts/release-manifest-check.ps1 ... -ScanPath $downloadedAssetPaths` 传递多文件数组，PowerShell 子进程参数绑定把首个 tar.gz 误绑定为 `ReleaseContractsDir`；失败 draft `v0.0.0-preview.1` 已保留，未发布。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
@@ -135,6 +136,7 @@
 - 历史 Release asset 复用验证：本地 draft minimal/reuse 脚本 dry-run 通过；GitHub-hosted run `27209181697` 和 `27209326174` 分别验证历史 draft 创建与历史后端 native asset 复用；远端 manifest 回读确认 `historical-release-asset` 来源和 `backendNativeFingerprint`。
 - 发布控制面验证：`check-release-app-token.yml` run `27402944650` 通过；`Release Start` 手动 dry-run run `27403306816` 通过，确认 dry-run 只预演后端来源判断，不触发主仓库 assemble、后端 App token 或后端 resolver。
 - 公开端资产检查：run `27528781158` 确认 Desktop Full Linux AppImage 合成资源 smoke 通过；同一 run 暴露 Windows Online 打包脚本受旧缓存 NSIS 产物干扰，当前已补按版本精确匹配和 fixture 回归；run `27529656045` 已确认全部 job 通过。
+- 真实 preview tag 验证：`v0.0.0-preview.1` 对应 `release-start` run `27532492338`、后端 resolver run `27532509974` 和主仓库 assemble run `27534125174`。该链路已证明后端 native、Web、Desktop Online/Full 构建、draft 创建和资产上传可达；失败点限定在 publish 前远端 manifest 校验传参，已按单目录扫描方式修复，仍需用新 tag 复测。
 - 本地质量门禁：多次 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild` 通过，覆盖关键文档、release manifest、Desktop Release asset 打包 fixture、OpenAPI 契约、OpenAPI 类型生成和 Web 类型对齐检查；后端 `-NoBuild` 检查仅保留 Maven/Jansi Java 25 warning，不影响静态校验结论。
 
 ## 剩余风险

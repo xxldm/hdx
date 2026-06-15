@@ -11,8 +11,8 @@
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
 - 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发和 Windows 端到端验证已完成。
-- 下一步：补 Linux AppImage 端到端验证、真实 release.yml 资产上传回读和 App Online asset。
-- 主要剩余风险：完整 release 仍缺 App、正式 publish、失败清理和真实安装包矩阵验证。
+- 下一步：触发公开端资产检查远端 run，确认 Desktop Full Linux AppImage smoke；后续补 App Online asset、正式 publish 和失败清理。
+- 主要剩余风险：Desktop Full Linux smoke 使用合成后端资源，不等于真实 backend-full AppImage 启动；完整 release 仍缺 App、正式 publish、失败清理和真实安装包矩阵验证。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -47,7 +47,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Desktop 当前没有独立配置模板。客户端运行配置后续由应用首启/设置页写入用户级 app config，并由 Rust 侧做 schema 校验；安装包和绿色包共用同一用户级配置位置。
 - 当前正式发布链路已有 `release-start.yml`、主仓库历史后端 asset 复用判断、后端 native build resolver 和 `release.yml` draft assemble 第一片。
   Web node-server asset、Desktop Online asset、Desktop Full asset、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已接入。
-  Desktop Online 认证转发闭环已实现；仍缺 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证。`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web 与 Desktop Online 资产构建。
+  Desktop Online 认证转发闭环已实现；`.github/workflows/check-public-release-assets.yml` 已验证公开端 Web、Desktop Online 和 Desktop Full Linux 合成后端资源 AppImage 打包路径。仍缺 App 构建、正式 publish、失败清理和 Desktop Full 真实后端 AppImage 启动验证。
 
 ## 已确认结论
 
@@ -135,7 +135,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Release workflow 已接入 Web node-server asset、Desktop Online asset 和 Desktop Full asset 构建。
   Desktop Online/Full release job 会额外构建 Web `desktop-static` 静态输出，并把 Tauri `frontendDist` 指向该目录。
   后续仍需接入 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证。
-- 公开端资产检查 workflow 已接入 Web node-server 与 Desktop Online Windows/Linux asset 构建；最新 GitHub-hosted run 已确认 Web 依赖安装、Desktop 静态 Web 输出、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出可用。
+- 公开端资产检查 workflow 已接入 Web node-server、Desktop Online Windows/Linux asset 构建和 Desktop Full Linux AppImage 合成后端资源 smoke；最新 GitHub-hosted run 已确认 Web 依赖安装、Desktop 静态 Web 输出、Tauri bundler、Linux AppImage 依赖和 Windows NSIS 输出可用，Full Linux smoke 待本轮触发远端 run 确认。
 
 ## 本地任务清单
 
@@ -154,6 +154,8 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - [x] 将 Desktop Online Windows/Linux asset 接入正式 `release.yml` assemble。
 - [x] 将 Desktop Full Windows/Linux asset 接入正式 `release.yml` assemble。
 - [x] 新增公开端 Web/Desktop Online release asset check workflow。
+- [x] 新增公开端 Desktop Full Linux AppImage smoke，使用合成后端资源验证 Full AppImage 打包和内置资源路径。
+- [x] 增强正式 `release.yml` 远端资产回读：下载 draft Release 资产后复验 size、sha256、manifest 记录和禁止文件规则。
 - [x] 运行 docs 范围质量门禁。
 - [x] 实现 Desktop Full sidecar 运行时最小闭环：定位内置后端资源、复制到用户数据目录、启动本机后端、健康检查、读取 `/local/session`、保持 token 不暴露给 WebView、退出清理。
 - [x] 实现 Desktop 静态 Web UI + Rust BFF 第一片：Web store 调用 API adapter，Desktop Full Rust BFF 通过 sidecar token 访问本机后端，状态不序列化 token。
@@ -176,6 +178,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Desktop Online/Full 基础打包：TypeScript、Vite、Full/Online `cargo check`、Full/Online Rust 单测、Tauri Windows exe/NSIS、Linux AppImage 打包路径、图标集、当前用户安装和 WebView2 引导配置均已验证；`package-desktop-release-assets.ps1` 通过 fixture 覆盖 Windows Online、Linux Online 和 Windows Full 绿色包整理。
 - Release/check workflow：`actionlint` 覆盖 `release.yml`、`check-public-release-assets.yml` 和 debug workflows；`release-append-web-asset.ps1`、`release-append-desktop-assets.ps1` 和 release manifest schema/样例校验通过。
   `Check Public Release Assets` run `27291207098` 首次确认 Web node-server、Desktop Online Windows NSIS/portable 和 Linux AppImage 构建可用；后续 run `27457713493` 与 `27458336496` 确认 Desktop 静态 Web 输出、Rust cache 和 Windows/Linux Online 打包路径可用。
+  本轮补充 Desktop Full Linux AppImage smoke 与 release 远端回读 manifest 校验后，待触发新的 GitHub-hosted `check-public-release-assets.yml` run 确认。
 - Desktop Full sidecar：Full flavor 已实现构建期解压 `backend-full`、运行时复制资源、启动 `backend-all-in-one`、健康检查、读取 `/local/session` 和退出清理；Rust 单测覆盖 entrypoint 校验和状态序列化不泄露 token。
   Windows 真实端到端验证通过：Full release exe 携带 `backend/`、`backend-build.json` 和静态 Web UI，sidecar 启动后 `/actuator/health`、`/local/session`、`/api/v1/runtime`、`/api/v1/tools` 和 `/api/v1/auth/current` 均符合预期，WebView 不暴露本机 token。
 - Desktop Online 远端配置与认证转发：Online config command、远端 health 检查、Rust 主进程 token holder、login/refresh/logout 和业务请求 Bearer 注入均已实现并通过本地 Rust/Web 验证。
@@ -185,11 +188,11 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 ## 剩余风险
 
 - Web SSR bundle 发布后仍需要部署方式配合；本计划只解决 Release asset 契约，不解决自动部署。
-- Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查。
-  后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实 `release.yml` 环境中的后端来源、manifest 汇总、asset 上传和远端回读。
+- Web node-server 与 Desktop Online 静态 Web + Rust BFF 打包路径已通过 `check-public-release-assets.yml` 的 GitHub-hosted 公开端资产检查；本轮已补 Desktop Full Linux 合成后端资源 AppImage smoke，待远端 run 确认。
+  真实 `release.yml` 已包含远端 asset 回读和 manifest 校验；后续仍需用后端 resolver 回调或手动 workflow_dispatch 验证真实后端来源、manifest 汇总和完整 draft assemble。
 - Desktop Online 远端登录端到端交互验证已完成（Windows）：用户在 Desktop Online 登录页填写远端服务地址并使用账号密码登录成功，进入应用主界面；并修复了 Rust BFF session schema 与前端 zod schema 不匹配的缺陷。
   Rust BFF logout 已修复为无论配置是否可读都会清理本地内存 token。本轮未重新验证 WebView2 引导、AppImage 运行时桌面集成或真实远端服务连接。
-- Desktop Full sidecar 最小运行时闭环、Rust BFF 和真实安装包端到端验证已完成（Windows）；Linux AppImage 端到端验证仍待后续补齐。
+- Desktop Full sidecar 最小运行时闭环、Rust BFF 和真实安装包端到端验证已完成（Windows）；Linux Full AppImage 合成资源打包 smoke 待远端 run 确认，真实 backend-full AppImage 启动验证仍待后续补齐。
 - App 仍不进入本计划，后续 App Online asset 需要单独计划。
 
 ## 相关 commit

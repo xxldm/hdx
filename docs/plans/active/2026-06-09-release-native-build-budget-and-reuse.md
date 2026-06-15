@@ -11,8 +11,8 @@
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
 - 当前状态：后端 native 并行构建、历史复用、release start、release assemble 第一片和 Desktop Online/Full asset 接入已落地。
-- 下一步：把 App 构建、正式 publish、失败清理和 Desktop Full/Linux 安装包完整验证串入真实 release workflow。
-- 主要剩余风险：完整 tag-only 发布闭环仍未完成；Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。
+- 下一步：触发公开端资产检查远端 run 后，继续把 App 构建、正式 publish、失败清理和真实 backend-full Linux AppImage 启动验证串入发布闭环。
+- 主要剩余风险：完整 tag-only 发布闭环仍未完成；Full Linux smoke 不等于真实后端 AppImage 启动验证，Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -82,7 +82,7 @@
 - [x] 收缩发布职责边界：主仓库 `release-start.yml` 负责历史 Release asset 复用判断；后端 `backend-release-resolve.yml` 只负责 native build 和可选回调主仓库 assemble；两个 GitHub App 最大权限均不再需要 `Contents: read`。
 - [x] 增强 Release Start 手动 dry-run：`dry_run=true` 时也预演历史 Release asset 复用判断，但不触发主仓库 `release.yml` 或后端 resolver。
 - [x] 后续完善 `.github/workflows/release.yml`，把 Desktop Full Windows/Linux asset 构建接入真实 draft assemble。
-- [ ] 后续完善 `.github/workflows/release.yml`，把 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证整合成完整真实 GitHub Release workflow。
+- [ ] 后续完善 `.github/workflows/release.yml`，把 App 构建、正式 publish、失败清理和 Desktop Full 真实 backend-full AppImage 启动验证整合成完整真实 GitHub Release workflow。
 
 ## 验收标准
 
@@ -115,7 +115,7 @@
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。
 - 当前历史复用入口为保持 `backend-native-manifest.json` provenance，不重命名复用的后端 native asset；如需按新版本重命名，需要先设计 manifest rewrite 和校验规则。
 - 正式 tag-only 自动发布链路已有 start、主仓库历史后端 asset 复用判断、后端 native build resolver、主仓库 assemble 第一片、Web node-server asset 构建、Desktop Online asset 构建、Desktop Full asset 构建、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF。
-  后续实现时仍必须按 ADR 0013/0014 补齐 App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证，避免直接复制 debug workflow 拼接成正式发布。
+  本轮补强远端 asset 回读 manifest 校验和公开端 Desktop Full Linux AppImage 合成资源 smoke；后续实现时仍必须按 ADR 0013/0014 补齐 App 构建、正式 publish、失败清理和 Desktop Full 真实 backend-full AppImage 启动验证，避免直接复制 debug workflow 拼接成正式发布。
 
 ## 状态记录
 
@@ -136,8 +136,8 @@
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
-- 完整真实 tag-only 发布已有设计记录和日常操作手册；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已有第一片。
-  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；App 构建、正式 publish、失败清理和 Desktop Full 真实安装包验证仍未串成完整 workflow。
+- 完整真实 tag-only 发布已有设计记录和日常操作手册；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、远端 asset 回读 manifest 校验、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF 已有第一片。
+  Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；App 构建、正式 publish、失败清理和 Desktop Full 真实 backend-full AppImage 启动验证仍未串成完整 workflow。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化，当前 hash 由 release start 自动计算。
 - 后端 workflow 控制平面仍通过后端仓库 `main` 上的 workflow 文件启动；源码 checkout 已锁定 `backend_commit`，但如果未来需要复现旧 workflow 逻辑本身，需要另行设计 workflow 版本化或 release 分支策略。
 - 主仓库 release start 当前通过 `workflow_dispatch` 触发后续 workflow；若给很旧的 root commit 打 tag，而该 tag 对应提交本身没有当前发布 workflow，需要改用当前 `main` 上的手动入口或后续设计 workflow 版本化策略。

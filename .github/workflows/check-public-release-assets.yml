@@ -480,3 +480,373 @@ jobs:
           "@
 
           $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
+
+  build-desktop-full-linux:
+    name: Build Desktop Full (linux-x64)
+    needs: validate-inputs
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: pwsh
+    env:
+      VERSION: ${{ needs.validate-inputs.outputs.version }}
+      ROOT_REF: ${{ needs.validate-inputs.outputs.root_ref }}
+      DESKTOP_FLAVOR: full
+      DESKTOP_PLATFORM: linux-x64
+      TAURI_BUNDLE: appimage
+    steps:
+      - name: Checkout 主仓库事实源
+        uses: actions/checkout@v6.0.3
+        with:
+          ref: ${{ needs.validate-inputs.outputs.root_ref }}
+          fetch-depth: 0
+          persist-credentials: false
+          submodules: false
+
+      - name: 初始化并校验 Desktop 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $rootCommit = (git rev-parse HEAD).Trim()
+          if ($rootCommit -notmatch '^[0-9a-f]{40}$') {
+            throw "无法解析 root commit：$rootCommit"
+          }
+
+          $desktopTree = (git ls-tree HEAD apps/desktop).Trim()
+          if ($desktopTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/desktop$') {
+            throw "无法读取 apps/desktop 子模块指针：$desktopTree"
+          }
+          $desktopCommit = $Matches[1]
+
+          $desktopUrl = (git config -f .gitmodules --get submodule.apps/desktop.url).Trim()
+          $desktopRepository = $desktopUrl `
+            -replace '^https://github\.com/', '' `
+            -replace '\.git$', ''
+          if ($desktopRepository -notmatch '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$') {
+            throw "apps/desktop 子模块 URL 无法解析为 GitHub 仓库：$desktopUrl"
+          }
+          if ($desktopRepository -match '(?i)latest') {
+            throw "apps/desktop repository 不能包含 latest：$desktopRepository"
+          }
+
+          git submodule update --init --depth 1 apps/desktop
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/desktop 子模块失败。'
+          }
+
+          $actualDesktopCommit = (git -C apps/desktop rev-parse HEAD).Trim()
+          if ($actualDesktopCommit -ne $desktopCommit) {
+            throw "apps/desktop checkout 后 commit 与 root 指针不一致：指针 $desktopCommit，实际 $actualDesktopCommit"
+          }
+
+          "ROOT_COMMIT=$rootCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DESKTOP_REPOSITORY=$desktopRepository" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "DESKTOP_COMMIT=$desktopCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Desktop 子模块已初始化：$desktopRepository@$desktopCommit"
+
+      - name: 初始化并校验 Web 子模块
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $webTree = (git ls-tree HEAD apps/web).Trim()
+          if ($webTree -notmatch '^160000 commit ([0-9a-f]{40})\s+apps/web$') {
+            throw "无法读取 apps/web 子模块指针：$webTree"
+          }
+          $webCommit = $Matches[1]
+
+          git submodule update --init --depth 1 apps/web
+          if ($LASTEXITCODE -ne 0) {
+            throw '初始化 apps/web 子模块失败。'
+          }
+
+          $actualWebCommit = (git -C apps/web rev-parse HEAD).Trim()
+          if ($actualWebCommit -ne $webCommit) {
+            throw "apps/web checkout 后 commit 与 root 指针不一致：指针 $webCommit，实际 $actualWebCommit"
+          }
+
+          "WEB_COMMIT=$webCommit" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Web 子模块已初始化：$webCommit"
+
+      - name: 安装 Linux Tauri 依赖
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            curl \
+            file \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            libssl-dev \
+            libwebkit2gtk-4.1-dev \
+            libxdo-dev \
+            patchelf \
+            wget
+
+      - name: 设置 Desktop pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.0.0
+          run_install: false
+
+      - name: 设置 Desktop Node 缓存
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+          cache-dependency-path: |
+            apps/desktop/pnpm-lock.yaml
+            apps/web/pnpm-lock.yaml
+
+      - name: 设置 Desktop Rust 缓存
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            apps/desktop/src-tauri/target
+          key: desktop-rust-${{ runner.os }}-${{ env.DESKTOP_PLATFORM }}-${{ env.DESKTOP_FLAVOR }}-${{ hashFiles('apps/desktop/src-tauri/Cargo.lock') }}
+          restore-keys: |
+            desktop-rust-${{ runner.os }}-${{ env.DESKTOP_PLATFORM }}-${{ env.DESKTOP_FLAVOR }}-
+            desktop-rust-${{ runner.os }}-${{ env.DESKTOP_PLATFORM }}-
+            desktop-rust-${{ runner.os }}-
+
+      - name: 构建 Desktop 静态 Web 资源
+        working-directory: apps/web
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Web 依赖安装失败。'
+          }
+
+          node scripts/build-desktop-static.mjs --out-dir target/desktop-tauri
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 静态 Web 资源构建失败。'
+          }
+
+      - name: 准备 Desktop Full 合成后端资源
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $backendRuntimeRoot = 'target/public-release-assets/desktop-full-backend/linux-x64/backend'
+          $backendBinDir = Join-Path $backendRuntimeRoot 'bin'
+          New-Item -ItemType Directory -Path $backendBinDir -Force | Out-Null
+
+          $backendExecutablePath = Join-Path $backendBinDir 'hdx-backend-full'
+          @(
+            '#!/usr/bin/env sh'
+            'echo "HDX Desktop Full public asset smoke backend placeholder"'
+          ) | Set-Content -LiteralPath $backendExecutablePath
+          chmod +x $backendExecutablePath
+          if ($LASTEXITCODE -ne 0) {
+            throw '设置合成后端可执行权限失败。'
+          }
+
+          $backendBuild = [ordered]@{
+            schemaVersion = '1.0'
+            manifestKind = 'backend-build'
+            version = $env:VERSION
+            generatedAt = (Get-Date).ToUniversalTime().ToString('yyyy-MM-ddTHH:mm:ssZ')
+            root = [ordered]@{
+              ref = $env:ROOT_REF
+              commit = $env:ROOT_COMMIT
+            }
+            desktop = [ordered]@{
+              commit = $env:DESKTOP_COMMIT
+              flavor = 'full'
+              platform = $env:DESKTOP_PLATFORM
+            }
+            backend = [ordered]@{
+              kind = 'backend-full'
+              commit = '0000000000000000000000000000000000000000'
+              archiveFileName = 'synthetic-backend-full-linux-x64.tar.gz'
+              archiveSha256 = '0000000000000000000000000000000000000000000000000000000000000000'
+              manifestSha256 = '0000000000000000000000000000000000000000000000000000000000000000'
+              executablePath = 'bin/hdx-backend-full'
+            }
+          }
+          $backendBuild | ConvertTo-Json -Depth 100 | Set-Content -LiteralPath (Join-Path $backendRuntimeRoot 'backend-build.json')
+
+          Write-Host "Desktop Full 合成后端资源已生成：$backendRuntimeRoot"
+
+      - name: 准备 Desktop Full release Tauri 配置
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $tauriVersion = $env:VERSION.Substring(1) -replace '\+.*$', ''
+          if ($tauriVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw "Tauri version 无效：$tauriVersion"
+          }
+
+          $repoRoot = (Resolve-Path '../..').Path
+          $backendRuntimeRoot = Join-Path $repoRoot 'target/public-release-assets/desktop-full-backend/linux-x64/backend'
+          $backendBuildPath = Join-Path $backendRuntimeRoot 'backend-build.json'
+          if (-not (Test-Path -LiteralPath $backendBuildPath -PathType Leaf)) {
+            throw "缺少 Desktop Full backend-build.json：$backendBuildPath"
+          }
+
+          $backendBuild = Get-Content -LiteralPath $backendBuildPath -Raw | ConvertFrom-Json -Depth 100
+          $backendExecutableRelative = ([string]$backendBuild.backend.executablePath).Replace('/', [string][System.IO.Path]::DirectorySeparatorChar)
+          $backendExecutablePath = Join-Path $backendRuntimeRoot $backendExecutableRelative
+          if (-not (Test-Path -LiteralPath $backendExecutablePath -PathType Leaf)) {
+            throw "缺少 Desktop Full backend entrypoint：$backendExecutablePath"
+          }
+
+          $configPath = "src-tauri/tauri.$env:DESKTOP_FLAVOR.conf.json"
+          $releaseConfigPath = "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json"
+          $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json -Depth 20
+          $config | Add-Member -NotePropertyName version -NotePropertyValue $tauriVersion -Force
+          if ($null -eq $config.PSObject.Properties['build']) {
+            $config | Add-Member -NotePropertyName build -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $config.build | Add-Member -NotePropertyName beforeBuildCommand -NotePropertyValue '' -Force
+          $config.build | Add-Member -NotePropertyName frontendDist -NotePropertyValue '../../web/target/desktop-tauri' -Force
+          if ($null -eq $config.PSObject.Properties['bundle']) {
+            $config | Add-Member -NotePropertyName bundle -NotePropertyValue ([pscustomobject]@{}) -Force
+          }
+          $resources = [ordered]@{}
+          foreach ($resourceFile in Get-ChildItem -LiteralPath $backendRuntimeRoot -Recurse -File) {
+            $relativePath = [System.IO.Path]::GetRelativePath($backendRuntimeRoot, $resourceFile.FullName).Replace('\', '/')
+            $resources[$resourceFile.FullName] = "backend/$relativePath"
+          }
+          $config.bundle | Add-Member -NotePropertyName resources -NotePropertyValue $resources -Force
+          $config | ConvertTo-Json -Depth 20 | Set-Content -LiteralPath $releaseConfigPath
+
+          Write-Host "Desktop Full release Tauri 配置已生成：$releaseConfigPath version=$tauriVersion"
+
+      - name: 构建 Desktop Full Linux AppImage
+        working-directory: apps/desktop
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pnpm install --frozen-lockfile
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop 依赖安装失败。'
+          }
+
+          pnpm exec tauri build `
+            --config "src-tauri/tauri.release.$env:DESKTOP_FLAVOR.conf.json" `
+            --features "flavor-$env:DESKTOP_FLAVOR" `
+            --bundles $env:TAURI_BUNDLE `
+            --ci
+          if ($LASTEXITCODE -ne 0) {
+            throw 'Desktop Full Linux AppImage 构建失败。'
+          }
+
+      - name: 检查 Desktop Full Linux AppImage 内置资源
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $appImageDir = 'apps/desktop/src-tauri/target/release/bundle/appimage'
+          $appImages = @(Get-ChildItem -LiteralPath $appImageDir -Filter '*.AppImage' -File)
+          if ($appImages.Count -ne 1) {
+            $names = $appImages | ForEach-Object { $_.Name } | Join-String -Separator ', '
+            throw "无法唯一定位 Desktop Full AppImage，候选：$names"
+          }
+
+          chmod +x $appImages[0].FullName
+          if ($LASTEXITCODE -ne 0) {
+            throw '设置 AppImage 可执行权限失败。'
+          }
+
+          $extractRoot = 'target/public-release-assets/desktop-full-appimage-extract'
+          if (Test-Path -LiteralPath $extractRoot) {
+            Remove-Item -LiteralPath $extractRoot -Recurse -Force
+          }
+          New-Item -ItemType Directory -Path $extractRoot | Out-Null
+
+          Push-Location $extractRoot
+          try {
+            & $appImages[0].FullName --appimage-extract
+            if ($LASTEXITCODE -ne 0) {
+              throw "AppImage 提取失败，退出码：$LASTEXITCODE"
+            }
+          }
+          finally {
+            Pop-Location
+          }
+
+          $squashfsRoot = Join-Path $extractRoot 'squashfs-root'
+          $backendBuildMatches = @(Get-ChildItem -LiteralPath $squashfsRoot -Recurse -Filter 'backend-build.json' -File)
+          if ($backendBuildMatches.Count -lt 1) {
+            throw 'AppImage 中未找到 backend-build.json。'
+          }
+
+          $backendEntrypointMatches = @(Get-ChildItem -LiteralPath $squashfsRoot -Recurse -Filter 'hdx-backend-full' -File)
+          if ($backendEntrypointMatches.Count -lt 1) {
+            throw 'AppImage 中未找到合成 backend-full entrypoint。'
+          }
+
+          Write-Host "Desktop Full AppImage 内置资源检查通过：$($appImages[0].Name)"
+
+      - name: 整理 Desktop Full Linux 检查资产
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          pwsh -NoLogo -NoProfile -File scripts/package-desktop-release-assets.ps1 `
+            -Version $env:VERSION `
+            -Flavor $env:DESKTOP_FLAVOR `
+            -Platform $env:DESKTOP_PLATFORM `
+            -OutputDirectory 'target/public-release-assets/desktop-full' `
+            -RootCommit $env:ROOT_COMMIT `
+            -DesktopCommit $env:DESKTOP_COMMIT
+
+      - name: 上传 Desktop Full Linux 检查资产
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-release-assets-desktop-full-linux-x64
+          path: target/public-release-assets/desktop-full/*
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: 输出 Desktop Full Linux 检查摘要
+        if: always()
+        env:
+          CHECK_STATUS: ${{ job.status }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $assets = if (Test-Path -LiteralPath 'target/public-release-assets/desktop-full') {
+            (Get-ChildItem -LiteralPath 'target/public-release-assets/desktop-full' -File | Sort-Object Name | ForEach-Object { "- ``$($_.Name)`` ($($_.Length) bytes)" }) -join [Environment]::NewLine
+          }
+          else {
+            '未生成'
+          }
+
+          $summary = @"
+          # HDX Desktop Full Linux Public Release Asset Check
+
+          - status: ``$env:CHECK_STATUS``
+          - version: ``$env:VERSION``
+          - root_ref: ``$env:ROOT_REF``
+          - root_commit: ``$env:ROOT_COMMIT``
+          - desktop_repository: ``$env:DESKTOP_REPOSITORY``
+          - desktop_commit: ``$env:DESKTOP_COMMIT``
+          - desktop_platform: ``$env:DESKTOP_PLATFORM``
+
+          ## 验证动作
+
+          - Checkout 指定 root ref。
+          - 初始化根仓库锁定的 ``apps/desktop`` 和 ``apps/web`` 子模块。
+          - 使用 Node 24 + pnpm 10 安装依赖。
+          - 构建 Desktop Full Linux ``appimage`` bundle。
+          - 使用合成 ``backend-build.json`` 和 entrypoint 验证 AppImage 内置资源路径。
+          - 按 Release 命名规则整理 AppImage。
+          - 上传 1 天保留期的临时检查 artifact。
+
+          ## 当前限制
+
+          - 本检查不下载后端私有 artifact，不验证真实 backend-full native 二进制启动。
+          - 真实后端来源、manifest 汇总和远端 Release 回读仍由 ``release.yml`` 覆盖。
+
+          ## 生成资产
+
+          $assets
+          "@
+
+          $summary | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

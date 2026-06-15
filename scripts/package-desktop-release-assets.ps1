@@ -25,53 +25,7 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
-
-function Assert-Pattern {
-    param(
-        [Parameter(Mandatory = $true)][string]$Name,
-        [Parameter(Mandatory = $true)][string]$Value,
-        [Parameter(Mandatory = $true)][string]$Pattern,
-        [Parameter(Mandatory = $true)][string]$Message
-    )
-
-    if ($Value -notmatch $Pattern) {
-        throw "$Name 无效：$Message"
-    }
-}
-
-function Get-FullPath {
-    param([Parameter(Mandatory = $true)][string]$Path)
-
-    if ([System.IO.Path]::IsPathRooted($Path)) {
-        return [System.IO.Path]::GetFullPath($Path)
-    }
-
-    return [System.IO.Path]::GetFullPath((Join-Path (Get-Location) $Path))
-}
-
-function Assert-PathWithin {
-    param(
-        [Parameter(Mandatory = $true)][string]$Parent,
-        [Parameter(Mandatory = $true)][string]$Child
-    )
-
-    $parentFull = [System.IO.Path]::GetFullPath($Parent).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar
-    )
-    $childFull = [System.IO.Path]::GetFullPath($Child).TrimEnd(
-        [System.IO.Path]::DirectorySeparatorChar,
-        [System.IO.Path]::AltDirectorySeparatorChar
-    )
-    $parentWithSeparator = $parentFull + [System.IO.Path]::DirectorySeparatorChar
-
-    if (
-        $childFull -ne $parentFull -and
-        -not $childFull.StartsWith($parentWithSeparator, [System.StringComparison]::OrdinalIgnoreCase)
-    ) {
-        throw "路径必须位于 $parentFull 之下：$childFull"
-    }
-}
+. (Join-Path $PSScriptRoot 'lib/release-common.ps1')
 
 Assert-Pattern -Name 'Version' -Value $Version -Pattern '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' -Message '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
 if ($Version -match '(?i)latest') {

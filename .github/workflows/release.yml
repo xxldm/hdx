@@ -1311,6 +1311,19 @@ jobs:
             }
           }
 
+          $remoteBackendNativeManifestPath = Join-Path $downloadRoot 'backend-native-manifest.json'
+          $remoteReleaseManifestPath = Join-Path $downloadRoot 'release-manifest.json'
+          $downloadedAssetPaths = @(Get-ChildItem -LiteralPath $downloadRoot -File | Sort-Object Name | ForEach-Object { $_.FullName })
+          pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
+            -SkipExamples `
+            -BackendNativeManifestPath $remoteBackendNativeManifestPath `
+            -ReleaseManifestPath $remoteReleaseManifestPath `
+            -AssetRoot $downloadRoot `
+            -ScanPath $downloadedAssetPaths
+          if ($LASTEXITCODE -ne 0) {
+            throw "远端 Release asset manifest 校验失败，退出码：$LASTEXITCODE"
+          }
+
           Write-Host "远端 draft Release asset 校验通过：$($releaseJson.url)"
 
       - name: 输出发布摘要
@@ -1359,7 +1372,7 @@ jobs:
           - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
           - 构建 Desktop Full Windows/Linux 发布包，携带同平台已解压 ``backend-full`` 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
           - 生成并校验包含后端、Web、Desktop Online 与 Desktop Full 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
-          - 创建 draft Release，上传资产，并从远端下载核对 size 与 sha256。
+          - 创建 draft Release，上传资产，并从远端下载核对 size、sha256、manifest 记录和禁止文件规则。
 
           ## 当前限制
 

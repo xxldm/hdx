@@ -11,6 +11,9 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$DesktopCommit,
 
+    [ValidateSet('stable', 'preview', 'nightly', 'manual')]
+    [string]$ReleaseChannel = 'stable',
+
     [string]$AssetRoot = 'target/release/assets',
 
     [string]$DesktopPath = 'apps/desktop'
@@ -38,6 +41,7 @@ function Get-JsonStringProperty {
 Assert-Pattern -Name 'DesktopRepository' -Value $DesktopRepository -Pattern '^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$' -Message '必须形如 owner/repo。'
 Assert-Pattern -Name 'DesktopCommit' -Value $DesktopCommit -Pattern '^[0-9a-f]{40}$' -Message '必须是 40 位小写 Git SHA。'
 Assert-NoLatest -Name 'DesktopRepository' -Value $DesktopRepository
+Assert-NoLatest -Name 'ReleaseChannel' -Value $ReleaseChannel
 
 $targetRoot = Join-Path $RepoRoot 'target'
 $assetRootFull = Get-FullPath -Path $AssetRoot
@@ -167,7 +171,7 @@ foreach ($definition in $definitions) {
         platform = $definition.platform
         flavor = $definition.flavor
         packaging = $definition.packaging
-        channel = 'stable'
+        channel = $ReleaseChannel
         fileName = $definition.fileName
         contentType = $definition.contentType
         sha256 = Get-Sha256 -Path $destinationFull

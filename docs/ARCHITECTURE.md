@@ -120,9 +120,11 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
 
 - `backend-native-manifest.json`、`release-manifest.json`、`backend-build.json` 和 `backend-services-manifest.json` 的 JSON Schema 位于 `packages/shared/contracts/release/`。
 - 当前已有 `check-*` 与 `debug-*` 手动验证 workflow；它们不是正式发布入口，具体用途见 `.github/workflows/README.md`。
-- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run。
+- `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，按 tag 形态区分正式发布与预览发布；`v1.2.3` 是 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 是 preview 预览发布。
+  它会先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run。
 - `.github/workflows/release.yml` 已提供正式发布入口第一版：手动接收后端来源 payload，由 `resolve-backend-native` 统一输出已校验后端资产。
-  它支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建并远端校验 draft Release；尚不 publish。
+  它支持多个后端 native Actions artifact 聚合，支持从同一个历史主仓库 Release 复用多个后端 native asset，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建 draft Release、上传资产并远端校验；`release_mode=publish` 时远端校验通过后发布，preview tag 会发布为 GitHub prerelease 且不标记为 Latest。
+  App 当前不进入发布闭环，不构建、不要求 App asset，也不阻塞 publish。
 - Desktop Full 发布包当前以公开 `backend-full` archive 为校验事实源，并在打包阶段把同平台已解压 `backend-full` 与 `backend-build.json` 放入 Desktop 资源。
   Desktop Full 运行时已实现最小 sidecar 闭环：复制内置资源到用户数据目录、启动本机后端、健康检查、读取 `/local/session` 并在退出时清理进程。
   Desktop 发布包改为消费 `apps/web` 的 `desktop-static` 静态输出；Desktop 静态 UI 通过 Rust BFF command 调用本机 sidecar，WebView 不接触本机 token。
@@ -131,7 +133,7 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
   它可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 `release.yml` assemble；不读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
-正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把 App 构建、正式 publish、失败清理、Desktop Full/Linux 安装包完整验证和 release artifact 上下文一致性串成完整发布闭环。
+正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性串成完整发布闭环；App 等有基础工程和打包入口后再单独接入。
 
 ## Web 第一阶段架构
 

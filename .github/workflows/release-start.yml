@@ -87,6 +87,8 @@ jobs:
           $dryRun = $true
           $triggerBackendResolve = $false
           $evaluateBackendSource = $false
+          $releaseMode = 'draft'
+          $releaseChannel = 'stable'
 
           if ($eventName -eq 'push') {
             $rootRef = $env:GITHUB_REF.Trim()
@@ -99,6 +101,7 @@ jobs:
             $dryRun = $false
             $triggerBackendResolve = $true
             $evaluateBackendSource = $true
+            $releaseMode = 'publish'
           }
           else {
             $version = $env:DISPATCH_VERSION.Trim()
@@ -115,6 +118,7 @@ jobs:
           Assert-NoLatest 'version' $version
           Assert-NoLatest 'root_ref' $rootRef
           Assert-NoLatest 'backend_repository' $backendRepository
+          $releaseChannel = if ($version -match '^v[0-9]+\.[0-9]+\.[0-9]+-') { 'preview' } else { 'stable' }
           if (-not [string]::IsNullOrWhiteSpace($historicalReleaseTag)) {
             Assert-Pattern 'historical_release_tag' $historicalReleaseTag '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
             Assert-NoLatest 'historical_release_tag' $historicalReleaseTag
@@ -138,8 +142,10 @@ jobs:
           "dry_run=$($dryRun.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "evaluate_backend_source=$($evaluateBackendSource.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "trigger_backend_resolve=$($triggerBackendResolve.ToString().ToLowerInvariant())" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_mode=$releaseMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_channel=$releaseChannel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
-          Write-Host "release start 输入通过：version=$version root_ref=$rootRef backend=$backendRepository historical_release_tag=$historicalReleaseTag dry_run=$dryRun evaluate_backend_source=$evaluateBackendSource trigger_backend_resolve=$triggerBackendResolve"
+          Write-Host "release start 输入通过：version=$version root_ref=$rootRef backend=$backendRepository historical_release_tag=$historicalReleaseTag dry_run=$dryRun evaluate_backend_source=$evaluateBackendSource trigger_backend_resolve=$triggerBackendResolve release_mode=$releaseMode release_channel=$releaseChannel"
 
       - name: Checkout 主仓库发布事实源
         uses: actions/checkout@v6.0.3
@@ -403,6 +409,8 @@ jobs:
           BACKEND_SOURCE_MODE: ${{ steps.backend-source-decision.outputs.backend_source_mode }}
           BACKEND_SOURCES_JSON: ${{ steps.backend-source-decision.outputs.backend_sources_json }}
           RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+          RELEASE_MODE: ${{ steps.start-context.outputs.release_mode }}
+          RELEASE_CHANNEL: ${{ steps.start-context.outputs.release_channel }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -416,12 +424,13 @@ jobs:
             -f "openapi_snapshot_hash=$env:OPENAPI_SNAPSHOT_HASH" `
             -f "backend_source_mode=$env:BACKEND_SOURCE_MODE" `
             -f "backend_sources_json=$env:BACKEND_SOURCES_JSON" `
-            -f "release_intent_id=$env:RELEASE_INTENT_ID"
+            -f "release_intent_id=$env:RELEASE_INTENT_ID" `
+            -f "release_mode=$env:RELEASE_MODE"
           if ($LASTEXITCODE -ne 0) {
             throw "触发主仓库 release.yml 失败：${{ github.repository }}@$env:ROOT_REF"
           }
 
-          Write-Host "已触发主仓库 release.yml：${{ github.repository }}@$env:ROOT_REF version=$env:VERSION"
+          Write-Host "已触发主仓库 release.yml：${{ github.repository }}@$env:ROOT_REF version=$env:VERSION release_mode=$env:RELEASE_MODE release_channel=$env:RELEASE_CHANNEL"
 
       - name: 生成后端仓库 GitHub App token
         id: backend-token
@@ -446,6 +455,8 @@ jobs:
           OPENAPI_SNAPSHOT_HASH: ${{ steps.release-context.outputs.openapi_snapshot_hash }}
           REQUIRED_ASSETS_JSON: ${{ steps.release-context.outputs.required_assets_json }}
           RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+          RELEASE_MODE: ${{ steps.start-context.outputs.release_mode }}
+          RELEASE_CHANNEL: ${{ steps.start-context.outputs.release_channel }}
         run: |
           $ErrorActionPreference = 'Stop'
 
@@ -460,12 +471,13 @@ jobs:
             -f "openapi_snapshot_hash=$env:OPENAPI_SNAPSHOT_HASH" `
             -f "required_assets_json=$env:REQUIRED_ASSETS_JSON" `
             -f "trigger_release_assemble=true" `
-            -f "release_intent_id=$env:RELEASE_INTENT_ID"
+            -f "release_intent_id=$env:RELEASE_INTENT_ID" `
+            -f "release_mode=$env:RELEASE_MODE"
           if ($LASTEXITCODE -ne 0) {
             throw "触发后端 release resolve 失败：$env:BACKEND_REPOSITORY"
           }
 
-          Write-Host "已触发后端 release resolve：$env:BACKEND_REPOSITORY version=$env:VERSION"
+          Write-Host "已触发后端 release resolve：$env:BACKEND_REPOSITORY version=$env:VERSION release_mode=$env:RELEASE_MODE release_channel=$env:RELEASE_CHANNEL"
 
       - name: 输出 release start 摘要
         if: always()
@@ -485,6 +497,8 @@ jobs:
           BACKEND_SOURCE_MODE: ${{ steps.backend-source-decision.outputs.backend_source_mode }}
           HISTORICAL_FAILURE_REASON: ${{ steps.backend-source-decision.outputs.historical_failure_reason }}
           RELEASE_INTENT_ID: ${{ steps.release-context.outputs.release_intent_id }}
+          RELEASE_MODE: ${{ steps.start-context.outputs.release_mode }}
+          RELEASE_CHANNEL: ${{ steps.start-context.outputs.release_channel }}
         run: |
           @"
           # HDX Release Start
@@ -504,6 +518,8 @@ jobs:
           - backend_source_mode: ``$env:BACKEND_SOURCE_MODE``
           - historical_failure_reason: ``$env:HISTORICAL_FAILURE_REASON``
           - release_intent_id: ``$env:RELEASE_INTENT_ID``
+          - release_mode: ``$env:RELEASE_MODE``
+          - release_channel: ``$env:RELEASE_CHANNEL``
 
-          真实 tag push 会先在主仓库尝试复用最新一个合格历史 Release asset；复用成功则直接触发主仓库 ``release.yml``，复用失败才触发后端 ``backend-release-resolve.yml`` 运行 native build 并回调组装。
+          真实 tag push 会先在主仓库尝试复用最新一个合格历史 Release asset；复用成功则以 ``release_mode=publish`` 直接触发主仓库 ``release.yml``，复用失败才触发后端 ``backend-release-resolve.yml`` 运行 native build 并回调组装。``v1.2.3`` 这类无 prerelease 后缀 tag 进入 ``stable`` 正式发布；``v1.2.3-rc.1``、``v1.2.3-beta.1``、``v1.2.3-preview.1`` 这类 prerelease tag 进入 ``preview`` 预览发布。手动入口默认使用 ``release_mode=draft``，避免排障时误发布。
           "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append

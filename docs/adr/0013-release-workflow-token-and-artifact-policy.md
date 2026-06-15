@@ -58,6 +58,8 @@ ADR 0014 已替代本 ADR 早期“后端 native 一律不复用历史 Release a
 常规发版目标是人工只在公开主仓库推送 release tag，其余步骤自动完成。主仓库 release start workflow 由 tag push 触发，读取 root commit、子模块指针和 OpenAPI hash 后，先在主仓库判断最新一个合格历史 Release 中的后端 native asset 是否可复用。
 复用成功时直接触发主仓库 release assemble workflow，复用失败时才使用 `HDX Backend Actions Bot` 通过 `workflow_dispatch` 触发后端私有仓库 release resolve workflow 运行 native build。
 
+tag 名称决定发布类型：无 prerelease 后缀的 `v<major>.<minor>.<patch>` 进入 `stable` 正式发布；带 prerelease 后缀的 `v<major>.<minor>.<patch>-<label>` 进入 `preview` 预览发布，例如 `v1.2.3-rc.1`、`v1.2.3-beta.1` 或 `v1.2.3-preview.1`。预览发布会被标记为 GitHub prerelease，且不标记为 Latest。`release_mode` 只表示 assemble 校验通过后是否 publish；手动排障入口默认 `draft`，真实 tag start 路径传 `publish`。
+
 主仓库 release tag 对应的 root commit 是事实源。后端源码版本由该 root commit 中的 `services/backend` 子模块 gitlink 决定；release start 不要求该 `backend_commit` 等于后端仓库当前 `main`，也不持有后端 `Contents: read` 权限去调用后端 commit API。
 后端 release resolve 和 native build workflow 可以使用后端 `main` 上的 workflow 文件作为控制平面，但必须显式 checkout 输入的 `backend_commit`，并在 checkout 后校验实际 HEAD 与输入一致。
 
@@ -73,6 +75,7 @@ ADR 0014 已替代本 ADR 早期“后端 native 一律不复用历史 Release a
 - `backend_source_mode`：`github-actions-artifact` 或 `historical-release-asset`
 - `backend_sources_json`
 - `release_intent_id`
+- `release_mode`：`draft` 或 `publish`
 
 后续如果 Web、Desktop 或 App 改为独立构建 workflow，也应按同一模式显式传入对应组件的 `run_id`、artifact name 和 commit。所有输入都禁止使用 `latest`。
 
@@ -139,7 +142,7 @@ validate-inputs
 
 真实 release workflow 先生成并校验本地全部资产，再创建 draft GitHub Release。
 
-上传全部资产后，workflow 必须校验远端 Release asset 清单、`SHA256SUMS` 和 `release-manifest.json`。只有校验通过后，才能把 draft 发布为正式 Release。
+上传全部资产后，workflow 必须校验远端 Release asset 清单、`SHA256SUMS` 和 `release-manifest.json`。只有校验通过后，才能把 draft 发布。stable tag 发布为普通 GitHub Release；preview tag 发布为 GitHub prerelease。
 
 如果任一步骤失败：
 
@@ -211,6 +214,7 @@ validate-inputs
 - 设计后端私有仓库 native CI：生成 artifact、manifest、sha256，设置 `retention-days: 1`，并触发主仓库 workflow。
 - 主仓库真实 `release-start.yml` 已完成 tag start 第一片：
   - 真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文。
+  - 按 tag 形态区分 stable 正式发布与 preview 预览发布。
   - 先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset。
   - 复用成功时直接触发主仓库 `release.yml`。
   - 复用失败时触发后端私有仓库 release resolver 运行 native build。
@@ -223,13 +227,15 @@ validate-inputs
   - 构建 Desktop Online Windows/Linux asset。
   - 构建 Desktop Full Windows/Linux asset，并把同平台 `backend-full` archive 与 `backend-build.json` 作为 Tauri resources 或绿色包 `backend/` 目录携带。
   - 完成输入校验、root context 准备、release manifest 组装、draft Release、资产上传和远端校验。
+  - 支持 `release_mode=publish` 在远端校验通过后 publish；preview tag 会发布为 GitHub prerelease 且不标记为 Latest。
+  - App 当前不进入发布闭环；后续等 App 有基础工程和打包入口后再单独接入。
 - 后端私有仓库已完成 release resolve 第一片：
   - 按输入的 `backend_commit` checkout 后端源码。
   - 根据主仓库传入的必需后端资产列表计算 native build scope。
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 `release.yml`。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 后续仍需补齐 App 构建、publish、失败清理和 Desktop Full/Linux 安装包完整验证；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
+- 后续仍需补齐失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -250,3 +256,4 @@ validate-inputs
 - 2026-06-13：Desktop 发布包方向改为静态 Web UI + Rust BFF，不再为 Desktop 内置 Node/Nitro 子进程。
   Web Online 继续发布 Nuxt SSR node-server asset；Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录。
   Desktop Full Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Desktop Online 后续已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
+- 2026-06-15：`release-start.yml` 和 `release.yml` 增加发布模式与渠道边界：真实 tag push 传 `release_mode=publish`，手动入口默认 `draft`；`v1.2.3` 进入 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 进入 preview 预览发布。`release.yml` 在远端 asset 校验通过后 publish，preview 发布为 GitHub prerelease 且不标记为 Latest；Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。

@@ -89,7 +89,7 @@ backend native fingerprint 至少包含：
 - `packages/shared/contracts/release/`、`scripts/release-draft-reuse-backend-assets.ps1` 与主仓库 release workflow：
   - release manifest schema、样例、校验脚本和最小 draft 复用脚本已能表达并生成历史 Release asset 复用来源和 backend native fingerprint。
   - `.github/workflows/debug-release-draft-reuse-backend.yml` 已提供手动最小 draft 复用入口。
-  - 完整真实 release workflow 后续按 ADR 0013 的 `release.yml` job 设计，继续把后端 artifact 新建分支、历史 asset 复用分支、客户端资产构建和正式 publish 串成统一发布链路；当前 Web、Desktop Online 和 Desktop Full asset 构建已接入第一片，App 构建仍待实现。
+  - 完整真实 release workflow 后续按 ADR 0013 的 `release.yml` job 设计，继续把后端 artifact 新建分支、历史 asset 复用分支、客户端资产构建和正式 publish 串成统一发布链路；当前 Web、Desktop Online、Desktop Full asset 构建和 publish 已接入第一片，App 等有基础工程和打包入口后再单独接入。
 
 ## 验证方式
 
@@ -133,13 +133,14 @@ backend native fingerprint 至少包含：
   - Web node-server asset 构建。
   - Desktop Online Windows/Linux asset 构建。
   - Desktop Full Windows/Linux asset 构建，且 Full 包携带同平台 `backend-full` archive 与 `backend-build.json`。
+  - `release_mode=publish` 时在远端校验通过后 publish；无 prerelease 后缀 tag 是 stable 正式发布，prerelease tag 是 preview 预览发布。
 - 后端私有仓库 release resolve 已收缩为 native build resolver：
   - 按输入的 `backend_commit` checkout 后端源码。
   - 根据主仓库传入的必需后端资产列表计算 native build scope。
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 assemble。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 补齐 App 资产构建、统一 publish、失败清理策略和 Desktop Full/Linux 安装包完整验证；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
+- 补齐失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性；App 等有基础工程和打包入口后再单独接入。Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录
@@ -164,3 +165,4 @@ backend native fingerprint 至少包含：
 - 2026-06-13：Desktop 发布包方向改为静态 Web UI + Rust BFF。该调整不改变后端 native asset 复用规则，也不改变 Desktop Full 内置后端 archive 与公开 Release asset 同源的要求。
   Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录；Full flavor 的 Rust BFF 通过 sidecar `/local/session` token 访问本机后端。
   Desktop Online 后续已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
+- 2026-06-15：发布链路增加 stable/preview 区分和 publish 开关。真实 tag push 传 `release_mode=publish`；`v1.2.3` 是 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 是 preview 预览发布。preview Release 发布为 GitHub prerelease 且不标记为 Latest；Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。

@@ -35,7 +35,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `scripts/release-assemble-historical-backend-assets.ps1`：消费多个已下载的历史主仓库 Release asset 目录，校验每个历史 asset 的显式 sha256/size、fingerprint、历史构建上下文和禁止文件扫描后，聚合生成当前版本的 `release-manifest.json`、`SHA256SUMS` 和多个复用后端 native Release asset。该脚本第一版要求多个来源来自同一个历史 Release，并覆盖历史 `backend-native-manifest.json` 记录的全部后端 native asset。
 - `scripts/release-append-web-asset.ps1`：消费 Web node-server archive，把 Web asset 追加到 `release-manifest.json`，写入 `sources.web`，重算 `SHA256SUMS` 并复跑 Release manifest 校验。
 - `scripts/package-desktop-release-assets.ps1`：消费 Tauri bundle 输出，把 Desktop 安装包、绿色包或 AppImage 整理为 Release 约定文件名；该脚本不修改 `release-manifest.json`。
-- `scripts/release-append-desktop-assets.ps1`：消费 Desktop workflow 整理后的 Release asset 目录，把 Desktop installer、portable zip 或 AppImage 追加到 `release-manifest.json`，写入 `sources.desktop`，重算 `SHA256SUMS` 并复跑 Release manifest 校验。
+- `scripts/release-append-desktop-assets.ps1`：消费 Desktop workflow 整理后的 Release asset 目录，把 Desktop installer、portable zip 或 AppImage 追加到 `release-manifest.json`，写入 `sources.desktop` 和 Desktop asset `channel`，重算 `SHA256SUMS` 并复跑 Release manifest 校验。正式 tag 写 `stable`，prerelease tag 写 `preview`。
 - `scripts/release-resolve-backend-sources.ps1`：消费候选历史主仓库 Release asset 目录和 required assets 列表，校验 sha256/size、OpenAPI hash 和 backend native fingerprint 后，输出可直接交给主仓库 `release.yml` 的 `backend_sources_json`。当前只覆盖历史 Release asset 可复用路径，匹配失败时要求后续运行后端 native workflow。
 
 本地回归入口 `scripts/check-desktop-release-asset-packaging.ps1` 使用 fixture 覆盖 Desktop asset 打包脚本，确认 Tauri bundle 目录中旧版本产物与当前版本产物共存时，脚本仍按当前 release version 精确选择 NSIS/AppImage。
@@ -71,7 +71,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 `
 - `assets[].source.githubActions` 用于记录单个 backend asset 来自哪个后端 Actions artifact。
 - `assets[].source.type=historical-release-asset` 只允许用于 `backend-full` 或 `backend-services`，并必须记录历史 release tag、历史 asset 名称、sha256、size、历史 release manifest sha256、历史构建 root/backend/OpenAPI 上下文和 `backendNativeFingerprint`。
 - `assets[].kind` 优先使用发布物粒度：`web-node-server`、`desktop-installer`、`desktop-portable`、`desktop-appimage`、`desktop-updater-manifest`、`desktop-update-signature`、`backend-full`、`backend-services`、`android-online`、`harmonyos-online` 或 `metadata`。旧值 `web`、`desktop-online` 和 `desktop-full` 仅作为兼容入口保留，后续正式生成逻辑不应继续新增。
-- `assets[].flavor` 用于区分 Desktop `online` 与 `full`；`assets[].packaging` 用于区分 `tar.gz`、`zip`、`nsis`、`appimage`、`tauri-updater-json`、`tauri-updater-signature` 等发布包形态；`assets[].channel` 用于区分 `stable`、`preview`、`nightly` 或 `manual`。
+- `assets[].flavor` 用于区分 Desktop `online` 与 `full`；`assets[].packaging` 用于区分 `tar.gz`、`zip`、`nsis`、`appimage`、`tauri-updater-json`、`tauri-updater-signature` 等发布包形态；`assets[].channel` 用于区分 `stable`、`preview`、`nightly` 或 `manual`。当前正式 release workflow 只自动生成 `stable` 或 `preview`：`v1.2.3` 是 `stable`，`v1.2.3-rc.1` 等 prerelease tag 是 `preview`。
 - `desktop-updater-manifest` 表示 Tauri v2 updater 使用的静态 JSON 文件。它不是 `release-manifest.json` 本身，而是由 Release asset、`.sig` 文件和发布上下文生成的小型更新入口。
 - Tauri updater JSON 的 Release asset 文件名不得包含 `latest`；稳定版建议使用 `HDX.Desktop.Online_stable.json` / `HDX.Desktop.Full_stable.json`。客户端 endpoint 可以使用 GitHub `/releases/latest/download/<file>` 指向当前稳定 Release。
 - `assets[].updater.format` 当前固定为 `tauri-v2-static-json`，`signatureRequired` 固定为 `true`。Tauri updater 签名与 Windows 安装包代码签名不是同一件事：首版 Windows 安装包可以未签名，但自动更新 artifact 仍必须有 Tauri updater signature。
@@ -112,4 +112,4 @@ ADR 0014 允许后端 native 输入未变化时复用历史主仓库 Release 中
 - 历史后端 asset 构建来源。
 - 当前发布事实源与历史后端 asset 构建 `root.commit` 的区别。
 
-`.github/workflows/debug-release-draft-reuse-backend.yml` 提供手动最小 draft 复用闭环。完整真实 release workflow 仍需后续把后端 artifact 新建分支、历史 asset 复用分支、Web/Desktop Online/Desktop Full/App 构建和正式 publish 串成统一发布链路。
+`.github/workflows/debug-release-draft-reuse-backend.yml` 提供手动最小 draft 复用闭环。正式 release workflow 已把后端 artifact 新建分支、历史 asset 复用分支、Web/Desktop Online/Desktop Full 构建和 publish 串成第一版统一发布链路；后续仍需真实 tag-only 远端验证、失败 draft 人工清理演练和 Desktop Full 真实后端 AppImage 启动验证。App 当前暂不进入发布闭环。

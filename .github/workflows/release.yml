@@ -38,6 +38,14 @@ on:
         description: "发布意图 ID，建议为 <version>:<rootCommit>。"
         required: true
         type: string
+      release_mode:
+        description: "发布模式：draft 仅保留草稿，publish 在远端校验通过后发布。"
+        required: true
+        default: "draft"
+        type: choice
+        options:
+          - draft
+          - publish
 
 permissions:
   contents: read
@@ -68,6 +76,8 @@ jobs:
       historical_release_tag: ${{ steps.validate.outputs.historical_release_tag }}
       openapi_snapshot_hash: ${{ steps.validate.outputs.openapi_snapshot_hash }}
       release_intent_id: ${{ steps.validate.outputs.release_intent_id }}
+      release_mode: ${{ steps.validate.outputs.release_mode }}
+      release_channel: ${{ steps.validate.outputs.release_channel }}
     steps:
       - name: 校验输入与后端来源 JSON
         id: validate
@@ -80,6 +90,7 @@ jobs:
           BACKEND_SOURCE_MODE: ${{ inputs.backend_source_mode }}
           BACKEND_SOURCES_JSON: ${{ inputs.backend_sources_json }}
           RELEASE_INTENT_ID: ${{ inputs.release_intent_id }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
           ROOT_REPOSITORY: ${{ github.repository }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -119,6 +130,8 @@ jobs:
           $openApiSnapshotHash = $env:OPENAPI_SNAPSHOT_HASH.Trim()
           $backendSourceMode = $env:BACKEND_SOURCE_MODE.Trim()
           $releaseIntentId = $env:RELEASE_INTENT_ID.Trim()
+          $releaseMode = $env:RELEASE_MODE.Trim().ToLowerInvariant()
+          $releaseChannel = if ($version -match '^v[0-9]+\.[0-9]+\.[0-9]+-') { 'preview' } else { 'stable' }
           $rootRepository = $env:ROOT_REPOSITORY.Trim()
 
           Assert-Pattern 'version' $version '^v[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$' '必须形如 v1.2.3，可携带 prerelease 或 build metadata。'
@@ -132,6 +145,9 @@ jobs:
 
           if ($backendSourceMode -notin @('github-actions-artifact', 'historical-release-asset')) {
             throw "backend_source_mode 不支持：$backendSourceMode"
+          }
+          if ($releaseMode -notin @('draft', 'publish')) {
+            throw "release_mode 不支持：$releaseMode"
           }
 
           $payload = $env:BACKEND_SOURCES_JSON | ConvertFrom-Json -Depth 100
@@ -155,6 +171,8 @@ jobs:
           "backend_source_mode=$backendSourceMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "openapi_snapshot_hash=$openApiSnapshotHash" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           "release_intent_id=$releaseIntentId" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_mode=$releaseMode" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          "release_channel=$releaseChannel" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
 
           if ($backendSourceMode -eq 'github-actions-artifact') {
             $backendRepo = ''
@@ -243,7 +261,7 @@ jobs:
             "backend_repo=$backendRepo" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           }
 
-          Write-Host "输入校验通过：version=$version mode=$backendSourceMode intent=$releaseIntentId"
+          Write-Host "输入校验通过：version=$version mode=$backendSourceMode release_mode=$releaseMode release_channel=$releaseChannel intent=$releaseIntentId"
 
   resolve-backend-native:
     name: Resolve backend native assets
@@ -984,6 +1002,8 @@ jobs:
       BACKEND_SOURCES_JSON: ${{ inputs.backend_sources_json }}
       OPENAPI_SNAPSHOT_HASH: ${{ needs.validate-inputs.outputs.openapi_snapshot_hash }}
       RELEASE_INTENT_ID: ${{ needs.validate-inputs.outputs.release_intent_id }}
+      RELEASE_MODE: ${{ needs.validate-inputs.outputs.release_mode }}
+      RELEASE_CHANNEL: ${{ needs.validate-inputs.outputs.release_channel }}
       ASSET_ROOT: target/release/assets
     steps:
       - name: Checkout 主仓库发布事实源
@@ -1149,6 +1169,7 @@ jobs:
             -DesktopAssetsDirectory 'target/release/desktop-online-assets' `
             -DesktopRepository $env:DESKTOP_REPOSITORY `
             -DesktopCommit $env:DESKTOP_COMMIT `
+            -ReleaseChannel $env:RELEASE_CHANNEL `
             -AssetRoot $env:ASSET_ROOT
 
       - name: 下载 Desktop Full 临时资产
@@ -1168,6 +1189,7 @@ jobs:
             -DesktopAssetsDirectory 'target/release/desktop-full-assets' `
             -DesktopRepository $env:DESKTOP_REPOSITORY `
             -DesktopCommit $env:DESKTOP_COMMIT `
+            -ReleaseChannel $env:RELEASE_CHANNEL `
             -AssetRoot $env:ASSET_ROOT
 
       - name: 创建 draft Release
@@ -1194,40 +1216,61 @@ jobs:
           }
 
           $notesPath = 'target/release/release-notes.md'
+          $releaseKindText = if ($env:RELEASE_CHANNEL -eq 'preview') { '预览发布' } else { '正式发布' }
           @(
-            "HDX $env:VERSION 草稿发布"
+            "HDX $env:VERSION 发布"
             ''
-            '本 draft 由正式 `release.yml` 第一阶段自动生成。'
+            '本 Release 由正式 `release.yml` 自动生成：先创建 draft、上传资产并远端回读校验；`release_mode=publish` 时校验通过后自动 publish。'
+            "发布类型：$releaseKindText。"
             ''
-            '当前限制：'
+            '发布范围：'
             '- 已组装后端 native 来源、Web node-server asset、Desktop Online asset 和 Desktop Full asset。'
             '- Desktop Online/Full 包内使用 Web desktop-static 静态 UI，不内置 Node/Nitro 子进程。'
             '- Desktop Full 包内已携带同平台已解压 backend-full 与 backend-build.json，Rust BFF 会通过 sidecar token 访问本机后端。'
-            '- Desktop Full 真实安装后启动验证、Desktop Online 远端配置闭环仍需继续验证。'
-            '- 尚未构建 App asset。'
-            '- 尚不自动 publish，校验通过后仍保持 draft。'
+            '- App 当前暂不进入发布闭环，不构建、不要求 App asset，也不阻塞 publish。'
+            '- Desktop Full 真实 Linux AppImage 启动验证仍需后续补齐。'
+            '- 如果 assemble 在 publish 前失败，失败 draft 会保留用于排障，不会自动删除。'
             ''
             "release_intent_id: $env:RELEASE_INTENT_ID"
             "backend_source_mode: $env:BACKEND_SOURCE_MODE"
+            "release_mode: $env:RELEASE_MODE"
+            "release_channel: $env:RELEASE_CHANNEL"
           ) | Set-Content -LiteralPath $notesPath
 
-          gh release create $env:VERSION `
-            --repo $env:ROOT_REPOSITORY `
-            --draft `
-            --target $env:ROOT_COMMIT `
-            --title "HDX $env:VERSION" `
-            --notes-file $notesPath
+          $createArgs = @(
+            'release',
+            'create',
+            $env:VERSION,
+            '--repo',
+            $env:ROOT_REPOSITORY,
+            '--draft',
+            '--target',
+            $env:ROOT_COMMIT,
+            '--title',
+            "HDX $env:VERSION",
+            '--notes-file',
+            $notesPath
+          )
+          if ($env:RELEASE_CHANNEL -eq 'preview') {
+            $createArgs += @('--prerelease', '--latest=false')
+          }
+
+          gh @createArgs
           if ($LASTEXITCODE -ne 0) {
             throw '创建 draft Release 失败。'
           }
 
-          $release = gh release view $env:VERSION --repo $env:ROOT_REPOSITORY --json url,isDraft,tagName,targetCommitish
+          $release = gh release view $env:VERSION --repo $env:ROOT_REPOSITORY --json url,isDraft,isPrerelease,tagName,targetCommitish
           if ($LASTEXITCODE -ne 0) {
             throw '读取 draft Release 失败。'
           }
           $releaseJson = $release | ConvertFrom-Json
           if ($releaseJson.isDraft -ne $true) {
             throw 'Release 创建后不是 draft，停止。'
+          }
+          $expectedPrerelease = $env:RELEASE_CHANNEL -eq 'preview'
+          if ($releaseJson.isPrerelease -ne $expectedPrerelease) {
+            throw "Release prerelease 状态不符合发布类型：channel=$env:RELEASE_CHANNEL isPrerelease=$($releaseJson.isPrerelease)"
           }
 
           "release_url=$($releaseJson.url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
@@ -1324,12 +1367,111 @@ jobs:
             throw "远端 Release asset manifest 校验失败，退出码：$LASTEXITCODE"
           }
 
+          foreach ($requiredFileName in @('backend-native-manifest.json', 'release-manifest.json', 'SHA256SUMS')) {
+            $requiredRemotePath = Join-Path $downloadRoot $requiredFileName
+            if (-not (Test-Path -LiteralPath $requiredRemotePath -PathType Leaf)) {
+              throw "远端 Release 缺少必需文件：$requiredFileName"
+            }
+          }
+
+          $remoteReleaseManifest = Get-Content -LiteralPath $remoteReleaseManifestPath -Raw | ConvertFrom-Json -Depth 100
+          $manifestAssets = @($remoteReleaseManifest.assets)
+          function Get-AssetField([object]$Asset, [string]$Name) {
+            $property = $Asset.PSObject.Properties[$Name]
+            if ($null -eq $property -or $null -eq $property.Value) {
+              return ''
+            }
+            return [string]$property.Value
+          }
+
+          function Assert-ManifestAsset([string]$Kind, [string]$Platform, [string]$Flavor, [string]$Packaging, [string]$Channel) {
+            $matches = @(
+              $manifestAssets | Where-Object {
+                (Get-AssetField $_ 'kind') -eq $Kind -and
+                ([string]::IsNullOrWhiteSpace($Platform) -or (Get-AssetField $_ 'platform') -eq $Platform) -and
+                ([string]::IsNullOrWhiteSpace($Flavor) -or (Get-AssetField $_ 'flavor') -eq $Flavor) -and
+                ([string]::IsNullOrWhiteSpace($Packaging) -or (Get-AssetField $_ 'packaging') -eq $Packaging) -and
+                ([string]::IsNullOrWhiteSpace($Channel) -or (Get-AssetField $_ 'channel') -eq $Channel)
+              }
+            )
+            if ($matches.Count -ne 1) {
+              $descriptor = @($Kind, $Platform, $Flavor, $Packaging, $Channel) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
+              throw "Release manifest 必需资产缺失或不唯一：$($descriptor -join '/')"
+            }
+          }
+
+          Assert-ManifestAsset 'backend-full' 'linux-x64' '' '' ''
+          Assert-ManifestAsset 'backend-full' 'windows-x64' '' '' ''
+          Assert-ManifestAsset 'backend-services' 'linux-x64' '' '' ''
+          Assert-ManifestAsset 'web-node-server' '' '' 'tar.gz' ''
+          Assert-ManifestAsset 'desktop-installer' 'windows-x64' 'online' 'nsis' $env:RELEASE_CHANNEL
+          Assert-ManifestAsset 'desktop-portable' 'windows-x64' 'online' 'zip' $env:RELEASE_CHANNEL
+          Assert-ManifestAsset 'desktop-appimage' 'linux-x64' 'online' 'appimage' $env:RELEASE_CHANNEL
+          Assert-ManifestAsset 'desktop-installer' 'windows-x64' 'full' 'nsis' $env:RELEASE_CHANNEL
+          Assert-ManifestAsset 'desktop-portable' 'windows-x64' 'full' 'zip' $env:RELEASE_CHANNEL
+          Assert-ManifestAsset 'desktop-appimage' 'linux-x64' 'full' 'appimage' $env:RELEASE_CHANNEL
+
           Write-Host "远端 draft Release asset 校验通过：$($releaseJson.url)"
+          Write-Host 'publish 前必需资产检查通过；App 当前不属于必需资产。'
+
+      - name: 发布 Release
+        id: publish-release
+        if: ${{ needs.validate-inputs.outputs.release_mode == 'publish' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+
+          $release = gh release view $env:VERSION --repo $env:ROOT_REPOSITORY --json url,isDraft,isPrerelease,tagName
+          if ($LASTEXITCODE -ne 0) {
+            throw 'publish 前读取 Release 失败。'
+          }
+
+          $releaseJson = $release | ConvertFrom-Json -Depth 20
+          if ($releaseJson.tagName -ne $env:VERSION) {
+            throw "publish 前 Release tag 不一致：期望 $env:VERSION，实际 $($releaseJson.tagName)"
+          }
+          if ($releaseJson.isDraft -ne $true) {
+            throw 'publish 前 Release 已不是 draft，停止。'
+          }
+          $expectedPrerelease = $env:RELEASE_CHANNEL -eq 'preview'
+          if ($releaseJson.isPrerelease -ne $expectedPrerelease) {
+            throw "publish 前 Release prerelease 状态不符合发布类型：channel=$env:RELEASE_CHANNEL isPrerelease=$($releaseJson.isPrerelease)"
+          }
+
+          $publishArgs = @(
+            'release',
+            'edit',
+            $env:VERSION,
+            '--repo',
+            $env:ROOT_REPOSITORY,
+            '--draft=false'
+          )
+          if ($env:RELEASE_CHANNEL -eq 'preview') {
+            $publishArgs += '--latest=false'
+          }
+
+          gh @publishArgs
+          if ($LASTEXITCODE -ne 0) {
+            throw 'publish Release 失败；已上传的 draft 会保留用于排障。'
+          }
+
+          $publishedRelease = gh release view $env:VERSION --repo $env:ROOT_REPOSITORY --json url,isDraft
+          if ($LASTEXITCODE -ne 0) {
+            throw 'publish 后读取 Release 失败。'
+          }
+          $publishedReleaseJson = $publishedRelease | ConvertFrom-Json -Depth 20
+          if ($publishedReleaseJson.isDraft -eq $true) {
+            throw 'Release publish 后仍是 draft，停止。'
+          }
+
+          "release_url=$($publishedReleaseJson.url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          Write-Host "Release 已 publish：$($publishedReleaseJson.url)"
 
       - name: 输出发布摘要
         if: always()
         env:
-          RELEASE_URL: ${{ steps.draft-release.outputs.release_url }}
+          RELEASE_URL: ${{ steps.publish-release.outputs.release_url || steps.draft-release.outputs.release_url }}
           JOB_STATUS: ${{ job.status }}
         run: |
           $ErrorActionPreference = 'Stop'
@@ -1360,6 +1502,8 @@ jobs:
           - backend_commit: ``$env:BACKEND_COMMIT``
           - backend_source_mode: ``$env:BACKEND_SOURCE_MODE``
           - release_intent_id: ``$env:RELEASE_INTENT_ID``
+          - release_mode: ``$env:RELEASE_MODE``
+          - release_channel: ``$env:RELEASE_CHANNEL``
           - release_url: ``$env:RELEASE_URL``
 
           ## 已执行
@@ -1372,7 +1516,9 @@ jobs:
           - 构建 Desktop Online Windows/Linux 发布包，并追加到 ``release-manifest.json``。
           - 构建 Desktop Full Windows/Linux 发布包，携带同平台已解压 ``backend-full`` 与 ``backend-build.json``，并追加到 ``release-manifest.json``。
           - 生成并校验包含后端、Web、Desktop Online 与 Desktop Full 资产的 ``release-manifest.json`` 与 ``SHA256SUMS``。
-          - 创建 draft Release，上传资产，并从远端下载核对 size、sha256、manifest 记录和禁止文件规则。
+          - 创建 draft Release，上传资产，并从远端下载核对 size、sha256、manifest 记录、必需资产和禁止文件规则。
+          - ``release_mode=publish`` 时在远端校验通过后 publish；``release_mode=draft`` 时保持 draft。
+          - ``release_channel=preview`` 时创建 GitHub prerelease，且不标记为 Latest；无 prerelease 后缀 tag 默认为 ``stable`` 正式发布。
 
           ## 当前限制
 
@@ -1380,9 +1526,9 @@ jobs:
           - ``historical-release-asset`` 模式支持同一个历史 Release 中的多个后端 native asset 来源。
           - 第一版已构建 Web node-server asset、Desktop Online asset 和 Desktop Full asset。
           - Desktop Online/Full 已改为静态 Web UI + Rust BFF，不再内置 Node/Nitro 子进程。
-          - Desktop Online 远端配置、Desktop Full 真实安装包验证、App asset 和 publish 仍未完成。
-          - 第一版不构建 App。
-          - 第一版不自动 publish；校验通过后仍保持 draft。
+          - App 当前暂不进入发布闭环，不构建、不要求 App asset，也不阻塞 publish。
+          - Desktop Full 真实 backend-full Linux AppImage 启动验证仍未完成。
+          - assemble 在 publish 前失败时保留 draft，不自动删除；重跑同版本前需要人工清理失败 draft。
 
           ## 子模块指针
 

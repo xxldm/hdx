@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-15（补齐 Boot 4 Jackson 静态检查与 all-in-one AOT/package smoke）
+- 最后更新：2026-06-16（修复 release-start 历史复用失败 fallback）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.2` 真实 tag-only 预览发布已成功，Full Linux AppImage 真实运行暴露 Jackson 2/3 `ObjectMapper` 类型不匹配；后端已改用 Jackson 3，并把 Boot 4 Jackson 静态检查、all-in-one AOT/package smoke 固化到门禁。
-- 下一步：推送本轮门禁补强和子模块指针后，发布 `v0.0.0-preview.3`，再在本机 Ubuntu WSL 复测 Full Linux AppImage 的真实 sidecar 启动、`/local/session` 和工作台数据加载；WSL/AppImage 真实 smoke 属于 release 后验证。
-- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用；后端修复尚未经过新版真实 Linux native/AppImage 产物复测。Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.3` 已触发但失败于 release-start 历史后端 asset 复用不可用后的 fallback 步骤；根因是内层 `pwsh` 非零退出码残留，已修复为 catch 后清理 `$LASTEXITCODE`。后端 Jackson 3 修复和门禁补强已在 `a7fc73b`。
+- 下一步：推送 release-start fallback 修复后发布 `v0.0.0-preview.4`，等待后端 native build 与主仓库 assemble 完成，再在本机 Ubuntu WSL 做 release 后真实 Full Linux AppImage smoke。
+- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release；后端修复尚未经过新版真实 Linux native/AppImage 产物复测。Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -131,6 +131,7 @@
 - 2026-06-15：本机 Ubuntu WSL 真实运行 `HDX.Desktop.Full_linux-x64_v0.0.0-preview.2.AppImage`。补齐 WSL GUI/WebKit 运行依赖和 CJK 字体后，Desktop Full UI 可启动并显示中文，但页面提示后端暂时不可用。sidecar 日志位于 `/home/xxldm/.local/share/cn.hdx.desktop.full/backend/logs/`，确认 `backend-full` 已启动到 H2/Flyway/JPA 后失败于 `LocalTokenSecurityConfiguration.allInOneSecurityFilterChain` 参数 `com.fasterxml.jackson.databind.ObjectMapper` 无 bean。根因是 Spring Boot 4 自动配置提供 Jackson 3 `tools.jackson.databind.ObjectMapper`，而 `backend-http-support` 与安全配置仍注入 Jackson 2 类型；测试里手写 Jackson 2 bean 曾掩盖生产缺口。后端已改为使用 Jackson 3 类型并移除安全配置测试里的手写旧 mapper。
 - 2026-06-15：为避免同类 Boot 4/Jackson 迁移缺口再次只在真实 native 产物中暴露，后端新增 `scripts/check-boot4-jackson.ps1`，根仓库 `quality-gate.ps1 -Scope backend` 接入该静态检查和 `backend-all-in-one` AOT/package smoke；后端 native artifact workflow 在真实 native 编译前先运行 Jackson preflight。
 - 2026-06-15：本轮门禁补强验证通过：后端 Jackson 检查脚本、根仓库 `quality-gate.ps1 -Scope backend -NoBuild`、`quality-gate.ps1 -Scope backend`、`quality-gate.ps1 -Scope docs -NoBuild`、`actionlint services/backend/.github/workflows/backend-native-artifact.yml` 和根/后端 `git diff --check` 均通过。Maven 与 Java 25 相关 warning 暂不阻塞。
+- 2026-06-16：推送 `v0.0.0-preview.3` 触发 Release Start run `27592731539`，失败于“解析历史后端来源”。历史 `v0.0.0-preview.2` 的后端 commit 与当前 `0b713c8` 不一致本应触发后端 native build fallback，但 catch 后未清理内层 `pwsh` 留下的 `$LASTEXITCODE=1`，导致步骤误失败。当前已在 `release-start.yml` fallback catch 中清理 `$LASTEXITCODE`；按发布纪律不移动已推送 tag，后续用 `v0.0.0-preview.4` 重跑。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
@@ -140,7 +141,7 @@
 - 历史 Release asset 复用验证：本地 draft minimal/reuse 脚本 dry-run 通过；GitHub-hosted run `27209181697` 和 `27209326174` 分别验证历史 draft 创建与历史后端 native asset 复用；远端 manifest 回读确认 `historical-release-asset` 来源和 `backendNativeFingerprint`。
 - 发布控制面验证：`check-release-app-token.yml` run `27402944650` 通过；`Release Start` 手动 dry-run run `27403306816` 通过，确认 dry-run 只预演后端来源判断，不触发主仓库 assemble、后端 App token 或后端 resolver。
 - 公开端资产检查：run `27528781158` 确认 Desktop Full Linux AppImage 合成资源 smoke 通过；同一 run 暴露 Windows Online 打包脚本受旧缓存 NSIS 产物干扰，当前已补按版本精确匹配和 fixture 回归；run `27529656045` 已确认全部 job 通过。
-- 真实 preview tag 验证：`v0.0.0-preview.1` 对应 `release-start` run `27532492338`、后端 resolver run `27532509974` 和主仓库 assemble run `27534125174`。该链路已证明后端 native、Web、Desktop Online/Full 构建、draft 创建和资产上传可达；失败点限定在 publish 前远端 manifest 校验传参，已按单目录扫描方式修复。`v0.0.0-preview.2` 对应 `release-start` run `27535070134`、后端 resolver run `27535085705` 和主仓库 assemble run `27536663826`，已成功 publish 为 prerelease，未标记 Latest，远端 manifest 校验通过且 Desktop asset channel 为 `preview`。
+- 真实 preview tag 验证：`v0.0.0-preview.1` 对应 `release-start` run `27532492338`、后端 resolver run `27532509974` 和主仓库 assemble run `27534125174`。该链路已证明后端 native、Web、Desktop Online/Full 构建、draft 创建和资产上传可达；失败点限定在 publish 前远端 manifest 校验传参，已按单目录扫描方式修复。`v0.0.0-preview.2` 对应 `release-start` run `27535070134`、后端 resolver run `27535085705` 和主仓库 assemble run `27536663826`，已成功 publish 为 prerelease，未标记 Latest，远端 manifest 校验通过且 Desktop asset channel 为 `preview`。`v0.0.0-preview.3` 对应 Release Start run `27592731539`，未进入后端 resolver 或 assemble，失败点限定在历史复用失败 fallback 步骤。
 - 真实 Full Linux AppImage 验证：`v0.0.0-preview.2` 在本机 Ubuntu WSL 可启动 Desktop UI，但内置 `backend-full` sidecar 启动失败于 Jackson 2/3 `ObjectMapper` 类型不匹配。后端修复后已运行针对 all-in-one、core-service、gateway 和 auth-service 的测试，以及 all-in-one AOT/package smoke，均通过；尚需新 preview release 产物复测。
 - 本地质量门禁：根仓库 backend scope 已补 Boot 4 Jackson 静态检查和 all-in-one AOT/package smoke；docs scope 覆盖关键文档、release manifest、Desktop Release asset 打包 fixture、OpenAPI 契约、OpenAPI 类型生成和 Web 类型对齐检查。
 

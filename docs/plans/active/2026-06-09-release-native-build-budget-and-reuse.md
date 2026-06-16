@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-16（preview.5 发布与 Full Linux AppImage smoke 通过）
+- 最后更新：2026-06-16（preview.5 发布验证与 Actions storage 止血）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.5` 已完成真实 tag-only 预览发布链路验证：Release Start、后端 resolver、主仓库 assemble/publish 均成功；Windows full native 在 `native-windows-ci` profile 下 30m52s 完成；Full Linux AppImage 已在本机 Ubuntu WSL 完成真实启动与 API smoke。
-- 下一步：继续做失败 draft 人工清理演练、release artifact 上下文一致性收口、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
-- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 后端 resolver 未 finalize、未创建主仓库 Release。`v0.0.0-preview.5` 已证明后端修复进入真实 release native/AppImage 产物；Windows services 包、旧 workflow 复现、很旧 tag 的 workflow 入口、stable 正式发布和安装包矩阵仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.5` 已完成真实 tag-only 预览发布链路验证：Release Start、后端 resolver、主仓库 assemble/publish 均成功；Windows full native 在 `native-windows-ci` profile 下 30m52s 完成；Full Linux AppImage 已在本机 Ubuntu WSL 完成真实启动与 API smoke。Actions 临时 artifacts/cache 已手动清空；后续成功发布会在资产上传、远端校验和可选 publish 后尽力清理已消费的 Actions artifacts。
+- 下一步：验证 artifact 自动清理步骤在下一次 release/check run 中按预期工作；继续做失败 draft 人工清理演练、release artifact 上下文一致性收口、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
+- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 后端 resolver 未 finalize、未创建主仓库 Release。`v0.0.0-preview.5` 已证明后端修复进入真实 release native/AppImage 产物；Actions artifact 删除失败不会阻塞已成功的 Release，但可能需要人工兜底清理；Windows services 包、旧 workflow 复现、很旧 tag 的 workflow 入口、stable 正式发布和安装包矩阵仍需后续设计或验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -84,6 +84,7 @@
 - [x] 后续完善 `.github/workflows/release.yml`，把 Desktop Full Windows/Linux asset 构建接入真实 draft assemble。
 - [x] 后续完善 `.github/workflows/release.yml`，接入 `release_mode=publish`、stable/preview 发布区分、preview prerelease 和 Desktop asset channel。
 - [x] 完成真实 tag-only 预览发布链路验证和 Desktop Full Linux 真实 `backend-full` AppImage 启动/API smoke。
+- [x] 清空当前 Actions 临时 artifacts/cache，并在发布成功路径补齐已消费 artifacts 的自动清理。
 - [ ] 后续完善失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 
 ## 验收标准
@@ -91,7 +92,8 @@
 - 默认后端 native workflow 仍产出 `backend-full-linux-x64`、`backend-full-windows-x64` 和 `backend-services-linux-x64` 三个最终 artifact。
 - `backend-services-linux-x64` 的三个服务 native 编译在 matrix job 中并行运行，`max-parallel` 明确限制为 3。
 - `backend-services-windows-x64` 仍默认关闭，仅在 `include_windows_services=true` 时按同样结构运行。
-- 临时 service binary artifact 只在同一 workflow 内供聚合 job 使用，保留期仍为 1 天。
+- 临时 service binary artifact 只在同一 workflow 内供聚合 job 使用，聚合成功后尽力删除；失败时仍保留 1 天用于排障。
+- 主仓库 release assemble 成功上传并远端校验 Release 资产后，尽力删除 `release-backend-assets`、Desktop 临时 assets 和已经消费的后端 native Actions artifacts；删除失败不应阻塞已成功的 Release。
 - 最终 `backend-services` archive 名称、内部结构、`backend-native-manifest.json` 和 `backend-services-manifest.json` 兼容现有 release 契约。
 - 文档不再把“第一版不自动复用历史 Release 资产”描述为当前策略；当前策略应指向 ADR 0014 的 fingerprint 复用规则。
 - 手动最小 draft 复用入口不 checkout 后端私有源码、不下载后端私有 Actions artifact、不运行 native-image、不 publish Release。
@@ -112,6 +114,7 @@
 ## 风险与阻塞
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
+- Actions storage 本轮瓶颈主要来自大体积临时 artifacts。Actions cache 与 artifact 的额度/计费模型不同；当前主仓库 cache 约 4.5 GiB、后端 cache 约 0.8 GiB，低于单仓库默认 10 GB cache 上限，不是当前 `0.5 GB` storage 压力的主因。cache 继续保留以降低构建时间，但如果单仓库 cache 接近 10 GB，需要再单独调整。
 - `release-manifest.json` schema、校验脚本、手动最小 draft workflow、主仓库 `release-start.yml` 和主仓库 `release.yml` draft assemble 第一版已能表达、校验、下载并重新上传历史 Release asset；ADR 0013/0014 已补齐 tag-only 目标发布设计，但完整 tag-only 自动发布链路仍未实现。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化；release start 使用该脚本生成后端 native 输入 hash。
 - 旧后端 asset 的构建 `root.commit` 可能不同于新 Release 的 root commit；后续校验必须区分“当前发布事实源”和“历史后端 asset 构建来源”。

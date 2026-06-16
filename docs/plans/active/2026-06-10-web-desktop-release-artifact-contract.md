@@ -6,12 +6,12 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
-- 最后更新：2026-06-16（preview.5 Full Linux AppImage smoke 通过）
+- 最后更新：2026-06-16（preview.5 smoke 通过与检查 artifact 收缩）
 
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
-- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage 真实 sidecar/API smoke 均已通过；后端 Jackson 2/3 缺陷已确认随真实 release native/AppImage 修复。
-- 下一步：继续失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage 真实 sidecar/API smoke 均已通过；后端 Jackson 2/3 缺陷已确认随真实 release native/AppImage 修复。公开端检查 workflow 后续只在 job 内校验生成资产，不再上传 1 天保留期的检查 artifact。
+- 下一步：验证公开端检查 workflow 在不上传 Actions artifact 的情况下仍能覆盖 Web/Desktop 产物生成；继续失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
 - 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 未 assemble 出主仓库 Release；`v0.0.0-preview.5` 已证明新版 Full Linux AppImage 可启动本机后端并读取工作台数据。完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 

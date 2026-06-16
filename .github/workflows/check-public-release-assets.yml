@@ -161,14 +161,6 @@ jobs:
           }
           Write-Host "Web node-server 资产生成：$archivePath"
 
-      - name: 上传 Web 检查资产
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-release-assets-web
-          path: apps/web/dist/public-release-assets/*
-          if-no-files-found: error
-          retention-days: 1
-
       - name: 输出 Web 检查摘要
         if: always()
         env:
@@ -199,7 +191,7 @@ jobs:
           - 初始化根仓库锁定的 ``apps/web`` 子模块。
           - 使用 Node 24 + pnpm 10 安装依赖。
           - 构建 ``hdx-web-node-server-<version>.tar.gz``。
-          - 上传 1 天保留期的临时检查 artifact。
+          - 本检查只在 job 内校验产物，不上传临时 Actions artifact。
 
           ## 生成资产
 
@@ -432,14 +424,6 @@ jobs:
             -RootCommit $env:ROOT_COMMIT `
             -DesktopCommit $env:DESKTOP_COMMIT
 
-      - name: 上传 Desktop Online 检查资产
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-release-assets-desktop-online-${{ matrix.platform }}
-          path: target/public-release-assets/desktop/*
-          if-no-files-found: error
-          retention-days: 1
-
       - name: 输出 Desktop 检查摘要
         if: always()
         env:
@@ -472,7 +456,7 @@ jobs:
           - 使用 Node 24 + pnpm 10 安装依赖。
           - 构建 Desktop Online ``nsis`` 或 ``appimage`` bundle。
           - 按 Release 命名规则整理安装包、绿色包或 AppImage。
-          - 上传 1 天保留期的临时检查 artifact。
+          - 本检查只在 job 内校验产物，不上传临时 Actions artifact。
 
           ## 生成资产
 
@@ -802,14 +786,6 @@ jobs:
             -RootCommit $env:ROOT_COMMIT `
             -DesktopCommit $env:DESKTOP_COMMIT
 
-      - name: 上传 Desktop Full Linux 检查资产
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-release-assets-desktop-full-linux-x64
-          path: target/public-release-assets/desktop-full/*
-          if-no-files-found: error
-          retention-days: 1
-
       - name: 输出 Desktop Full Linux 检查摘要
         if: always()
         env:
@@ -843,7 +819,7 @@ jobs:
           - 构建 Desktop Full Linux ``appimage`` bundle。
           - 使用合成 ``backend-build.json`` 和 entrypoint 验证 AppImage 内置资源路径。
           - 按 Release 命名规则整理 AppImage。
-          - 上传 1 天保留期的临时检查 artifact。
+          - 本检查只在 job 内校验产物，不上传临时 Actions artifact。
 
           ## 当前限制
 

@@ -988,6 +988,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: write
+      actions: write
     defaults:
       run:
         shell: pwsh
@@ -1466,6 +1467,127 @@ jobs:
 
           "release_url=$($publishedReleaseJson.url)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
           Write-Host "Release 已 publish：$($publishedReleaseJson.url)"
+
+      - name: 生成后端 artifact 清理 GitHub App token
+        id: backend-cleanup-token
+        if: ${{ needs.validate-inputs.outputs.backend_source_mode == 'github-actions-artifact' }}
+        continue-on-error: true
+        uses: actions/create-github-app-token@v3.2.0
+        with:
+          client-id: ${{ secrets.HDX_RELEASE_APP_CLIENT_ID }}
+          private-key: ${{ secrets.HDX_RELEASE_APP_PRIVATE_KEY }}
+          owner: ${{ needs.validate-inputs.outputs.backend_owner }}
+          repositories: ${{ needs.validate-inputs.outputs.backend_name }}
+          permission-actions: write
+
+      - name: 清理已消费的 Actions 临时 artifacts
+        env:
+          MAIN_TOKEN: ${{ github.token }}
+          BACKEND_TOKEN: ${{ steps.backend-cleanup-token.outputs.token }}
+        run: |
+          $ErrorActionPreference = 'Continue'
+
+          $cleanupLines = [System.Collections.Generic.List[string]]::new()
+
+          function Remove-WorkflowArtifactsByName(
+            [string]$Repository,
+            [string]$RunId,
+            [string[]]$ArtifactNames,
+            [string]$Token,
+            [string]$Scope
+          ) {
+            if ([string]::IsNullOrWhiteSpace($Token)) {
+              $message = "跳过 $Scope artifact 清理：缺少 GitHub token。"
+              Write-Warning $message
+              $script:cleanupLines.Add("- $message")
+              return
+            }
+
+            $env:GH_TOKEN = $Token
+            $artifactListPayload = gh api "repos/$Repository/actions/runs/$RunId/artifacts"
+            if ($LASTEXITCODE -ne 0) {
+              $message = "读取 $Scope artifact 列表失败：repo=$Repository run=$RunId"
+              Write-Warning $message
+              $script:cleanupLines.Add("- $message")
+              $global:LASTEXITCODE = 0
+              return
+            }
+
+            $artifacts = @((($artifactListPayload | ConvertFrom-Json -Depth 20).artifacts))
+            foreach ($artifactName in $ArtifactNames) {
+              if ([string]::IsNullOrWhiteSpace($artifactName)) {
+                continue
+              }
+
+              $matches = @($artifacts | Where-Object { $_.name -eq $artifactName })
+              if ($matches.Count -eq 0) {
+                $message = "$Scope artifact 不存在或已清理：$artifactName"
+                Write-Host $message
+                $script:cleanupLines.Add("- $message")
+                continue
+              }
+
+              foreach ($artifact in $matches) {
+                gh api -X DELETE "repos/$Repository/actions/artifacts/$($artifact.id)"
+                if ($LASTEXITCODE -ne 0) {
+                  $message = "删除 $Scope artifact 失败：$artifactName id=$($artifact.id)"
+                  Write-Warning $message
+                  $script:cleanupLines.Add("- $message")
+                  $global:LASTEXITCODE = 0
+                  continue
+                }
+
+                $message = "已删除 $Scope artifact：$artifactName id=$($artifact.id)"
+                Write-Host $message
+                $script:cleanupLines.Add("- $message")
+              }
+            }
+          }
+
+          $mainArtifactNames = @(
+            'release-backend-assets',
+            'desktop-release-assets-online-windows-x64',
+            'desktop-release-assets-online-linux-x64',
+            'desktop-release-assets-full-windows-x64',
+            'desktop-release-assets-full-linux-x64'
+          )
+          Remove-WorkflowArtifactsByName `
+            -Repository $env:ROOT_REPOSITORY `
+            -RunId '${{ github.run_id }}' `
+            -ArtifactNames $mainArtifactNames `
+            -Token $env:MAIN_TOKEN `
+            -Scope '主仓库 release'
+
+          if ($env:BACKEND_SOURCE_MODE -eq 'github-actions-artifact') {
+            $payload = $env:BACKEND_SOURCES_JSON | ConvertFrom-Json -Depth 100
+            $sourcesProperty = $payload.PSObject.Properties['sources']
+            $sources = if ($null -ne $sourcesProperty) { @($sourcesProperty.Value) } else { @($payload) }
+            $groups = @(
+              $sources |
+                Where-Object { ([string]$_.type) -eq '' -or ([string]$_.type) -eq 'github-actions-artifact' } |
+                Group-Object -Property backendRepository, runId
+            )
+
+            foreach ($group in $groups) {
+              $first = $group.Group[0]
+              $repository = ([string]$first.backendRepository).Trim()
+              $runId = ([string]$first.runId).Trim()
+              $artifactNames = @($group.Group | ForEach-Object { ([string]$_.artifactName).Trim() } | Sort-Object -Unique)
+
+              Remove-WorkflowArtifactsByName `
+                -Repository $repository `
+                -RunId $runId `
+                -ArtifactNames $artifactNames `
+                -Token $env:BACKEND_TOKEN `
+                -Scope '后端 native'
+            }
+          }
+
+          @"
+          ## Actions 临时 artifact 清理
+
+          $($cleanupLines -join [Environment]::NewLine)
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Encoding utf8 -Append
 
       - name: 输出发布摘要
         if: always()

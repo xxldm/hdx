@@ -9,6 +9,7 @@
 - 可以用 `rg`、`git status`、`git diff`、`Get-Content` 等只读命令做排查；涉及 Git 写操作、网络、依赖下载或构建产物写入时，按本文件的权限规则处理。
 - 在 Windows/Codex 本地环境中，不使用 `git submodule foreach` 做常规子模块状态检查。该命令依赖 Git for Windows 的 shell 辅助环境，已多次稳定失败为 `basename: command not found`、`sed: command not found` 或 `git-sh-setup: file not found`，容易浪费排查时间。
 - 检查全部子模块状态时使用 `pwsh -NoLogo -NoProfile -File scripts/git-submodule-status.ps1 -RepoRoot <repo>`；检查单个子模块时使用 `git -C <submodule-path> status --short --branch`、`git -C <submodule-path> rev-parse HEAD` 等直接命令。
+- 后端 native 构建调参时，不要用命令行 `-DbuildArgs=...` 直接覆盖 Maven 父 POM 的 `<buildArgs>`。父 POM 内已有 `--exclude-config` 用于排除部分依赖旧式 `resource-config.json`；覆盖后可能让 GraalVM 25 在 `ResourcesFeature.beforeAnalysis` 阶段触发 `LegacyResourceConfigurationParser` NPE。需要追加 native 参数时，在后端 POM 中新增 profile，并用 `combine.children="append"` 合并。
 - 重复出现的命令踩坑、平台差异和环境问题应沉淀到本文档或脚本中；active plan 只记录当前任务状态、关键决策、验证摘要和剩余风险。
 
 ## Windows PowerShell 运行环境

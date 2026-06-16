@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-16（本机 Windows native 构建基线）
+- 最后更新：2026-06-16（native 构建内存排查）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.5` 已完成真实 tag-only 预览发布链路验证，Full Linux AppImage 已在本机 Ubuntu WSL 完成真实启动与 API smoke。`v0.0.0-preview.6` 因 `core-service` native 编译长时间停滞而取消，后端临时 artifacts 已删除。后端 commit `7518705` 已为 release native build 补充单步超时和失败诊断。本机 Windows 已验证 `backend-core-service` 与 `backend-all-in-one` native baseline 均可在数分钟内完成，`core-service` build report 会触发 GraalVM 25 legacy resource-config NPE，`all-in-one` build report 可成功生成。
-- 下一步：先用本机 Windows 基线继续定位 `core-service` 额外服务端依赖和 legacy native metadata，再决定是否调整 native 参数、收窄启动器依赖或做数据访问层 spike；远端只用于验证超时诊断和最终 release 闭环。继续做失败 draft 人工清理演练、release artifact 上下文一致性收口、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
-- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 后端 resolver 未 finalize、未创建主仓库 Release。`v0.0.0-preview.6` 说明后端 workflow-only 变更仍会触发保守 fingerprint 失配并拉起 native fallback；新增超时和诊断尚未经过远端卡住场景验证。Actions artifact 删除失败不会阻塞已成功的 Release，但可能需要人工兜底清理；Windows services 包、`core-service` build report NPE、旧 workflow 复现、很旧 tag 的 workflow 入口、stable 正式发布和安装包矩阵仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.5` 已验证 tag-only 预览发布和 Full Linux AppImage smoke；`v0.0.0-preview.6` 因 `core-service` native 停滞取消。已补超时/诊断，并在本机验证 baseline、`-Ob` 与线程限制；`-Ob` 和线程限制均不作为 release 默认方案。
+- 下一步：native 编译排查先暂停；待 2026-06-25 GraalVM 25.1 发布后，优先复测 `backend-core-service` build report 是否仍触发 legacy `resource-config.json` NPE。远端只验证诊断和复现，不用 `-Ob` 换性能。
+- 主要剩余风险：新增超时/诊断仍未在远端卡住场景验证；`-Ob` 不可作为 release 默认优化；Windows services 包、build report NPE、旧 workflow 复现、很旧 tag 入口、stable 发布和安装包矩阵仍待验证。App 暂不进发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -87,6 +87,7 @@
 - [x] 清空当前 Actions 临时 artifacts/cache，并在发布成功路径补齐已消费 artifacts 的自动清理。
 - [x] 为所有 release native build 步骤补充单步超时、Maven 日志落盘和失败 job summary 诊断。
 - [x] 在本机 Windows GraalVM/VS/Maven 环境验证 `backend-core-service` 与 `backend-all-in-one` native baseline，并确认 build report 在 `core-service` 上触发 GraalVM 25 legacy resource-config NPE、在 `all-in-one` 上可成功生成。
+- [x] 在本机 Windows 验证 `backend-core-service` 使用 `-Ob` 可降低 native-image Peak RSS；因该参数以运行性能换构建速度，不接入 release 默认构建。
 - [ ] 后续完善失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 
 ## 验收标准
@@ -144,14 +145,15 @@
 - 2026-06-16：公开端资产检查 run `27600342351` 通过，Web node-server、Desktop Online Windows/Linux 和 Desktop Full Linux AppImage 全绿；workflow 已按新约束只在 job 内校验产物，不再上传临时 Actions artifact。`gh api repos/xxldm/hdx/actions/artifacts --jq '.total_count'` 返回 `0`。完整 release 成功路径删除已消费 artifacts 仍需等下一次 preview release 验证。
 - 2026-06-16：推送 `v0.0.0-preview.6` 后，`release-start.yml` 仍按当前 fingerprint 规则判定后端输入变化并触发 `hdx-backend` native fallback；`backend-release-resolve.yml` 先后成功完成 `backend-full` Linux/Windows 与 `hdx-auth-service`、`hdx-gateway` native build，但 `hdx-core-service` 在 native-image `[6/8] Compiling methods` 阶段长时间停滞，最终于 `08:24:03 UTC` 被取消。后端 run 上传的 4 个临时 artifacts 已删除，后端仓库 `actions/artifacts` 为 `0`。本次结果说明 workflow-only 变更不能直接从 fingerprint 中剔除，且后端 native 编译资源瓶颈需要单独处理。
 - 2026-06-16：后端 commit `7518705` 为 `backend-native-artifact.yml` 的所有 release native build 步骤补充单步超时和失败诊断。Linux native build step 超时为 45 分钟，Windows native build step 超时为 60 分钟；Maven 输出同步写入 `target/native-diagnostics/<build-id>/maven.log`，失败或超时时将 Maven 日志尾部和 runner 资源快照写入 job summary，不额外上传诊断 artifact。当前只做静态与脚本级验证，远端卡住场景需下一次 preview release 验证。
-- 2026-06-16：按用户确认优先使用本机 Windows 完整编译环境验证 native 构建。`backend-core-service` 无 build report baseline 成功：总耗时 03:31，native-image 3m06s，Peak RSS 11.01GB，reachable 48,603 types / 263,399 methods，reflection 16,792 types，image 221.79MB；Top code origins 包括 Hibernate 20.17MB、Nacos client 7.47MB、H2 7.25MB、fastjson2 3.87MB。`backend-all-in-one -Pnative,native-windows-ci` baseline 成功：总耗时 02:53，native-image 2m32s，Peak RSS 12.36GB，reachable 41,212 types / 219,375 methods，reflection 14,127 types，image 185.52MB。`backend-all-in-one` 带 `-H:Emit=build-report=...` 成功并生成本机 HTML report；`backend-core-service` 带相同 build report 参数失败于 GraalVM 25 `ResourcesFeature.beforeAnalysis` 解析 legacy `resource-config.json` 时的 `LegacyResourceConfigurationParser` NPE。初步判断：`core-service` 远端 110 分钟停滞不是本机必现的代码级慢编译；`core-service` 比 `all-in-one` 更大的可达图主要来自 Nacos、Sentinel、OpenFeign、OAuth2 Resource Server、PostgreSQL/Flyway/OpenAPI 等服务端启动器依赖，后续优化应先基于本机基线收窄启动器依赖或做数据访问层小 spike，再决定是否调整 runner。
+- 2026-06-16：按用户确认优先使用本机 Windows 完整编译环境验证 native 构建。`backend-core-service` 无 build report baseline 成功：总耗时 03:31，native-image 3m06s，Peak RSS 11.01GB，reachable 48,603 types / 263,399 methods，reflection 16,792 types，image 221.79MB；Top code origins 包括 Hibernate 20.17MB、Nacos client 7.47MB、H2 7.25MB、fastjson2 3.87MB。`backend-all-in-one -Pnative,native-windows-ci` baseline 成功：总耗时 02:53，native-image 2m32s，Peak RSS 12.36GB，reachable 41,212 types / 219,375 methods，reflection 14,127 types，image 185.52MB。`backend-all-in-one` 带 `-H:Emit=build-report=...` 成功并生成本机 HTML report；`backend-core-service` 带相同 build report 参数失败于 GraalVM 25 `ResourcesFeature.beforeAnalysis` 解析 legacy `resource-config.json` 时的 `LegacyResourceConfigurationParser` NPE。初步判断：`core-service` 远端 110 分钟停滞不是本机必现的代码级慢编译；后续结构性优化应关注服务端启动器依赖、legacy native metadata、数据访问层和可达图收窄，而不是只调整 runner。
+- 2026-06-16：本机 Windows 对 `backend-core-service` 追加 `-Ob` 验证通过，native-image 时间从 3m06s 降到 2m14s，Peak RSS 从 11.01GB 降到 8.86GB，镜像从 221.79MB 降到 168.08MB；`-H:NumberOfThreads=8` native-image 时间 4m27s、Peak RSS 10.56GB、GC 3567 次，收益不足且显著变慢，未采用。`-Ob` 的核心代价是以运行性能换构建速度，当前不接入 release 默认构建；Full、services 和本地默认 native 构建均保持原优化级别。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
 
 - 本计划有效验证以当前摘要为准：`actionlint` 覆盖后端 native workflow、release start、release assemble、debug reuse、公开端资产检查和 app-token check workflow；`git diff --check` 与后端子仓库 diff check 通过，仅保留 Git for Windows 换行提示。本轮 publish/stable-preview 改造仍需完成本地静态校验和后续真实 tag-only 远端验证。
 - 后端 native 超时诊断验证：`actionlint services/backend/.github/workflows/backend-native-artifact.yml` 通过；两个新增 PowerShell 脚本语法解析通过；`write-native-build-diagnostics.ps1` 已用临时目录本机试跑，能输出资源快照和 Maven 日志尾部占位；`quality-gate.ps1 -Scope backend -NoBuild` 通过。
-- 本机 Windows native 基线验证：`backend-core-service` 无 build report native 构建通过；`backend-all-in-one -Pnative,native-windows-ci` 无 build report native 构建通过；`backend-all-in-one` 带 `-H:Emit=build-report=...` native 构建通过并生成本机 HTML report；`backend-core-service` 带 build report 失败于 GraalVM 25 legacy resource-config 解析 NPE，失败报告位于本机 `services/backend/backend-core-service/target/svm_err_b_20260616T173004.686_pid44744.md`。
+- 本机 Windows native 基线与调参验证：`backend-core-service` 无 build report native 构建通过；`backend-all-in-one -Pnative,native-windows-ci` 无 build report native 构建通过；`backend-all-in-one` 带 `-H:Emit=build-report=...` native 构建通过并生成本机 HTML report；`backend-core-service` 带 build report 失败于 GraalVM 25 legacy resource-config 解析 NPE，失败报告位于本机 `services/backend/backend-core-service/target/svm_err_b_20260616T173004.686_pid44744.md`；`backend-core-service` 临时追加 `-Ob` native 构建通过并确认 Peak RSS 下降到 8.86GB，但因运行性能代价不采用；`-H:NumberOfThreads=8` 诊断构建通过但耗时变长、降内存有限，未采用。
 - 后端 native services 并行构建远端验证：GitHub-hosted run `27202869734` 通过，三个 Linux service binary job 并行成功，最终 `backend-services-linux-x64` artifact 下载、聚合、sha256/size、禁止文件扫描和两层 manifest 校验通过。
 - 历史 Release asset 复用验证：本地 draft minimal/reuse 脚本 dry-run 通过；GitHub-hosted run `27209181697` 和 `27209326174` 分别验证历史 draft 创建与历史后端 native asset 复用；远端 manifest 回读确认 `historical-release-asset` 来源和 `backendNativeFingerprint`。
 - 发布控制面验证：`check-release-app-token.yml` run `27402944650` 通过；`Release Start` 手动 dry-run run `27403306816` 通过，确认 dry-run 只预演后端来源判断，不触发主仓库 assemble、后端 App token 或后端 resolver。
@@ -163,6 +165,7 @@
 ## 剩余风险
 
 - 并行 services 构建降低墙钟时间，但不会降低 GitHub Actions runner 分钟总消耗，可能略增。
+- GraalVM `-Ob` 能降低 builder 内存和构建耗时，但会影响 native 运行时吞吐；当前明确不作为 release 默认方案，后续只可作为本地诊断或经性能验证后的临时应急选项。
 - 完整真实 tag-only 预览发布已由 `v0.0.0-preview.2` 验证通过；主仓库 tag start、后端 release resolve、主仓库 release assemble、Web node-server asset、Desktop Online asset、Desktop Full asset 构建、远端 asset 回读 manifest 校验、preview 发布和 publish 已有第一片。
   Desktop Full Linux 真实 AppImage 已在 `v0.0.0-preview.5` 通过 sidecar/API smoke；Desktop Online 远端配置和远端 Rust BFF 认证转发已实现。失败 draft 人工清理演练、stable 正式发布验证、release artifact 上下文一致性和真实安装包矩阵验证仍未完成。App 当前暂不进入发布闭环。
 - OpenAPI snapshot hash 已由 `scripts/openapi-snapshot-hash.ps1` 固化，当前 hash 由 release start 自动计算。

@@ -140,7 +140,7 @@ backend native fingerprint 至少包含：
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 assemble。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 补齐失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性；App 等有基础工程和打包入口后再单独接入。Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
+- `v0.0.0-preview.5` 已验证真实 tag-only 预览发布和 Desktop Full/Linux 真实后端 AppImage sidecar/API smoke。后续仍需补齐失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证；App 等有基础工程和打包入口后再单独接入。Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
 - 确认 release notes 和版本号策略后，把复用来源展示给用户和部署者。
 
 ## 实施记录
@@ -166,3 +166,4 @@ backend native fingerprint 至少包含：
   Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录；Full flavor 的 Rust BFF 通过 sidecar `/local/session` token 访问本机后端。
   Desktop Online 后续已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
 - 2026-06-15：发布链路增加 stable/preview 区分和 publish 开关。真实 tag push 传 `release_mode=publish`；`v1.2.3` 是 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 是 preview 预览发布。preview Release 发布为 GitHub prerelease 且不标记为 Latest；Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。
+- 2026-06-16：`v0.0.0-preview.4` 暴露 Windows full native 在 GraalVM `ConditionalMoveOptimizationPhase` 单编译单元报警超时；后端 Windows native CI 增加 `native-windows-ci` profile，追加 `-H:CompilationExpirationPeriod=1800`。`v0.0.0-preview.5` 的 Windows full native job 30m52s 完成，后端 resolver 与主仓库 assemble/publish 全部通过；Full Linux AppImage 在本机 Ubuntu WSL 通过 sidecar/API smoke。

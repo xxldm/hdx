@@ -6,12 +6,12 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求落实 “HDX 后续事项总纲”
 - 创建时间：2026-06-05
-- 最后更新：2026-06-15（收敛发布下一步）
+- 最后更新：2026-06-16（preview.5 发布验证通过）
 
 <!-- active-plan-status:start -->
 - 何时读取：需要判断总体后续顺序、步骤归属或跨计划状态时。
-- 当前状态：总纲进行中；认证与权限边界、部署发布仍有后续事项。
-- 下一步：按用户确认继续第 9 步发布闭环，优先做真实 tag-only 发布链路验证、失败 draft 人工清理演练和真实安装包验证。
+- 当前状态：总纲进行中；认证与权限边界、部署发布仍有后续事项。第 9 步已完成真实 tag-only 预览发布和 Full Linux AppImage sidecar/API smoke。
+- 下一步：按用户确认继续第 9 步发布闭环，优先做失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。
 - 主要剩余风险：总纲不承载细节；具体实现和验证以对应 active plan、ADR 或 completed plan 为准。
 <!-- active-plan-status:end -->
 
@@ -114,7 +114,7 @@
 
 仍未完成：
 
-- 真实 tag-only 发布链路验证、失败 draft 人工清理演练和 Desktop Full 真实安装包验证的完整自动链路。
+- 失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和 Desktop Full 真实安装包矩阵验证的完整自动链路。
 - `backend-services-windows-x64` 真实发布验证。
 - 安装器签名、公证、自动更新、release notes 和版本号策略。
 
@@ -174,10 +174,10 @@
   Desktop 静态 Web UI 启动闭环、Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
   Desktop Online 远端 Rust BFF 认证转发（登录/refresh/logout/业务请求）已实现，logout 已修复为配置不可读时也清理 Rust 主进程内存 token。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
-- 第 9 步完整 tag-only GitHub Release workflow 仍缺 `backend-services-windows-x64`、Desktop Full 真实安装包验证、完整 release artifact 上下文一致性、失败 draft 人工清理演练、安装器签名、公证、自动更新、release notes 和版本号策略。App 当前暂不进入发布闭环。
+- 第 9 步 tag-only 预览发布和 Full Linux AppImage sidecar/API smoke 已由 `v0.0.0-preview.5` 验证通过；仍缺 `backend-services-windows-x64`、真实安装包矩阵验证、完整 release artifact 上下文一致性、失败 draft 人工清理演练、stable 正式发布验证、安装器签名、公证、自动更新、release notes 和版本号策略。App 当前暂不进入发布闭环。
 - 第 9 步当前子计划 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md` 已收口 Web/Desktop 发布产物契约、Desktop Full asset 打包第一片、Desktop Full sidecar 最小启动闭环和 Desktop 静态 Web UI + Rust BFF。
-  后续继续做真实 tag-only 发布验证、失败清理演练和真实安装包验证。
-  Desktop Online 远端 Rust BFF 认证转发已实现；后续继续做真实 tag-only 发布验证、失败清理演练和真实安装包验证。
+  后续继续做失败清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。
+  Desktop Online 远端 Rust BFF 认证转发已实现；后续继续做失败清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。
 
 ## 相关 commit
 

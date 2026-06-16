@@ -235,7 +235,7 @@ validate-inputs
   - 调用 `backend-native-artifact.yml` 生产短期 Actions artifact。
   - 构建完成后可显式回调主仓库 `release.yml`。
   - 不再读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
-- 后续仍需补齐失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
+- `v0.0.0-preview.5` 已验证真实 tag-only 预览发布和 Desktop Full/Linux 真实后端 AppImage sidecar/API smoke。后续仍需补齐失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证；Desktop Online 远端配置与远端 Rust BFF 认证转发已在后续 Web/Desktop 发布产物切片中完成。
 - 后续单独确认安装器签名、公证、自动更新、release notes 和版本号策略。
 
 ## 实施记录
@@ -257,3 +257,4 @@ validate-inputs
   Web Online 继续发布 Nuxt SSR node-server asset；Desktop Online/Full release job 额外构建 `apps/web` 的 `desktop-static` 输出，并把 Tauri `frontendDist` 指向该静态目录。
   Desktop Full Rust BFF 通过 sidecar `/local/session` token 访问本机后端，但 token 不返回 WebView。Desktop Online 后续已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
 - 2026-06-15：`release-start.yml` 和 `release.yml` 增加发布模式与渠道边界：真实 tag push 传 `release_mode=publish`，手动入口默认 `draft`；`v1.2.3` 进入 stable 正式发布，`v1.2.3-rc.1` 等 prerelease tag 进入 preview 预览发布。`release.yml` 在远端 asset 校验通过后 publish，preview 发布为 GitHub prerelease 且不标记为 Latest；Desktop asset manifest 的 `channel` 跟随 stable/preview。App 当前暂不进入发布闭环。
+- 2026-06-16：`v0.0.0-preview.5` 完成真实 tag-only 预览发布验证。Release Start、后端 native resolver、主仓库 assemble、远端 asset 校验和 prerelease publish 均成功；Full Linux AppImage 已在本机 Ubuntu WSL 通过真实 sidecar/API smoke，确认后端 native 修复进入公开 release 产物。

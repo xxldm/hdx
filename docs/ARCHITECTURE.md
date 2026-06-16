@@ -133,7 +133,7 @@ GitHub Releases 产物边界见 ADR 0012、ADR 0013、ADR 0014。日常 tag-only
   它可用 `HDX Main Workflow Bot` 的 `Actions: write` token 回调主仓库 `release.yml` assemble；不读取主仓库历史 Release，也不需要主仓库 `Contents: read` GitHub App 权限。
 - Release manifest schema、校验脚本和最小 draft 复用脚本已能表达、校验并生成历史主仓库 Release asset 复用来源、backend native fingerprint 和历史后端 asset 构建来源。
 
-正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。后续仍需把失败 draft 人工清理演练、Desktop Full/Linux 真实后端 AppImage 启动验证和 release artifact 上下文一致性串成完整发布闭环；App 等有基础工程和打包入口后再单独接入。
+正式 tag-only 发布设计已记录在 ADR 0013 和 ADR 0014。`v0.0.0-preview.5` 已验证真实 tag-only 预览发布和 Desktop Full/Linux 真实后端 AppImage sidecar/API smoke。后续仍需把失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证串成完整发布闭环；App 等有基础工程和打包入口后再单独接入。
 
 ## Web 第一阶段架构
 

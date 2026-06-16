@@ -1,7 +1,7 @@
 # Release 操作手册
 
 本文档记录 HDX 目标发布流程的日常人工操作和自动化边界。当前已存在正式 `release-start.yml` 和 `release.yml` 第一版，Web node-server asset、Desktop Online asset 与 Desktop Full asset 已接入 assemble。
-Desktop Full 运行时 sidecar 已有最小启动闭环；Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF，Online 已有远端配置、健康检查和远端认证转发。App 当前仍只是后续想法，不进入本轮发布闭环；完整 tag-only 自动发布后续仍需补齐 Desktop Full/Linux 真实后端 AppImage 启动验证、失败 draft 人工清理演练和真实发布全链路验证。
+Desktop Full 运行时 sidecar 已有最小启动闭环；Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF，Online 已有远端配置、健康检查和远端认证转发。`v0.0.0-preview.5` 已验证真实 tag-only 预览发布和 Desktop Full/Linux 真实后端 AppImage sidecar/API smoke。App 当前仍只是后续想法，不进入本轮发布闭环；完整 tag-only 自动发布后续仍需补齐失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。
 
 ## 目标
 
@@ -33,16 +33,16 @@ tag 名称同时决定发布类型：
 
 ## 当前状态
 
-截至 2026-06-15：
+截至 2026-06-16：
 
 - 已有 `check-*` 与 `debug-*` 手动验证 workflow。
 - `.github/workflows/release-start.yml` 已提供正式 tag start 入口第一版：真实 `v*` tag push 会计算 root/backend/OpenAPI 发布上下文，按 tag 形态区分正式发布与预览发布，先在主仓库尝试复用最新一个合格历史 Release 中的后端 native asset；复用成功时直接触发主仓库 `release.yml`，复用失败时才触发后端私有仓库 release resolver 运行 native build；手动入口默认 dry-run，并可在不触发后端、不创建 Release 的前提下预演历史复用判断。
 - `.github/workflows/release.yml` 已提供正式 assemble 入口第一版，可接收后端来源 payload，构建 Web node-server asset、Desktop Online Windows/Linux asset 和 Desktop Full Windows/Linux asset，创建 draft Release、上传资产并远端回读校验 size、sha256、manifest 记录、必需资产和禁止文件规则；`release_mode=publish` 时远端校验通过后发布。
 - 当前 `release.yml` 支持多个后端 Actions artifact 聚合，也支持从同一个历史主仓库 Release 复用多个后端 native asset；已接入 Web node-server、Desktop Online 和 Desktop Full 构建。App 当前不构建、不要求 asset，也不阻塞 publish。
 - Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`，Desktop 侧已实现本机后端启动、健康检查、`/local/session` 读取和退出清理的最小闭环。
-  Desktop Online/Full 发布包使用 Web `desktop-static` 静态输出和 Rust BFF；Online 已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
+  Desktop Online/Full 发布包使用 Web `desktop-static` 静态输出和 Rust BFF；Online 已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；`v0.0.0-preview.5` 已完成 Full Linux AppImage sidecar/API smoke，真实安装包矩阵验证仍待后续补齐。
 - 后端私有仓库 `.github/workflows/backend-release-resolve.yml` 已收缩为 native build resolver：只按输入的 `backend_commit` 构建后端 native Actions artifact，并可在构建成功后回调主仓库 `release.yml` assemble；它不读取主仓库历史 Release。
-- 本手册描述目标流程；当前已具备“只推 tag 触发 publish/prerelease”的自动化路径，但仍需用真实版本做全链路发布验证。
+- 本手册描述目标流程；当前已具备“只推 tag 触发 publish/prerelease”的自动化路径，且已用 `v0.0.0-preview.5` 完成预览发布全链路验证。
 - 跨仓库凭据、artifact 交接、历史 Release asset 复用和失败 draft 保留边界见 ADR 0013 与 ADR 0014。
 - 安装器代码签名、公证、自动更新运行时接入、release notes 和版本号策略仍待单独确认；Tauri updater 静态 JSON 与 `release-manifest.json` 的清单边界已在 release 契约中确认。
 
@@ -149,7 +149,7 @@ on:
 - 后端 release resolve 只负责 native build fallback，并可通过 `trigger_release_assemble=true` 显式回调主仓库 `release.yml`；手动排障默认关闭，避免误创建 draft Release。
 - 已构建 Web node-server asset、Desktop Online asset 和 Desktop Full asset。
 - Desktop Full 包内已携带同平台已解压 `backend-full` 和 `backend-build.json`；本机后端启动、健康检查、`/local/session` 读取和退出清理已有最小闭环。
-  Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF；Online 已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；真实安装包/AppImage 端到端验证仍待后续补齐。
+  Desktop Online/Full 发布包已改为静态 Web UI + Rust BFF；Online 已实现远端地址配置、健康检查、login/refresh/logout 和业务请求 Bearer 注入；`v0.0.0-preview.5` 已完成 Full Linux AppImage sidecar/API smoke，真实安装包矩阵验证仍待后续补齐。
 - 不构建 App，不要求 App asset。
 - 手动 `workflow_dispatch` 默认只保留 draft；真实 tag push 会传 `release_mode=publish`。
 

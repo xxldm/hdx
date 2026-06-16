@@ -356,6 +356,7 @@ jobs:
             "historical_resolve_available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             "historical_resolve_failure_reason=$reason" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             Write-Warning "历史 Release asset 复用不可用；如果不是 dry-run，将触发后端 native build：$reason"
+            $global:LASTEXITCODE = 0
           }
 
       - name: 决定后端来源路径

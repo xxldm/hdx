@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
-- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage 真实 sidecar/API smoke 均已通过；后端 Jackson 2/3 缺陷已确认随真实 release native/AppImage 修复。公开端检查 workflow run `27600342351` 已验证只在 job 内校验生成资产，不再上传临时 Actions artifact，主仓库 `actions/artifacts` 仍为 `0`。
-- 下一步：继续失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
-- 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 未 assemble 出主仓库 Release；`v0.0.0-preview.5` 已证明新版 Full Linux AppImage 可启动本机后端并读取工作台数据。完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage smoke 均已通过。公开端检查 run `27600342351` 已验证不再上传临时 Actions artifact。
+- 下一步：会触发后端 native 的 stable 正式 tag 验证和真实安装包矩阵验证先暂停；待 2026-06-25 GraalVM 25.1 复测后再恢复。期间只做不触发编译的只读检查、文档和清理准备。
+- 主要剩余风险：`v0.0.0-preview.5` 已证明新版 Full Linux AppImage 可启动本机后端并读取工作台数据；但后端 native 卡住风险解除前，完整 release 仍暂停 stable 验证和真实安装包矩阵。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引

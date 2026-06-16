@@ -11,8 +11,8 @@
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
 - 当前状态：`v0.0.0-preview.5` 已验证 tag-only 预览发布和 Full Linux AppImage smoke；`v0.0.0-preview.6` 因 `core-service` native 停滞取消。已补超时/诊断，并在本机验证 baseline、`-Ob` 与线程限制；`-Ob` 和线程限制均不作为 release 默认方案。
-- 下一步：native 编译排查先暂停；待 2026-06-25 GraalVM 25.1 发布后，优先复测 `backend-core-service` build report 是否仍触发 legacy `resource-config.json` NPE。远端只验证诊断和复现，不用 `-Ob` 换性能。
-- 主要剩余风险：新增超时/诊断仍未在远端卡住场景验证；`-Ob` 不可作为 release 默认优化；Windows services 包、build report NPE、旧 workflow 复现、很旧 tag 入口、stable 发布和安装包矩阵仍待验证。App 暂不进发布闭环。
+- 下一步：暂停会触发后端 native 的 release 验证；待 2026-06-25 GraalVM 25.1 发布后，先复测 `backend-core-service` build report NPE。期间只做只读检查、文档和清理准备，不推新 preview/stable tag。
+- 主要剩余风险：新增超时/诊断仍未在远端卡住场景验证；`-Ob` 不可作为 release 默认优化；后端 native 卡住风险解除前，stable 发布和完整安装包矩阵验证暂停。Windows services、旧 workflow、很旧 tag 入口和 App 发布闭环仍待后续处理。
 <!-- active-plan-status:end -->
 
 ## 阅读指引

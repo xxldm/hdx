@@ -11,7 +11,7 @@
 <!-- active-plan-status:start -->
 - 何时读取：需要判断总体后续顺序、步骤归属或跨计划状态时。
 - 当前状态：总纲进行中；认证与权限边界、部署发布仍有后续事项。第 9 步已完成真实 tag-only 预览发布和 Full Linux AppImage sidecar/API smoke。
-- 下一步：按用户确认继续第 9 步发布闭环，优先做失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式发布验证和真实安装包矩阵验证。
+- 下一步：第 9 步发布闭环中会触发后端 native 的验证先暂停；待 2026-06-25 GraalVM 25.1 发布并复测后再恢复。期间只做不触发编译的只读检查、文档和清理准备。
 - 主要剩余风险：总纲不承载细节；具体实现和验证以对应 active plan、ADR 或 completed plan 为准。
 <!-- active-plan-status:end -->
 

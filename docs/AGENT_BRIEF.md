@@ -36,7 +36,7 @@
 - 认证边界：账号密码登录、refresh/logout、Redis 撤销、Web 登录页、当前身份接口、错误码契约和安全链 JSON 错误已实现。
 - 认证剩余风险：尚未实现注册、找回密码、验证码、MFA、用户管理、OAuth2 client 初始化/管理和 JWK 运行期轮换管理接口。
 - Desktop：Full sidecar 最小闭环已实现；Online 已有远端地址保存、健康检查、远端登录、refresh、logout 和业务请求 Bearer 注入，token 不暴露给 WebView。
-- Release：正式 tag-only 发布入口已有第一版 dry-run/assemble/reuse 能力，仍未完成正式 publish、App 构建、失败清理和 Linux/安装包完整验证。
+- Release：正式 tag-only 预览发布已由 `v0.0.0-preview.5` 验证 publish、后端 resolver、主仓库 assemble 和 Full Linux AppImage sidecar/API smoke；公开端检查 run `27600342351` 已验证不再上传临时 Actions artifact。仍未完成失败清理、stable 正式发布和完整安装包矩阵验证；App 当前暂不进入发布闭环。
 - 文档体量控制：active plan 只记录当前状态、关键决策、验证摘要和剩余风险；历史过程日志应归档或收敛，避免无限增长。
 
 ## 按需阅读路由

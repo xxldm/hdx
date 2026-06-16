@@ -10,8 +10,8 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
-- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage 真实 sidecar/API smoke 均已通过；后端 Jackson 2/3 缺陷已确认随真实 release native/AppImage 修复。公开端检查 workflow 后续只在 job 内校验生成资产，不再上传 1 天保留期的检查 artifact。
-- 下一步：验证公开端检查 workflow 在不上传 Actions artifact 的情况下仍能覆盖 Web/Desktop 产物生成；继续失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证、公开端资产检查和 `v0.0.0-preview.5` Full Linux AppImage 真实 sidecar/API smoke 均已通过；后端 Jackson 2/3 缺陷已确认随真实 release native/AppImage 修复。公开端检查 workflow run `27600342351` 已验证只在 job 内校验生成资产，不再上传临时 Actions artifact，主仓库 `actions/artifacts` 仍为 `0`。
+- 下一步：继续失败 draft 人工清理演练、release artifact 上下文一致性、stable 正式 tag 验证和真实安装包矩阵验证；同时跟踪 GitHub Actions Node.js 20 弃用 warning。
 - 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 未 assemble 出主仓库 Release；`v0.0.0-preview.5` 已证明新版 Full Linux AppImage 可启动本机后端并读取工作台数据。完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
@@ -185,6 +185,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Release/check workflow：`actionlint` 覆盖 `release.yml`、`check-public-release-assets.yml` 和 debug workflows；`release-append-web-asset.ps1`、`release-append-desktop-assets.ps1`、`check-desktop-release-asset-packaging.ps1` 和 release manifest schema/样例校验通过。
   `Check Public Release Assets` run `27291207098` 首次确认 Web node-server、Desktop Online Windows NSIS/portable 和 Linux AppImage 构建可用；后续 run `27457713493` 与 `27458336496` 确认 Desktop 静态 Web 输出、Rust cache 和 Windows/Linux Online 打包路径可用。
   Run `27528781158` 确认新增 Desktop Full Linux AppImage 合成资源 smoke 通过，但 workflow 总体因 Windows Online 打包脚本误选旧缓存 NSIS 产物失败；当前已补 `check-desktop-release-asset-packaging.ps1` fixture 覆盖旧缓存产物与当前版本产物共存场景，run `27529656045` 已确认全部 job 通过。
+  Run `27600342351` 再次确认 Web node-server、Desktop Online Windows/Linux 和 Desktop Full Linux AppImage 全绿；该 workflow 不再上传临时 Actions artifact，主仓库 `actions/artifacts` 查询结果仍为 `0`。
   `v0.0.0-preview.2` 真实 tag-only 预览发布已成功 publish；Full Linux AppImage 在本机 Ubuntu WSL 可启动 UI，但真实 `backend-full` sidecar 因后端 Jackson 2/3 `ObjectMapper` 类型不匹配启动失败。`v0.0.0-preview.5` 已确认后端修复进入真实 release native/AppImage 产物，并通过本机 WSL sidecar/API smoke。
 - Desktop Full sidecar：Full flavor 已实现构建期解压 `backend-full`、运行时复制资源、启动 `backend-all-in-one`、健康检查、读取 `/local/session` 和退出清理；Rust 单测覆盖 entrypoint 校验和状态序列化不泄露 token。
   Windows 真实端到端验证通过：Full release exe 携带 `backend/`、`backend-build.json` 和静态 Web UI，sidecar 启动后 `/actuator/health`、`/local/session`、`/api/v1/runtime`、`/api/v1/tools` 和 `/api/v1/auth/current` 均符合预期，WebView 不暴露本机 token。

@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认先整理 Web/Desktop 发布产物契约，再继续接入 release workflow
 - 创建时间：2026-06-10
-- 最后更新：2026-06-15（Full Linux AppImage 缺陷已转入后端门禁，待新版预览包复测）
+- 最后更新：2026-06-16（preview.4 卡在后端 Windows native，待 preview.5 复测 AppImage）
 
 <!-- active-plan-status:start -->
 - 何时读取：Web node-server 发布包、Desktop Online/Full 资产、Tauri 打包、Desktop Rust BFF 相关任务。
-- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证和公开端资产检查均已通过；`v0.0.0-preview.2` Full Linux AppImage 真实运行暴露后端 Jackson 2/3 缺陷，后端已修复并把静态检查和 all-in-one AOT/package smoke 固化到门禁。
-- 下一步：发布包含后端修复与门禁补强的 `v0.0.0-preview.3`，在本机 Ubuntu WSL 做 release 后真实 AppImage smoke，复测 sidecar 启动、`/local/session` 和工作台数据加载；之后继续失败 draft 人工清理演练和安装包矩阵验证。
-- 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用；后端修复尚未进入真实 release native/AppImage 产物验证。完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
+- 当前状态：Web node-server、Desktop 静态 UI、Full sidecar、Online 远端认证转发、Windows 端到端验证和公开端资产检查均已通过；`v0.0.0-preview.2` Full Linux AppImage 真实运行暴露后端 Jackson 2/3 缺陷，后端已修复并把静态检查和 all-in-one AOT/package smoke 固化到门禁。`v0.0.0-preview.4` 已进入后端 resolver，但被 Windows full native GraalVM 编译报警超时阻断，尚未生成新版 Desktop Full Linux AppImage。
+- 下一步：发布包含后端修复、门禁补强和 Windows native CI profile 的 `v0.0.0-preview.5`，在本机 Ubuntu WSL 做 release 后真实 AppImage smoke，复测 sidecar 启动、`/local/session` 和工作台数据加载；之后继续失败 draft 人工清理演练和安装包矩阵验证。
+- 主要剩余风险：`v0.0.0-preview.2` Full Linux AppImage 的 sidecar 已确认不可用；后端修复尚未进入真实 release native/AppImage 产物验证。`v0.0.0-preview.4` 未 assemble 出主仓库 Release；完整 release 仍缺失败清理演练、stable 正式发布验证和真实安装包矩阵验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -184,7 +184,7 @@ Web node-server 发布包、Desktop Online/Full asset、Desktop 静态 UI、Rust
 - Release/check workflow：`actionlint` 覆盖 `release.yml`、`check-public-release-assets.yml` 和 debug workflows；`release-append-web-asset.ps1`、`release-append-desktop-assets.ps1`、`check-desktop-release-asset-packaging.ps1` 和 release manifest schema/样例校验通过。
   `Check Public Release Assets` run `27291207098` 首次确认 Web node-server、Desktop Online Windows NSIS/portable 和 Linux AppImage 构建可用；后续 run `27457713493` 与 `27458336496` 确认 Desktop 静态 Web 输出、Rust cache 和 Windows/Linux Online 打包路径可用。
   Run `27528781158` 确认新增 Desktop Full Linux AppImage 合成资源 smoke 通过，但 workflow 总体因 Windows Online 打包脚本误选旧缓存 NSIS 产物失败；当前已补 `check-desktop-release-asset-packaging.ps1` fixture 覆盖旧缓存产物与当前版本产物共存场景，run `27529656045` 已确认全部 job 通过。
-  `v0.0.0-preview.2` 真实 tag-only 预览发布已成功 publish；Full Linux AppImage 在本机 Ubuntu WSL 可启动 UI，但真实 `backend-full` sidecar 因后端 Jackson 2/3 `ObjectMapper` 类型不匹配启动失败。后端修复已通过本地测试和 all-in-one AOT package，仍需 `v0.0.0-preview.3` 复测。
+  `v0.0.0-preview.2` 真实 tag-only 预览发布已成功 publish；Full Linux AppImage 在本机 Ubuntu WSL 可启动 UI，但真实 `backend-full` sidecar 因后端 Jackson 2/3 `ObjectMapper` 类型不匹配启动失败。后端修复已通过本地测试和 all-in-one AOT package；`v0.0.0-preview.4` 被后端 Windows full native 编译报警超时阻断，仍需新版预览包复测。
 - Desktop Full sidecar：Full flavor 已实现构建期解压 `backend-full`、运行时复制资源、启动 `backend-all-in-one`、健康检查、读取 `/local/session` 和退出清理；Rust 单测覆盖 entrypoint 校验和状态序列化不泄露 token。
   Windows 真实端到端验证通过：Full release exe 携带 `backend/`、`backend-build.json` 和静态 Web UI，sidecar 启动后 `/actuator/health`、`/local/session`、`/api/v1/runtime`、`/api/v1/tools` 和 `/api/v1/auth/current` 均符合预期，WebView 不暴露本机 token。
 - Desktop Online 远端配置与认证转发：Online config command、远端 health 检查、Rust 主进程 token holder、login/refresh/logout 和业务请求 Bearer 注入均已实现并通过本地 Rust/Web 验证。

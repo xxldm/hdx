@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-16（修复 release-start 历史复用失败 fallback）
+- 最后更新：2026-06-16（处理 preview.4 Windows native 编译报警超时）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.3` 已触发但失败于 release-start 历史后端 asset 复用不可用后的 fallback 步骤；根因是内层 `pwsh` 非零退出码残留，已修复为 catch 后清理 `$LASTEXITCODE`。后端 Jackson 3 修复和门禁补强已在 `a7fc73b`。
-- 下一步：推送 release-start fallback 修复后发布 `v0.0.0-preview.4`，等待后端 native build 与主仓库 assemble 完成，再在本机 Ubuntu WSL 做 release 后真实 Full Linux AppImage smoke。
-- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release；后端修复尚未经过新版真实 Linux native/AppImage 产物复测。Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
+- 当前状态：`v0.0.0-preview.4` 已验证 release-start 历史复用失败 fallback 修复有效，并成功触发后端 resolver；后端 Linux full、Linux services 和 preflight 通过，Windows full native 失败于 GraalVM `ConditionalMoveOptimizationPhase` 单编译单元超时。当前已准备给 GitHub-hosted Windows native CI 启用 `native-windows-ci` profile，追加 `-H:CompilationExpirationPeriod=1800`。
+- 下一步：推送 Windows native CI profile 修复后发布 `v0.0.0-preview.5`，等待后端 native build 与主仓库 assemble 完成，再在本机 Ubuntu WSL 做 release 后真实 Full Linux AppImage smoke。
+- 主要剩余风险：`v0.0.0-preview.1` 失败 draft 已保留用于排障，`v0.0.0-preview.2` 是测试 prerelease 且 Full Linux AppImage sidecar 已确认不可用，`v0.0.0-preview.3` tag start 已失败但未创建 Release，`v0.0.0-preview.4` 后端 resolver 未 finalize、未创建主仓库 Release；后端修复尚未经过新版真实 Linux native/AppImage 产物复测。Windows native 放宽编译报警阈值后仍需远端实跑确认；Windows services 包、旧 workflow 复现和很旧 tag 的 workflow 入口仍需后续设计或验证。App 当前暂不进入发布闭环。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -132,6 +132,7 @@
 - 2026-06-15：为避免同类 Boot 4/Jackson 迁移缺口再次只在真实 native 产物中暴露，后端新增 `scripts/check-boot4-jackson.ps1`，根仓库 `quality-gate.ps1 -Scope backend` 接入该静态检查和 `backend-all-in-one` AOT/package smoke；后端 native artifact workflow 在真实 native 编译前先运行 Jackson preflight。
 - 2026-06-15：本轮门禁补强验证通过：后端 Jackson 检查脚本、根仓库 `quality-gate.ps1 -Scope backend -NoBuild`、`quality-gate.ps1 -Scope backend`、`quality-gate.ps1 -Scope docs -NoBuild`、`actionlint services/backend/.github/workflows/backend-native-artifact.yml` 和根/后端 `git diff --check` 均通过。Maven 与 Java 25 相关 warning 暂不阻塞。
 - 2026-06-16：推送 `v0.0.0-preview.3` 触发 Release Start run `27592731539`，失败于“解析历史后端来源”。历史 `v0.0.0-preview.2` 的后端 commit 与当前 `0b713c8` 不一致本应触发后端 native build fallback，但 catch 后未清理内层 `pwsh` 留下的 `$LASTEXITCODE=1`，导致步骤误失败。当前已在 `release-start.yml` fallback catch 中清理 `$LASTEXITCODE`；按发布纪律不移动已推送 tag，后续用 `v0.0.0-preview.4` 重跑。
+- 2026-06-16：推送 `v0.0.0-preview.4` 触发 Release Start run `27592929905`，确认 fallback 修复有效并触发后端 resolver run `27592945480`。后端 preflight、Linux full 和 Linux services 均通过，Windows full native job 失败于 GraalVM `ConditionalMoveOptimizationPhase` 编译报警超时；该失败阻止 resolver finalize 和主仓库 assemble。当前处理方式是不改变正式发布必需资产矩阵，在 Windows native CI 上启用 `native-windows-ci` profile，将单编译单元超时阈值从默认 300 秒放宽到 1800 秒，后续用 `v0.0.0-preview.5` 复跑。
 - 逐条命令输出、临时失败细节和完整 run 日志不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果

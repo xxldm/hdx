@@ -27,6 +27,7 @@
 - 后端外部入口分为 `backend-auth-service` 和 `backend-gateway`；认证中心独立签发 token，gateway 校验 JWT 并检查 Redis 会话撤销。
 - `backend-core-service` 不作为外部入口；`backend-all-in-one` 只服务 Desktop Full 本机模式，使用 H2 和本机 token。
 - Web 浏览器不直接访问后端；浏览器调 Nuxt server BFF，Nuxt server 保存敏感 token。
+- Web 首页工具箱当前按桌面浏览器交互设计，不做手机 Web 专项适配；但关键操作仍需保留桌面宽度触摸输入的 tap 或显式入口兜底。
 - Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态。
 - App 不复用 Tauri，不内置 all-in-one；首版只连接远端 auth-service 与 gateway。
 - 错误响应以稳定 `code` 为跨端协议字段，后端中文 `message` 只是 fallback；UI 可以把多个 code 合并为粗粒度用户文案。

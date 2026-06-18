@@ -23,6 +23,7 @@ Thumbs.db
 # 运行时与本地数据
 logs/
 *.log
+.tmp/
 data/
 .local/
 *.db

@@ -83,6 +83,8 @@ pnpm lint
 pnpm build
 ```
 
+在 Codex Windows sandbox 中，`apps/web` 下的 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm build` 已确认会因访问 `C:\Users\<user>` 在普通权限下 `EPERM`；需要运行这些 Web pnpm 质量命令时直接走审批/提权，不再先普通权限试跑。
+
 Desktop：
 
 ```powershell

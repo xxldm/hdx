@@ -57,6 +57,7 @@ pwsh -NoLogo -NoProfile -Command "$PSVersionTable.PSVersion; $PSVersionTable.PSE
 - 如果 `pnpm` 在 Codex Windows sandbox 普通权限下出现 `EPERM: operation not permitted, lstat 'C:\Users\<user>'`，先判断是否真的需要运行 `pnpm`。
   仅为调用已安装的本地包命令时，优先直接调用对应项目的 `node_modules/.bin/<tool>`，避免把包管理器启动行为混入质量门禁。
   确需 `pnpm install`、`pnpm add`、`pnpm update`、`pnpm test`、`pnpm build` 等包管理、测试或构建命令时，按本节权限失败规则记录并走审批/提权路径。
+- `apps/web` 的 `pnpm typecheck`、`pnpm lint` 也归入上条同类命令，已确认在 Codex Windows sandbox 普通权限下会触发同样的 `C:\Users\<user>` 访问问题；不要先普通权限试跑。
 - 不在质量门禁脚本中通过长期或隐式修改 `HOME`、`USERPROFILE`、`TEMP`、`TMP`、pnpm store/cache 等环境变量来绕过 `pnpm` 的本地环境问题；这类改动可能改变工具读取用户配置、临时文件、缓存或依赖仓库的行为，导致验证结果被环境差异污染。
 - 已知需要直接走审批/提权路径的命令类别：
   - Git 写操作：`git add`、`git commit`、`git rebase`、`git merge`、`git checkout`、`git stash` 等会写 `.git` 的命令。

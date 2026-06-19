@@ -98,6 +98,7 @@
 - 2026-06-19：明确工具箱布局编辑是强视觉、强空间定位交互。Tauri 本身不提供屏幕阅读器，但 WebView 可接系统 Accessibility API；当前项目不为工具箱布局编辑做单独屏幕阅读器适配。保留图标按钮等基础可读名称，但不为卡片和空位坐标强行补复杂 `aria-label`。
 - 2026-06-19：把 UI/UX 审计清单收口为明确状态：主题双轨、主题选中语义、图片显式尺寸、登录页桌面细指针自动聚焦和删除按钮 Nuxt UI 化已修；整卡 `touch-action: none`、头像 `UPopover mode="hover"` 和 resize 原生手柄为当前交互决策保留；共享玻璃 surface、拖拽/缩放 composable 拆分和字体评估列为后续结构债。
 - 2026-06-19：确定并落地真实模块接入前的契约边界：registry 只声明模块事实（稳定 `key`、i18n 标题/描述、图标、组件、默认尺寸、可选 constraints、支持方向）；layout 只保存实例展示偏好（坐标、跨度、`chrome`、`orientation`、`header.visible/icon/title/description`）。`chrome` 默认 `card` 且所有组件默认支持，不进入模块注册；`orientation: auto` 由容器统一解析，模块不接收布局、编辑态、外壳或统一 data。
+- 2026-06-19：为组件缩放触达 constraints 或网格边界时补充视觉反馈；resize 手柄和卡片边缘会进入短暂警示态，并显示“已到最小/最大尺寸”提示。store 和 UI 反馈共用 `constrainWorkbenchWidgetSpan`，避免限制规则分叉。
 
 ## 验证结果
 
@@ -106,6 +107,7 @@
 - 2026-06-18：触摸输入与卡片工具条收口后重新通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`、`pnpm build`、`git diff --check`。
 - 2026-06-19：主题语义收口后通过 `pnpm test tests/unit/theme-preference-store.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和相关文件 `git diff --check`。
 - 2026-06-19：工具箱可访问性边界收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test` 和相关文件 `git diff --check`。
+- 2026-06-19：组件缩放边界反馈后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test tests/unit/workbench-layout-store.test.ts` 和相关文件 `git diff --check`。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 

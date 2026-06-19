@@ -15,6 +15,7 @@
 
 - `services/backend/`：后端私有子模块，Maven 多模块，Java 25、Spring Boot 4、Spring Cloud Alibaba。
 - `apps/web/`：Web 子模块，Nuxt 4、Nuxt UI、Pinia、Zod、pnpm；Web Online 通过 Nuxt server BFF 调后端。
+- Web 子模块的 Codex 技能由根仓库 `.codex/skills/hdx-web-*` wrapper 暴露；wrapper 的 description 继承真实技能 description 以保留自动触发质量，真实内容仍在 `apps/web/.agents/skills/` 或 `apps/web/.codex/skills/`，同步脚本是 `scripts/sync-web-skill-wrappers.ps1`。
 - `apps/desktop/`：Desktop 子模块，Tauri + Rust + Vite + TypeScript；Full 使用本机 sidecar，Online 连接远端服务。
 - `apps/mobile/`：App 工程容器；后续 Android Kotlin + HarmonyOS NEXT ArkTS，首版 Online only。
 - `packages/shared/`：跨端契约、OpenAPI 生成类型、release manifest schema 和常量说明；当前不是可安装包。

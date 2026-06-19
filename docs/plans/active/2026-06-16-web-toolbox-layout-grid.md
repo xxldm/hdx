@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；布局持久化已保存实例级 `chrome`、`orientation` 和 `header` 显示偏好，旧布局可自动补默认值。
-- 下一步：真实模块接入时按中心 registry 提供稳定 `key`、标题/描述/图标、组件、默认尺寸、可选 constraints 和支持方向；发布或恢复认证闭环前重新启用 `auth.global.ts` 未登录跳转。
-- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。自定义色当前通过 ColorPicker 设置 hex；若需要手输 RGB 或色号，需要另补输入控件。若未来组件要求编辑态内操作内容，必须提供显式二级入口或退出编辑态。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI 待优化清单已记录。
+- 下一步：先按 Nuxt UI 待优化清单修 P2：`UApp` locale/html lang 接入、`ToolboxNotesWidget` 按钮语义色；再处理 P3：`info` 语义色、icon 命名统一和账号菜单语义复查。真实模块接入时继续按中心 registry 契约执行。
+- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。Nuxt UI 待优化项完成前，内置组件 locale、语义色和图标命名仍有一致性债。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -65,6 +65,17 @@
 - `pnpm build`
 - `pwsh -NoLogo -NoProfile -File scripts/sync-active-plan-status.ps1 -Check`
 - 浏览器手工验证首页编辑、拖拽、保存、取消和明暗模式。
+
+## Nuxt UI 待优化清单
+
+按 2026-06-19 Nuxt UI 技能审计结果，后续优化先处理 P2，再处理 P3。以下内容是当前事实源，避免后续只靠聊天记录恢复。
+
+- P2：`apps/web/app/app.vue` 与 `apps/web/nuxt.config.ts`。`UApp` 需要接入 Nuxt UI locale，并用 `useHead` 随 `@nuxtjs/i18n` 更新 `html lang/dir`。当前多为自定义中文文案，不是运行阻断；接入更多 Nuxt UI 内置组件前优先处理。
+- P2：`apps/web/app/components/workbench/widgets/ToolboxNotesWidget.vue`。`写一条` 是新增/记录动作，不应使用 `color="error"`。保留玫红视觉可以走项目 accent class；Nuxt UI 语义色改为 `primary` 或 `neutral`。
+- P3：`apps/web/nuxt.config.ts` 与 `apps/web/app/app.config.ts`。补齐 Nuxt UI 默认 7 语义色中的 `info`，给说明、提示和信息态组件留下语义出口。当前无 `color="info"` 使用，属于一致性前置优化。
+- P3：统一 icon 命名规范。当前大量 `lucide:*` 可运行，但 Nuxt UI v4 推荐 `i-lucide-*`；先确认项目规范，再机械迁移页面、组件和 widget registry。
+- P3：账号菜单当前保留 `UPopover mode="hover"` 是实测交互例外。新增设置、退出等真实账户动作后，再评估是否切到语义更贴近菜单行为的 `UDropdownMenu`。
+- 已确认不作为 Nuxt UI 错用处理：`UPopover + UColorPicker` 符合官方示例；删除确认使用 popconfirm 形态符合当前交互；玻璃风格里的 raw `white/slate/cyan` 是项目视觉实现，不按组件 API 问题处理。
 
 ## 风险与阻塞
 

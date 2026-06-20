@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI P2 与 `info` 语义色已完成。
-- 下一步：处理 Nuxt UI P3 剩余项：icon 命名统一和账号菜单语义复查。真实模块接入时继续按中心 registry 契约执行。
-- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。Nuxt UI P3 完成前，图标命名和账号菜单语义仍有一致性债。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI P2、`info` 语义色和 icon 命名统一已完成。
+- 下一步：处理 Nuxt UI P3 剩余项：账号菜单语义复查。真实模块接入时继续按中心 registry 契约执行。
+- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。Nuxt UI P3 完成前，账号菜单语义仍有一致性债。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -73,7 +73,7 @@
 - 已完成：`apps/web/app/app.vue` 与 `apps/web/nuxt.config.ts`。`UApp` 已接入 Nuxt UI locale，并用 `useHead` 随 `@nuxtjs/i18n` 更新 `html lang/dir`。
 - 已完成：`apps/web/app/components/workbench/widgets/ToolboxNotesWidget.vue`。`写一条` 是新增/记录动作，Nuxt UI 语义色已从 `error` 改为 `primary`，玫红视觉仍由项目 accent class 保留。
 - 已完成：`apps/web/nuxt.config.ts` 与 `apps/web/app/app.config.ts`。已补齐 Nuxt UI 默认 7 语义色中的 `info`，给说明、提示和信息态组件留下语义出口。
-- P3：统一 icon 命名规范。当前大量 `lucide:*` 可运行，但 Nuxt UI v4 推荐 `i-lucide-*`；先确认项目规范，再机械迁移页面、组件和 widget registry。
+- 已完成：统一 icon 命名规范。Web 页面、组件、widget registry 和 README 已从 `lucide:*` 迁移为 Nuxt UI v4 推荐的 `i-lucide-*`。
 - P3：账号菜单当前保留 `UPopover mode="hover"` 是实测交互例外。新增设置、退出等真实账户动作后，再评估是否切到语义更贴近菜单行为的 `UDropdownMenu`。
 - 已确认不作为 Nuxt UI 错用处理：`UPopover + UColorPicker` 符合官方示例；删除确认使用 popconfirm 形态符合当前交互；玻璃风格里的 raw `white/slate/cyan` 是项目视觉实现，不按组件 API 问题处理。
 
@@ -123,6 +123,7 @@
 - 2026-06-19：主题圆角和账号头像收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test tests/unit/theme-preference-store.test.ts`、`pnpm test`、相关文件 `git diff --check` 和计划索引同步检查。
 - 2026-06-19：Nuxt UI P2 收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 2026-06-19：补齐 Nuxt UI `info` 语义色后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
+- 2026-06-20：统一 Nuxt UI icon 命名后通过 `rg "lucide:" apps/web`、`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 

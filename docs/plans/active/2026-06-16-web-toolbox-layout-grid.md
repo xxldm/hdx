@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求登录后首页改为用户端工具箱，可跨行跨列、拖拽排序，并允许考虑引入 VueUse。
 - 创建时间：2026-06-16
-- 最后更新：2026-06-19
+- 最后更新：2026-06-20
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI P2、`info` 语义色和 icon 命名统一已完成。
-- 下一步：处理 Nuxt UI P3 剩余项：账号菜单语义复查。真实模块接入时继续按中心 registry 契约执行。
-- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。Nuxt UI P3 完成前，账号菜单语义仍有一致性债。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI P2、P3、`info` 语义色和 icon 命名统一已完成。
+- 下一步：真实模块接入时继续按中心 registry 契约执行；共享玻璃 surface、拖拽/缩放 composable 拆分和字体评估按后续实际页面扩展推进。
+- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -74,7 +74,7 @@
 - 已完成：`apps/web/app/components/workbench/widgets/ToolboxNotesWidget.vue`。`写一条` 是新增/记录动作，Nuxt UI 语义色已从 `error` 改为 `primary`，玫红视觉仍由项目 accent class 保留。
 - 已完成：`apps/web/nuxt.config.ts` 与 `apps/web/app/app.config.ts`。已补齐 Nuxt UI 默认 7 语义色中的 `info`，给说明、提示和信息态组件留下语义出口。
 - 已完成：统一 icon 命名规范。Web 页面、组件、widget registry 和 README 已从 `lucide:*` 迁移为 Nuxt UI v4 推荐的 `i-lucide-*`。
-- P3：账号菜单当前保留 `UPopover mode="hover"` 是实测交互例外。新增设置、退出等真实账户动作后，再评估是否切到语义更贴近菜单行为的 `UDropdownMenu`。
+- 已完成：账号菜单保留 `UPopover mode="hover"` 的已验证 hover/touch 手感，同时补齐 trigger 的 `aria-haspopup`、`aria-expanded` 与内容区 `menu` 语义；若未来新增更复杂的账户动作或快捷键导航，再评估是否切到 `UDropdownMenu`。
 - 已确认不作为 Nuxt UI 错用处理：`UPopover + UColorPicker` 符合官方示例；删除确认使用 popconfirm 形态符合当前交互；玻璃风格里的 raw `white/slate/cyan` 是项目视觉实现，不按组件 API 问题处理。
 
 ## 风险与阻塞
@@ -111,6 +111,7 @@
 - 2026-06-19：确定并落地真实模块接入前的契约边界：registry 只声明模块事实（稳定 `key`、i18n 标题/描述、图标、组件、默认尺寸、可选 constraints、支持方向）；layout 只保存实例展示偏好（坐标、跨度、`chrome`、`orientation`、`header.visible/icon/title/description`）。`chrome` 默认 `card` 且所有组件默认支持，不进入模块注册；`orientation: auto` 由容器统一解析，模块不接收布局、编辑态、外壳或统一 data。
 - 2026-06-19：为组件缩放触达 constraints 或网格边界时补充视觉反馈；resize 手柄和卡片边缘会进入短暂警示态，并显示“已到最小/最大尺寸”提示。store 和 UI 反馈共用 `constrainWorkbenchWidgetSpan`，避免限制规则分叉。
 - 2026-06-19：继续收口主题半径一致性；新增 `--hdx-radius-*` 派生 token，使登录页、首页顶栏、布局编辑工具框、浮层、工具箱卡片、添加占位和占位 widget 跟随主题圆角。纯圆形头像、图标按钮、颜色 swatch、关闭按钮和 resize 角标保留自身形态语义；账号入口改用 Nuxt UI `UAvatar`，无头像时用文字兜底。
+- 2026-06-20：收口 Nuxt UI P3 账号菜单语义。继续保留已通过真实交互验证的 `UPopover mode="hover"`，同时为头像触发器补齐 `aria-haspopup="menu"`、`aria-expanded`、`aria-controls`，菜单项点击后显式关闭浮层。
 
 ## 验证结果
 
@@ -124,6 +125,7 @@
 - 2026-06-19：Nuxt UI P2 收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 2026-06-19：补齐 Nuxt UI `info` 语义色后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 2026-06-20：统一 Nuxt UI icon 命名后通过 `rg "lucide:" apps/web`、`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
+- 2026-06-20：账号菜单语义收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 
@@ -135,7 +137,6 @@
 - 组件方向目前已由容器统一解析并传给占位组件，但占位组件暂未按横/竖方向改变内部排版；真实模块接入时按需使用该 prop。
 - 登录页与首页仍各自维护玻璃背景和浮层样式；后续页面继续扩展前，建议抽出共享 surface/menu/background token 或 CSS layer。
 - `ToolboxGridItem.vue` 仍承载拖拽、缩放、删除确认和触摸选择多种行为；后续继续改编辑器前，建议拆出 `useWorkbenchDrag`、`useWorkbenchResize` 等 composable。
-- 账号菜单当前保留 `UPopover mode="hover"`，因为实测鼠标和触摸都能使用；后续新增设置、退出等真实账户动作时，再评估是否改成语义更贴近菜单行为的 `UDropdownMenu`。
 - resize 手柄当前保留原生 button，原因是它是特殊拖拽控件；只有在 Nuxt UI 控件不影响 pointer 捕获、拖拽手感和圆角视觉时，再考虑统一回框架按钮。
 - 当前字体可用但未作为独立视觉刷新处理；如果后续继续强化年轻化、个人工具箱气质，再评估更圆润的正文字体，不作为当前主题收口阻塞项。
 

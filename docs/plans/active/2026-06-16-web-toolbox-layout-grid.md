@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求登录后首页改为用户端工具箱，可跨行跨列、拖拽排序，并允许考虑引入 VueUse。
 - 创建时间：2026-06-16
-- 最后更新：2026-06-21
+- 最后更新：2026-06-22
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项和 widget registry 契约已完成；Nuxt UI P2/P3、`info` 色和 icon 命名已统一；登录页/首页共享背景与工具样式；`ToolboxGridItem.vue` 已拆分为拖拽、缩放、编辑 surface composable，并修复拖过目标中心后的推挤方向翻转与多行组件顶行投放失败。
-- 下一步：真实模块接入时继续按中心 registry 契约执行；剩余卡片 surface 收敛和字体评估按后续实际页面扩展推进。
-- 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项、widget registry 契约、默认 layout、固定菜单和顶栏边框路由进度反馈已完成。首页动作通过顶栏挂载点提供；顶栏进度条定稿后已删除开发态 5 秒调试延迟。
+- 下一步：真实模块接入时继续按中心 registry 契约执行；菜单项若升级为真实页面，应只更新 navigation registry 的 `to`/行为，不把用户置顶偏好混进模块 registry；各页面自己的保存、编辑等操作应挂到顶栏动作区，不写进默认 layout。剩余卡片 surface 收敛和字体评估按后续实际页面扩展推进。
+- 主要剩余风险：真实模块组件尚未接入；当前菜单里的组件项只定位/高亮首页已有 widget，不代表已有独立页面；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -46,6 +46,7 @@
 - [x] 临时放开未登录跳转用于首页调试，并记录恢复条件。
 - [x] 运行 Web 与文档相关验证。
 - [x] 按 Chrome 真实交互结果修复编辑态拖拽/缩放和头像菜单，并将动作按钮统一回 Nuxt UI 控件。
+- [x] 新增首页菜单抽屉和顶栏固定菜单偏好，固定项本地持久化。
 
 ## 验收标准
 
@@ -117,6 +118,11 @@
 - 2026-06-21：继续收口 `ToolboxGridItem.vue` 结构债；已把拖拽命中和预览提交抽到 `use-workbench-widget-drag.ts`，把缩放和 constraints 反馈抽到 `use-workbench-widget-resize.ts`，把移除确认、触摸首击防误触和清理定时器抽到 `use-workbench-widget-edit-surface.ts`。
 - 2026-06-21：修复拖拽组件继续越过目标中心后，预览推挤方向从原始相对位置翻转的问题。拖到组件时的 push direction 现在优先锚定起拖组件与目标组件的原始上下/左右关系，只有原始轴向重叠时才回退到当前中心点。
 - 2026-06-21：修复 `随手记` 这类多行组件拖到第 0 行失败的问题。链式挤开过程中，拖动源组件现在作为固定目标排除在递归碰撞移动之外，允许被挤开的组件跨过与源组件的中间重叠格，最后再统一校验是否完全让开。
+- 2026-06-21：确定首页导航形态为左侧菜单抽屉加桌面宽屏顶栏固定项；用户置顶偏好由独立 `workbench-navigation` store 本地持久化。菜单里的组件项先定位/高亮首页已有 widget，后续真实页面接入时只更新 navigation registry。
+- 2026-06-21：为路由跳转增加全局 client 进度状态，并在首页顶栏边框上渲染主题色进度光带。当前顶栏仍在首页内，后续若抽成全局 App Shell，可复用该进度状态。
+- 2026-06-22：把工具箱顶栏抽为 Nuxt 默认 layout，登录页显式 `layout: false` 保持独立；新增空白 `/settings` 页面测试默认 layout。页面级动作不写进 layout，首页通过 `#workbench-topbar-actions` 挂载“整理布局”等按钮。
+- 2026-06-22：为方便定稿顶栏边框进度条观感，`route-progress.client.ts` 曾在开发环境临时延迟路由跳转 5 秒；进度条定稿后已删除该延迟。
+- 2026-06-22：按用户反馈把顶栏边框进度改为从左侧同时顺时针、逆时针各扫半圈到右侧；进度节奏改用 Nuxt 默认 `estimatedProgress`。视觉层已从 conic-mask 改为 SVG `pathLength`，避免矩形边框内外沿出现两条不同步的进度线。
 
 ## 验证结果
 
@@ -135,6 +141,11 @@
 - 2026-06-21：`ToolboxGridItem.vue` composable 拆分后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build` 和相关文件 `git diff --check`；build 仍只有既有工具链 warning。
 - 2026-06-21：拖拽推挤方向修复后通过 `pnpm test tests/unit/workbench-widget-drag.test.ts`、`pnpm test tests/unit/workbench-layout-store.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。
 - 2026-06-21：多行组件顶行投放修复后通过 `pnpm test tests/unit/workbench-layout-store.test.ts`、`pnpm test tests/unit/workbench-widget-drag.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。
+- 2026-06-21：首页导航抽屉和顶栏固定菜单通过 `pnpm test tests/unit/workbench-navigation-store.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。Playwright 使用本机 Chrome 验证：左侧菜单抽屉可打开，默认固定项显示在宽屏顶栏，固定 `连接状态` 后顶栏更新，点击后会高亮对应 widget。
+- 2026-06-21：顶栏边框路由进度反馈通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`git diff --check`，并用本机 Chrome/Playwright 强制打开进度态确认亮/暗模式下圆角边框光带可见且不遮挡顶栏内容。
+- 2026-06-22：默认 layout 与空白设置页通过 `pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `git diff --check`。Chrome/Playwright 验证：`/` 有顶栏和首页整理布局动作，`/settings` 有顶栏但无首页动作，`/login` 不显示顶栏。
+- 2026-06-22：顶栏进度节奏改为 Nuxt 默认估算公式，边框进度改为 SVG 半路径 dash 渲染；通过 `pnpm test tests/unit/route-progress.test.ts`、`pnpm typecheck`、`pnpm lint` 和根/ Web `git diff --check`。
+- 2026-06-22：顶栏进度条定稿后删除开发态 5 秒路由延迟；圆角主题变化会主动重读顶栏真实 `border-radius`。通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 

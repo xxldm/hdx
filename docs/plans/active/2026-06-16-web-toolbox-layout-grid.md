@@ -6,12 +6,12 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求登录后首页改为用户端工具箱，可跨行跨列、拖拽排序，并允许考虑引入 VueUse。
 - 创建时间：2026-06-16
-- 最后更新：2026-06-20
+- 最后更新：2026-06-21
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、全局主题入口和 UI/UX 审计主要收口项已实现。工具箱 widget 注册契约已收口为中心静态 registry；Nuxt UI P2、P3、`info` 语义色和 icon 命名统一已完成；登录页与首页共享背景层、浮层菜单和工具按钮样式已抽到全局 CSS。
-- 下一步：真实模块接入时继续按中心 registry 契约执行；拖拽/缩放 composable 拆分、剩余卡片 surface 收敛和字体评估按后续实际页面扩展推进。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项和 widget registry 契约已完成；Nuxt UI P2/P3、`info` 色和 icon 命名已统一；登录页/首页共享背景与工具样式；`ToolboxGridItem.vue` 已拆分为拖拽、缩放、编辑 surface composable，并修复拖过目标中心后的推挤方向翻转与多行组件顶行投放失败。
+- 下一步：真实模块接入时继续按中心 registry 契约执行；剩余卡片 surface 收敛和字体评估按后续实际页面扩展推进。
 - 主要剩余风险：真实模块组件尚未接入；`auth.global.ts` 当前临时注释未登录跳转，不能带入正式认证闭环。
 <!-- active-plan-status:end -->
 
@@ -114,6 +114,9 @@
 - 2026-06-20：收口 Nuxt UI P3 账号菜单语义。继续保留已通过真实交互验证的 `UPopover mode="hover"`，同时为头像触发器补齐 `aria-haspopup="menu"`、`aria-expanded`、`aria-controls`，菜单项点击后显式关闭浮层。
 - 2026-06-21：跳过登录拦截恢复，继续收口视觉结构债。已把登录页和首页重复维护的背景层、液态光场、网格纹理、浮层菜单和图标工具按钮抽到 `app/assets/css/main.css` 的 `hdx-*` 共享类；页面内只保留面板、品牌、表单和账号入口等局部差异。
 - 2026-06-21：登录页精简主题面板的外观选项改为竖向列表，避免 `跟随系统` 在窄浮层中被截断；完整主题面板仍保留三列选项。
+- 2026-06-21：继续收口 `ToolboxGridItem.vue` 结构债；已把拖拽命中和预览提交抽到 `use-workbench-widget-drag.ts`，把缩放和 constraints 反馈抽到 `use-workbench-widget-resize.ts`，把移除确认、触摸首击防误触和清理定时器抽到 `use-workbench-widget-edit-surface.ts`。
+- 2026-06-21：修复拖拽组件继续越过目标中心后，预览推挤方向从原始相对位置翻转的问题。拖到组件时的 push direction 现在优先锚定起拖组件与目标组件的原始上下/左右关系，只有原始轴向重叠时才回退到当前中心点。
+- 2026-06-21：修复 `随手记` 这类多行组件拖到第 0 行失败的问题。链式挤开过程中，拖动源组件现在作为固定目标排除在递归碰撞移动之外，允许被挤开的组件跨过与源组件的中间重叠格，最后再统一校验是否完全让开。
 
 ## 验证结果
 
@@ -129,6 +132,9 @@
 - 2026-06-20：统一 Nuxt UI icon 命名后通过 `rg "lucide:" apps/web`、`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 2026-06-20：账号菜单语义收口后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`、相关文件 `git diff --check` 和计划索引同步。
 - 2026-06-21：共享背景层、浮层菜单、工具按钮样式和精简主题面板布局后通过 `pnpm typecheck`、`pnpm lint`、`pnpm build`、`pnpm test`、相关文件 `git diff --check` 和计划索引同步。
+- 2026-06-21：`ToolboxGridItem.vue` composable 拆分后通过 `pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build` 和相关文件 `git diff --check`；build 仍只有既有工具链 warning。
+- 2026-06-21：拖拽推挤方向修复后通过 `pnpm test tests/unit/workbench-widget-drag.test.ts`、`pnpm test tests/unit/workbench-layout-store.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。
+- 2026-06-21：多行组件顶行投放修复后通过 `pnpm test tests/unit/workbench-layout-store.test.ts`、`pnpm test tests/unit/workbench-widget-drag.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 
@@ -139,7 +145,7 @@
 - 本轮以桌面 Chrome 做真实鼠标交互验证；内置浏览器可能仍有鼠标事件兼容差异。
 - 组件方向目前已由容器统一解析并传给占位组件，但占位组件暂未按横/竖方向改变内部排版；真实模块接入时按需使用该 prop。
 - 登录页与首页的背景层、浮层菜单和工具按钮已共享；部分卡片、表单和 widget 内部 surface 仍是局部样式，后续页面继续扩展前可继续收敛到共享 CSS layer。
-- `ToolboxGridItem.vue` 仍承载拖拽、缩放、删除确认和触摸选择多种行为；后续继续改编辑器前，建议拆出 `useWorkbenchDrag`、`useWorkbenchResize` 等 composable。
+- `ToolboxGridItem.vue` 已拆出拖拽、缩放和编辑 surface composable；后续继续改编辑器时，应优先扩展这些 composable，而不是把 pointer 副作用重新塞回组件。
 - resize 手柄当前保留原生 button，原因是它是特殊拖拽控件；只有在 Nuxt UI 控件不影响 pointer 捕获、拖拽手感和圆角视觉时，再考虑统一回框架按钮。
 - 当前字体可用但未作为独立视觉刷新处理；如果后续继续强化年轻化、个人工具箱气质，再评估更圆润的正文字体，不作为当前主题收口阻塞项。
 

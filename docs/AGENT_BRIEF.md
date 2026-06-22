@@ -79,13 +79,11 @@ Web：
 
 ```powershell
 git -C apps/web status --short --branch
-pnpm test
-pnpm typecheck
-pnpm lint
-pnpm build
+pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1
+pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -Build
 ```
 
-Web pnpm 质量命令在 Codex Windows sandbox 中有已知普通权限 `EPERM`；运行前按 `docs/AGENT_WORKFLOW.md` 的权限规则直接走审批/提权，不再先普通权限试跑。
+Web pnpm 质量命令在 Codex Windows sandbox 中有已知普通权限 `EPERM`；运行 `scripts/web-verify.ps1` 或底层 pnpm 验证前，按 `docs/AGENT_WORKFLOW.md` 的权限规则直接走审批/提权，不再先普通权限试跑。
 
 Desktop：
 

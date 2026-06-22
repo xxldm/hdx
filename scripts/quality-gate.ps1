@@ -201,42 +201,23 @@ function Invoke-WebChecks {
         return
     }
 
-    $pnpm = Get-PnpmCommand
-
-    Invoke-Step `
-        -Title 'Web 空白检查' `
-        -WorkingDirectory $WebRoot `
-        -Command 'git' `
-        -Arguments @('diff', '--check')
-
-    Invoke-Step `
-        -Title 'Web 单元测试' `
-        -WorkingDirectory $WebRoot `
-        -Command $pnpm `
-        -Arguments @('test')
-
-    Invoke-Step `
-        -Title 'Web 类型检查' `
-        -WorkingDirectory $WebRoot `
-        -Command $pnpm `
-        -Arguments @('typecheck')
-
-    Invoke-Step `
-        -Title 'Web lint' `
-        -WorkingDirectory $WebRoot `
-        -Command $pnpm `
-        -Arguments @('lint')
-
-    if ($NoBuild) {
-        Write-Host '跳过：-NoBuild 已跳过 Web build。'
-        return
+    $webVerifyArguments = @(
+        '-NoLogo',
+        '-NoProfile',
+        '-File',
+        (Join-Path $RepoRoot 'scripts/web-verify.ps1'),
+        '-WebRoot',
+        $WebRoot
+    )
+    if (-not $NoBuild) {
+        $webVerifyArguments += '-Build'
     }
 
     Invoke-Step `
-        -Title 'Web build' `
-        -WorkingDirectory $WebRoot `
-        -Command $pnpm `
-        -Arguments @('build')
+        -Title 'Web 聚合验证' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments $webVerifyArguments
 }
 
 function Assert-DesktopStaticFiles {

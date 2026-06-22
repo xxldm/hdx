@@ -15,13 +15,13 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
 - `-Scope docs`：检查关键文档可读取、根仓库空白错误、active plan 状态索引、Release manifest 契约、Desktop Release asset 打包 fixture、OpenAPI 契约和 OpenAPI/Web 类型对齐。
 - `-Scope backend`：检查后端子模块、Boot 4 Jackson 兼容性，并运行 `mvn test` 和 `backend-all-in-one` AOT/package smoke。
-- `-Scope web`：检查 Web 子模块并运行 `pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build`。
+- `-Scope web`：通过 `scripts/web-verify.ps1 -Build` 检查 Web 子模块，覆盖空白检查、单元测试、类型检查、lint 和 build。
 - `-Scope desktop`：检查 Desktop 子模块骨架、空白错误；未使用 `-NoBuild` 时运行 TypeScript 和 Rust flavor 检查。
 - `-Scope all`：按顺序运行文档、后端、Web 和 Desktop 检查。
 
 轻量控制参数：
 
-- `-NoBuild`：后端仍运行空白检查和 Boot 4 Jackson 兼容检查，但跳过测试与 AOT/package smoke，只检查 Maven 环境；Web 跳过 build，Desktop 跳过 TypeScript/Rust 编译；适合先验证脚本分支和基础环境。
+- `-NoBuild`：后端仍运行空白检查和 Boot 4 Jackson 兼容检查，但跳过测试与 AOT/package smoke，只检查 Maven 环境；Web 聚合验证跳过 build，Desktop 跳过 TypeScript/Rust 编译；适合先验证脚本分支和基础环境。
 - `-SkipBackend`：跳过后端检查。
 - `-SkipWeb`：跳过 Web 检查。
 - `-SkipDesktop`：跳过 Desktop 检查。
@@ -56,6 +56,20 @@ pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -Gene
 ```
 
 仍可单独运行底层脚本排障，但常规提交前优先使用聚合入口，避免重复执行 `openapi-contract-check.ps1`、`openapi-generate-types.ps1 -Check` 和 `openapi-web-type-check.ps1`。
+
+Web 常规验证聚合入口：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1
+```
+
+需要覆盖 build 时：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -Build
+```
+
+常规 Web 提交前优先使用该入口，避免把 `pnpm test`、`pnpm typecheck` 和 `pnpm lint` 拆成多次工具调用；定位单项失败时再单独运行底层 pnpm 命令。
 
 ## 提交前检查
 

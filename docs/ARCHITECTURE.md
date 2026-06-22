@@ -185,7 +185,7 @@ Web 浏览器代码不直接访问后端地址。
 
 - `backend-contract`：后端共享 API 契约与 DTO。
 - `backend-http-support`：后端内部 HTTP/Spring Security 边界支撑代码。
-- `backend-core`：核心业务能力、JPA 实体、Repository、服务和 REST 控制器。
+- `backend-core`：核心业务能力、JDBC Repository、服务和 REST 控制器。
 - `backend-core-service`：核心业务微服务启动器。
 - `backend-auth-service`：认证中心微服务启动器，作为 JWT/OAuth2 issuer，使用 PostgreSQL `auth` schema。
 - `backend-gateway`：API 网关微服务启动器。
@@ -224,10 +224,10 @@ Web 浏览器代码不直接访问后端地址。
 - 数据库迁移使用 Flyway。
 - 核心业务迁移脚本由 `services/backend/backend-core/src/main/resources/db/migration/` 提供。
 - 认证中心迁移脚本由 `services/backend/backend-auth-service/src/main/resources/db/migration/` 提供，并只面向服务端 PostgreSQL `auth` schema。
-- PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。
+- PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；数据库结构由 Flyway 迁移脚本管理。
+- 后端业务数据访问默认采用 Spring JDBC / JdbcClient + 显式 SQL 和明确 RowMapper；不再默认引入 JPA/Hibernate。
 
 后端 native 规则：
 
 - 正式 native 构建入口使用 `mvn -Pnative package`，由 Maven 生命周期先执行 Spring AOT，再执行 GraalVM Native Build Tools。
-- JPA 实体在 `backend-core` 中通过 Hibernate Maven 插件做构建期字节码增强；新增实体时必须纳入增强范围。
 - Native Image metadata 优先依赖 Spring AOT 与官方 reachability metadata；项目内缺口只通过 Spring `RuntimeHints` 补齐。

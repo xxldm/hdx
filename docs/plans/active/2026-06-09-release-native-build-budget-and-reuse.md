@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户确认 `backend-services` 并行构建，并允许后端未变时复用上一版主仓库 Release asset
 - 创建时间：2026-06-09
-- 最后更新：2026-06-16（native 构建内存排查）
+- 最后更新：2026-06-22（后端数据访问收窄）
 
 <!-- active-plan-status:start -->
 - 何时读取：后端 native artifact、GitHub Actions release start、历史 Release asset 复用、后端 resolver 相关任务。
-- 当前状态：`v0.0.0-preview.5` 已验证 tag-only 预览发布和 Full Linux AppImage smoke；`v0.0.0-preview.6` 因 `core-service` native 停滞取消。已补超时/诊断，并在本机验证 baseline、`-Ob` 与线程限制；`-Ob` 和线程限制均不作为 release 默认方案。
+- 当前状态：`v0.0.0-preview.5` 已验证 tag-only 预览发布和 Full Linux AppImage smoke；`v0.0.0-preview.6` 因 `core-service` native 停滞取消。已补超时/诊断；`-Ob` 和线程限制均不作为 release 默认方案。ADR 0015 已将后端业务数据访问默认方案收窄为 JDBC，`backend-core` 工具目录已迁移。
 - 下一步：暂停会触发后端 native 的 release 验证；待 2026-06-25 GraalVM 25.1 发布后，先复测 `backend-core-service` build report NPE。期间只做只读检查、文档和清理准备，不推新 preview/stable tag。
-- 主要剩余风险：新增超时/诊断仍未在远端卡住场景验证；`-Ob` 不可作为 release 默认优化；后端 native 卡住风险解除前，stable 发布和完整安装包矩阵验证暂停。Windows services、旧 workflow、很旧 tag 入口和 App 发布闭环仍待后续处理。
+- 主要剩余风险：新增超时/诊断仍未在远端卡住场景验证；`-Ob` 不可作为 release 默认优化；JDBC 收窄尚未通过真实 native build report 量化收益。后端 native 卡住风险解除前，stable 发布和完整安装包矩阵验证暂停。Windows services、旧 workflow、很旧 tag 入口和 App 发布闭环仍待后续处理。
 <!-- active-plan-status:end -->
 
 ## 阅读指引

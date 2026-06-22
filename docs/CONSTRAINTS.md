@@ -62,9 +62,8 @@
 - 复杂改动应包含最小可复现用例。
 - 修复缺陷时，先复现再修复；无法复现必须记录原因。
 - 生成代码、生成文档和配置也属于项目产物，必须进入质量门禁。
-- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 编译和健康检查。
+- 后端 GraalVM Native Image 的构建参数属于质量门禁的一部分；调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints` 或类初始化参数后，必须重新验证 `backend-core-service`、`backend-gateway` 与 `backend-all-in-one` 的 native 编译和健康检查。
 - 后端 native metadata 优先顺序为：Spring Boot/Spring Framework AOT 内置支持、GraalVM 官方 Reachability Metadata Repository、项目内 Spring `RuntimeHints`。除非用于短期诊断，项目源码不直接维护手写 `reflect-config.json`、`resource-config.json` 等旧式 native metadata。
-- Hibernate enhance 只能视为构建期实体字节码增强能力，用于减少 Hibernate 在 native closed world 环境中的运行期动态增强风险；它不是 RuntimeHints 或官方 reachability metadata 的替代品。
 
 ## 6. 可观测性约束
 

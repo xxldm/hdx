@@ -30,7 +30,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 
 - 脚本只覆盖本地常用质量门禁，不替代远端 CI。
 - 仓库内 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文。
-- 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints` 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
+- 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
 - 后端 `backend-all-in-one` AOT/package smoke 使用 `-Pnative package -Dnative.skip=true` 覆盖 Spring AOT 与打包路径，但不生成真实 native executable。Desktop Full Linux AppImage 真实运行属于 release 产物发布后的验证，不作为本地日常质量门禁。
 - 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
 - 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/AGENT_WORKFLOW.md` 的权限失败重试规则处理。

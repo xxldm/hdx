@@ -14,6 +14,7 @@
 - 推送前必须确认目标 remote、目标分支、工作树状态、相关验证结果和敏感信息检查。
 - 不得推送无关本地改动、他人未交接改动或真实密钥、令牌、证书和敏感数据。
 - 不得在未说明风险和回滚方式的情况下执行 force push。
+- 可用 `scripts/git-push-stack.ps1 -DryRun` 先预览后端、Web、Desktop 与根仓库的推送顺序和 ahead 状态，再去掉 `-DryRun` 串行推送。
 
 ## 智能体提交纪律
 
@@ -53,6 +54,22 @@ pwsh -NoLogo -NoProfile -File scripts/git-commit-stack.ps1 -StageAll -WebMessage
 - 默认只提交已暂存改动；只有显式传入 `-StageAll` 时才会对对应仓库执行 `git add -A`。
 - 首次使用或范围不确定时先传 `-DryRun`，确认会提交哪些仓库和提交信息后再去掉。
 - 该脚本不负责推送；推送仍遵守先子模块、后根仓库的顺序。
+
+## 推送编排脚本
+
+本仓库提供保守的串行推送编排入口：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/git-push-stack.ps1 -DryRun
+pwsh -NoLogo -NoProfile -File scripts/git-push-stack.ps1
+```
+
+- 脚本按 `services/backend`、`apps/web`、`apps/desktop`、根仓库顺序串行处理，先推子模块再推根仓库。
+- 推送前会要求对应仓库工作树干净；存在未提交改动时失败，不会带脏工作树推送。
+- 每个仓库必须有明确 upstream；没有 upstream 时失败，不猜 remote 或目标分支。
+- 没有 ahead 提交的仓库会跳过；有 ahead 提交时执行普通 `git push`。
+- 脚本不提供 force push 参数；需要 force push 时必须单独说明风险和回滚方式后手动执行。
+- 可用 `-SkipBackend`、`-SkipWeb`、`-SkipDesktop`、`-SkipRoot` 跳过对应仓库。
 
 ## Git 操作串行规则
 

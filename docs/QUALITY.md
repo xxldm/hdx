@@ -35,6 +35,28 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
 - 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/AGENT_WORKFLOW.md` 的权限失败重试规则处理。
 
+## 验证分层
+
+为了减少智能体反复运行大量命令造成的等待和上下文消耗，验证默认分三层执行：
+
+- 开发中优先运行最小命中验证，例如指定后端测试类、Web 单个测试文件或对应脚本分支。
+- 跨边界契约稳定后，再运行对应聚合脚本或契约脚本；不要把契约检查、类型生成检查和 Web 类型对齐拆成多轮来回执行。
+- 提交前只运行一次相称范围的总门禁；如果前面已运行等价检查，且之后没有修改相关文件，不重复跑同一批命令。
+
+OpenAPI / Web 契约常用聚合入口：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1
+```
+
+当后端 OpenAPI 变化符合预期，且后端 OpenAPI 测试已经生成最新 spec 后，用一个命令刷新快照、生成类型并完成检查：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes
+```
+
+仍可单独运行底层脚本排障，但常规提交前优先使用聚合入口，避免重复执行 `openapi-contract-check.ps1`、`openapi-generate-types.ps1 -Check` 和 `openapi-web-type-check.ps1`。
+
 ## 提交前检查
 
 任何代码或配置变更在提交前都应完成：
@@ -56,9 +78,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 如果新增或修改 `.ps1` 脚本，是否已在 PowerShell 7+ / `pwsh` 下完成相称验证，且中文输出、错误提示和帮助文本保持可读中文。
 - 如果根仓库更新了子模块指针，相关子模块 commit 是否已推送到各自远端并可获取。
 - 是否已运行与变更范围相称的 `scripts/quality-gate.ps1` 范围；如未运行，是否说明替代验证和剩余风险。
-- 如果改动 OpenAPI、后端公开路径、Web BFF 契约、`packages/shared/contracts/openapi/expected-paths.json`、`expected-schemas.json` 或 OpenAPI 快照，是否已运行 `scripts/openapi-contract-check.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-refresh-snapshots.ps1` 并提交快照。
-- 如果改动 OpenAPI 快照、`scripts/openapi-generate-types.ps1` 或 `packages/shared/generated/openapi/`，是否已运行 `scripts/openapi-generate-types.ps1 -Check`；如果生成结果预期变化，是否先运行 `scripts/openapi-generate-types.ps1` 并提交生成物。
-- 如果改动 Web Zod schema、OpenAPI 生成类型或 `scripts/checks/openapi-web-type-compatibility.ts`，是否已运行 `scripts/openapi-web-type-check.ps1`，确认 Web 手写类型和 OpenAPI 生成类型仍保持编译期兼容。
+- 如果改动 OpenAPI、后端公开路径、Web BFF 契约、Web Zod schema、OpenAPI 快照、生成类型或 Web/OpenAPI 类型对齐文件，是否已运行 `scripts/openapi-verify.ps1`；如果后端 spec 发生预期变化，是否先运行 `scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes` 并提交快照与生成物。
 - 如果改动 `packages/shared/contracts/release/*.schema.json`、release manifest 示例或 release 校验脚本，是否已运行 `scripts/release-manifest-check.ps1`，并检查 ADR 0012 和 release 契约说明仍一致。
 - 如果改动 Desktop Release asset 打包脚本或相关 workflow，是否已运行 `scripts/check-desktop-release-asset-packaging.ps1`，确认旧缓存 bundle 与当前版本 bundle 共存时仍只选择当前版本产物。
 

@@ -64,6 +64,7 @@
 git status --short --branch
 pwsh -NoLogo -NoProfile -File scripts/git-submodule-status.ps1 -RepoRoot D:\Project\hdx
 pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
+pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1
 ```
 
 后端：

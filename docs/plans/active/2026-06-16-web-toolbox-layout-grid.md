@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项、widget registry 契约、默认 layout、固定菜单和顶栏边框路由进度反馈已完成。第一个正式 widget `timer` 已接入 registry/default layout，并用独立 store 按 `endsAt` 支持后台计时。全局未登录跳转已恢复。
-- 下一步：继续按中心 registry 契约接入真实模块；模块自身状态使用独立 store 或模块内边界，不写进 layout。菜单项若升级为真实页面，只更新 navigation registry 的 `to`/行为；页面自己的保存、编辑等操作挂到顶栏动作区。
-- 主要剩余风险：除 `timer` 外，`quick-links`、`tool-catalog`、`notes`、`runtime` 仍是占位组件；当前菜单里的组件项只定位/高亮首页已有 widget，不代表已有独立页面。
+- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项、widget registry 契约、固定菜单和顶栏边框路由进度反馈已完成。第一个正式 widget `timer` 已接入 registry/default layout，并用独立 store 按 `endsAt` 支持后台计时；旧占位 widget 已从 registry、默认布局、菜单和首页请求链路移除。全局未登录跳转已恢复。
+- 下一步：继续按中心 registry 契约接入下一个真实模块；模块自身状态使用独立 store 或模块内边界，不写进 layout。菜单项若升级为真实页面，只更新 navigation registry 的 `to`/行为；页面自己的保存、编辑等操作挂到顶栏动作区。
+- 主要剩余风险：除 `timer` 外仍未接入真实业务 widget；当前菜单里的 widget 项只定位/高亮首页已有 widget，不代表已有独立页面。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -48,6 +48,7 @@
 - [x] 按 Chrome 真实交互结果修复编辑态拖拽/缩放和头像菜单，并将动作按钮统一回 Nuxt UI 控件。
 - [x] 新增首页菜单抽屉和顶栏固定菜单偏好，固定项本地持久化。
 - [x] 接入第一个正式工具箱组件“计时器”，支持横/竖排列、自定义时长和后台计时。
+- [x] 删除 `quick-links`、`tool-catalog`、`notes`、`runtime` 临时占位 widget，只保留真实注册模块。
 - [x] 恢复全局未登录跳转，未登录访问首页会回到登录页并保留 redirect。
 
 ## 验收标准
@@ -74,7 +75,7 @@
 按 2026-06-19 Nuxt UI 技能审计结果，后续优化先处理 P2，再处理 P3。以下内容是当前事实源，避免后续只靠聊天记录恢复。
 
 - 已完成：`apps/web/app/app.vue` 与 `apps/web/nuxt.config.ts`。`UApp` 已接入 Nuxt UI locale，并用 `useHead` 随 `@nuxtjs/i18n` 更新 `html lang/dir`。
-- 已完成：`apps/web/app/components/workbench/widgets/ToolboxNotesWidget.vue`。`写一条` 是新增/记录动作，Nuxt UI 语义色已从 `error` 改为 `primary`，玫红视觉仍由项目 accent class 保留。
+- 已废弃：旧 `ToolboxNotesWidget.vue` 已随临时占位 widget 一起删除；后续随手记若作为真实模块接入，需要按当前 registry 契约和独立模块状态重新实现。
 - 已完成：`apps/web/nuxt.config.ts` 与 `apps/web/app/app.config.ts`。已补齐 Nuxt UI 默认 7 语义色中的 `info`，给说明、提示和信息态组件留下语义出口。
 - 已完成：统一 icon 命名规范。Web 页面、组件、widget registry 和 README 已从 `lucide:*` 迁移为 Nuxt UI v4 推荐的 `i-lucide-*`。
 - 已完成：账号菜单保留 `UPopover mode="hover"` 的已验证 hover/touch 手感，同时补齐 trigger 的 `aria-haspopup`、`aria-expanded` 与内容区 `menu` 语义；若未来新增更复杂的账户动作或快捷键导航，再评估是否切到 `UDropdownMenu`。
@@ -127,6 +128,7 @@
 - 2026-06-22：按用户反馈把顶栏边框进度改为从左侧同时顺时针、逆时针各扫半圈到右侧；进度节奏改用 Nuxt 默认 `estimatedProgress`。视觉层已从 conic-mask 改为 SVG `pathLength`，避免矩形边框内外沿出现两条不同步的进度线。
 - 2026-06-22：接入第一个正式工具箱 widget `timer`。计时器默认 `1x1`、不设置尺寸 constraints；时长默认 10 分钟并可自定义，运行状态由 `workbench-timer` store 持久化 `durationSeconds`、`remainingSeconds` 与 `endsAt`，不混入 layout store。
 - 2026-06-22：恢复 `auth.global.ts` 全局未登录跳转；未登录访问工作台会跳转 `/login` 并保留 redirect，已登录访问登录页会回到内部 redirect 目标。
+- 2026-06-22：按用户确认删除旧临时占位 widget。`quick-links`、`tool-catalog`、`notes`、`runtime` 已从 widget registry、默认布局、菜单项和首页 `runtime/tools` 概览消费链路移除；旧本地/远端布局若带这些 key，会按当前默认布局回退到 `timer`。
 
 ## 验证结果
 
@@ -152,12 +154,13 @@
 - 2026-06-22：顶栏进度条定稿后删除开发态 5 秒路由延迟；圆角主题变化会主动重读顶栏真实 `border-radius`。通过 `pnpm test`、`pnpm typecheck`、`pnpm lint`。
 - 2026-06-22：计时器 widget 接入后通过 `pnpm test tests/unit/workbench-timer-store.test.ts`、`pnpm test tests/unit/workbench-layout-store.test.ts`、`pnpm typecheck`、`pnpm lint`、`pnpm test` 和 `pnpm build`；build 仍只有既有工具链 warning。
 - 2026-06-22：恢复全局未登录跳转后通过 `pnpm test -- tests/unit/auth-middleware.test.ts`（Vitest 实际运行当前全部 Web 单测）、`pnpm typecheck` 和 `pnpm lint`。
+- 2026-06-22：删除旧占位 widget 后通过 `pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1`，覆盖 Web 空白检查、98 个单测、Nuxt typecheck 和 ESLint；本轮未跑 build。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 
 ## 剩余风险
 
-- 除计时器外，当前其它 widget 仍是占位组件。
+- 除计时器外，当前尚未接入其它真实业务 widget。
 - 本轮以桌面 Chrome 做真实鼠标交互验证；内置浏览器可能仍有鼠标事件兼容差异。
 - 组件方向目前已由容器统一解析并传给占位组件，但占位组件暂未按横/竖方向改变内部排版；真实模块接入时按需使用该 prop。
 - 登录页与首页的背景层、浮层菜单和工具按钮已共享；部分卡片、表单和 widget 内部 surface 仍是局部样式，后续页面继续扩展前可继续收敛到共享 CSS layer。
@@ -173,3 +176,4 @@
 - `6d4f1b7 功能：改为按方向最小挤开组件`（`apps/web`）
 - `07036d5 功能：收口删除确认弹层`（`apps/web`）
 - `78f455c 重构：抽取 Web 共享视觉样式`（`apps/web`）
+- `1d58b5d 杂项：移除工作台占位组件`（`apps/web`）

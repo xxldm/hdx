@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-22（自有认证表 JPA 迁移）
+- 最后更新：2026-06-22（JWK 运行期轮换管理）
 
 <!-- active-plan-status:start -->
 - 何时读取：认证、登录态、JWT、Redis 撤销、当前身份、错误码、用户/角色/权限相关任务。
-- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；后端 review P1/P2/P3 已收口，Testcontainers PostgreSQL migration 覆盖已在本机 Docker 跑通；`backend-auth-service` 的 HDX 自有认证表已从历史 `JdbcOperations` 仓储迁向 JPA repository，并通过 auth-service AOT 入口验证。
-- 下一步：后端 review 当前没有必须立即继续编码的项；ToolCatalog list pagination、JWK 轮换管理、注册/找回密码/MFA/用户管理等按产品化或安全需求触发后续计划。
-- 主要剩余风险：Spring Authorization Server 官方 OAuth2 表仍保留框架 JDBC，这是协议表兼容性例外，不作为普通业务持久化风格；App 登录态未实现；生产开放账号密码登录前仍需验证码、MFA、异常告警和更细限流。
+- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；后端 review P1/P2/P3、自有认证表 JPA 迁移、auth-service AOT 入口和 JWK 运行期轮换管理已完成。
+- 下一步：按产品化需求继续注册、找回密码、验证码/MFA、用户管理、OAuth2 client 管理；ToolCatalog list pagination、JWK 多实例刷新和 RETIRED key 清理策略按触发条件单独设计。
+- 主要剩余风险：Spring Authorization Server 官方 OAuth2 表仍保留框架 JDBC，这是协议表兼容性例外；JWK 轮换当前只刷新本实例缓存；App 登录态未实现；生产开放账号密码登录前仍需验证码、MFA、异常告警和更细限流。
 <!-- active-plan-status:end -->
 
 ## 阅读指引
@@ -317,6 +317,37 @@
 
 第 5 小步统一当前身份接口已完成。后续可单独确认 JSONC 业务数据导入导出、App/Desktop 登录边界或自动化质量门禁；继续前仍按“小步确认、小步计划、小步实现”推进。
 
+## 第 6 小步：JWK 运行期轮换管理
+
+状态：已实现并完成本轮自动化验证。
+
+### 本小步目标
+
+- 为 `backend-auth-service` 补齐运行期签名密钥轮换接口，不再只能靠重启或手工 SQL 变更 ACTIVE key。
+- 轮换必须在一个事务中完成：旧 ACTIVE key 变为 RETIRED，新 key 变为唯一 ACTIVE key。
+- 轮换提交后刷新当前实例的 `JWKSource` 缓存，使新签发 token 立即使用新 ACTIVE kid，同时 JWKS 继续暴露 ACTIVE + RETIRED key 给旧 token 验签。
+- 管理接口必须由服务端 Bearer JWT 保护，首版要求 `ADMIN` role；后续权限后台成熟后可收窄到专用权限码。
+- 接口只返回 key metadata，不返回 `private_key_jwk`。
+
+### 本小步不做
+
+- 不实现完整用户管理 UI、权限后台或 OAuth2 client 管理 UI。
+- 不自动删除 RETIRED key；保留时长和清理策略等生产运维规则后续单独设计。
+- 不修改 Spring Authorization Server 官方 OAuth2 表结构。
+
+### 已完成实现
+
+- 新增 `GET /api/auth/signing-keys` 和 `POST /api/auth/signing-keys/rotate`，接口只返回 key metadata，不返回 `private_key_jwk`。
+- 轮换在事务内完成旧 ACTIVE 退役和新 ACTIVE 创建，提交后刷新当前实例 `JWKSource` 缓存。
+- 签名密钥管理接口要求 ADMIN role，auth-service 本地 JWT decoder 同步校验 issuer 和 `hdx.security.jwt.audience`。
+- OpenAPI 文档测试覆盖新接口路径，安全测试覆盖未登录、非 ADMIN、ADMIN 和 audience 错误 token。
+
+### 验证
+
+- `mvn -pl :backend-auth-service -am '-Dtest=AuthSigningKeyManagementServiceTest,AuthServiceOpenApiSecurityTest,AuthServiceOpenApiDocumentationTest,AuthSigningKeyJwkSourceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
+- `mvn -pl :backend-auth-service -am test`
+- `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot -DskipTests`
+
 ## 后端 review 待优化项
 
 2026-06-22 后端 review 结论：整体边界清楚，优先修认证并发安全、bootstrap 事务性和测试迁移一致性；普通业务数据访问继续遵守 ADR 0015，默认使用 Spring Data JPA。
@@ -388,6 +419,7 @@
 - 2026-06-22：认证配置校验 P3 收口完成。`hdx.auth.tokens` 和 `hdx.auth.login-security` 的安全相关数值在启动期校验，负数或零值不再静默关闭登录冷却或生成不合理 token TTL。
 - 2026-06-22：登录审计 forwarded header P2 收口完成。认证服务默认不信任 `X-Forwarded-For`；只有配置可信代理 IP/CIDR 后，才从可信代理清洗过的 header 提取原始客户端 IP。
 - 2026-06-22：工具目录并发重复创建 P3 收口完成。`ToolCatalogService.createTool` 在数据库唯一约束竞争时返回稳定 `ToolDefinitionAlreadyExistsException`，避免向外层泄露底层 `DataIntegrityViolationException`。
+- 2026-06-22：JWK 运行期轮换管理完成。`backend-auth-service` 新增签名密钥 metadata 列表和 rotate 接口，ADMIN Bearer JWT 保护，轮换事务提交后刷新当前实例 `JWKSource`；响应不暴露 `private_key_jwk`。
 - 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
@@ -408,10 +440,12 @@
 - HDX 自有认证表 JPA 迁移后的 AOT 验证：2026-06-22 运行 `mvn -pl :backend-auth-service -am compile org.springframework.boot:spring-boot-maven-plugin:4.0.0:process-aot -DskipTests` 通过，覆盖 auth-service Spring AOT 入口。
 - JWT audience 验证：2026-06-22 运行 `mvn -pl :backend-gateway,:backend-core-service -am test` 通过，覆盖 `JwtAudienceValidator`、gateway 和 core-service 安全配置。
 - 工具目录与 Hibernate enhance 兜底验证：2026-06-22 运行 `mvn -pl :backend-core -am test` 通过，覆盖 backend-core 9 个测试。
+- JWK 运行期轮换管理验证：2026-06-22 聚焦测试、auth-service 模块回归和 AOT 入口均通过。
+  覆盖轮换事务、当前实例 `JWKSource` 刷新、管理接口 OpenAPI 路径、ADMIN 保护、issuer/audience 校验和不暴露私钥 metadata 响应。
 
 ## 剩余风险
 
-- JWK 持久化已实现：签名密钥存储在 PostgreSQL `auth.auth_signing_key` 表，启动时加载所有 ACTIVE 和 RETIRED 密钥，无 ACTIVE 密钥时自动生成并持久化。V5 唯一索引限制同时最多只有一个 ACTIVE，`JwtEncoder` 显式选择 ACTIVE 签发；重启不再使已签发 token 失效。后续仍需补齐密钥轮换管理接口，接口必须保证 retire/activate 原子性并记录审计信息。
+- JWK 持久化和运行期轮换管理已实现：唯一 ACTIVE 密钥用于签发，ACTIVE + RETIRED 密钥供 JWKS 验签，rotate 接口在事务内完成退役和新 ACTIVE 创建。当前只刷新处理请求的 auth-service 实例缓存；多实例主动刷新、retired key 保留时长和清理策略后续单独设计。
 - 认证自有表 JPA 迁移已完成，后续需要继续守住同模块普通持久化风格一致性：新增自有认证表默认进入 JPA entity/repository；Spring Authorization Server 官方 OAuth2 表继续使用框架 JDBC；确需 JDBC/JdbcClient 时必须记录例外原因、隔离边界和迁移触发条件。
 - 全量自有认证表 JPA 迁移后的 auth-service AOT 入口已通过；JPA、Hibernate enhance 或实体范围变化后仍需继续关注 Spring AOT 与 native 可达图风险。
 - 当前已实现第一方账号密码登录 API 和 Web 登录页，但尚未实现注册、找回密码、邮箱/手机号验证码、用户管理、OAuth2 client 初始化或管理。

@@ -286,7 +286,10 @@
 - 唯一 ACTIVE 密钥用于新 token 签发。
 - ACTIVE + RETIRED 密钥共同出现在 `/oauth2/jwks` 供旧 token 验签。
 - 运行期访问使用 `AuthSigningKey` JPA entity、Spring Data repository 和 `AuthSigningKeyStore`。
-- 运行期轮换管理接口尚未实现；后续接口必须保证 retire/activate 原子性并记录审计。
+- 运行期管理接口 `GET /api/auth/signing-keys` 只返回 ACTIVE + RETIRED metadata。
+- 运行期轮换接口 `POST /api/auth/signing-keys/rotate` 在一个事务中退役旧 ACTIVE key 并创建新 ACTIVE key，响应只返回 metadata。
+- 签名密钥管理接口要求服务端 Bearer JWT 具备 `ADMIN` role，并校验 issuer 与 `hdx.security.jwt.audience`。
+- 轮换提交后会刷新当前实例的 `JWKSource` 缓存；多实例主动刷新、retired key 保留时长和清理策略后续单独设计。
 - `private_key_jwk` 是服务端私有材料，不得进入公开日志、前端、App 或 release 产物。
 
 ### `auth.auth_login_audit`

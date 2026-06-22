@@ -51,6 +51,26 @@
         "displayName": { "type": "string" }
       }
     },
+    "AuthSigningKeyResponse": {
+      "required": ["keyId", "status", "activatedAt"],
+      "properties": {
+        "keyId": { "type": "string" },
+        "status": { "type": "string", "enum": ["ACTIVE", "RETIRED"] },
+        "activatedAt": { "type": "string", "format": "date-time" },
+        "retiredAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "AuthSigningKeyRotationResponse": {
+      "required": ["activeKey", "retiredKey", "usableKeys"],
+      "properties": {
+        "activeKey": { "$ref": "#/components/schemas/AuthSigningKeyResponse" },
+        "retiredKey": { "$ref": "#/components/schemas/AuthSigningKeyResponse" },
+        "usableKeys": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/AuthSigningKeyResponse" }
+        }
+      }
+    },
     "ApiErrorResponse": {
       "required": ["code", "message"],
       "properties": {

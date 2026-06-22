@@ -5,7 +5,7 @@
 ## 命令执行入口
 
 - 项目 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1。
-- 优先使用仓库内已有脚本入口，例如 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed`。
+- 优先使用仓库内已有脚本入口，例如 `pwsh -NoLogo -NoProfile -File scripts/verify-changed.ps1` 或 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed`。
 - 可以用 `rg`、`git status`、`git diff`、`Get-Content` 等只读命令做排查；涉及 Git 写操作、网络、依赖下载或构建产物写入时，按本文件的权限规则处理。
 - 在 Windows/Codex 本地环境中，不使用 `git submodule foreach` 做常规子模块状态检查。该命令依赖 Git for Windows 的 shell 辅助环境，已多次稳定失败为 `basename: command not found`、`sed: command not found` 或 `git-sh-setup: file not found`，容易浪费排查时间。
 - 检查全部子模块状态时使用 `pwsh -NoLogo -NoProfile -File scripts/git-submodule-status.ps1 -RepoRoot <repo>`；检查单个子模块时使用 `git -C <submodule-path> status --short --branch`、`git -C <submodule-path> rev-parse HEAD` 等直接命令。
@@ -72,6 +72,7 @@ pwsh -NoLogo -NoProfile -Command "$PSVersionTable.PSVersion; $PSVersionTable.PSE
 - 完成一项实现后，应在最终回复或对应计划中说明执行过的验证命令、未验证内容和剩余风险。
 - 验证命令按 `docs/QUALITY.md` 的分层策略执行：开发中跑最小命中验证，跨边界后跑聚合契约入口，提交前只跑一次相称总门禁。
 - 如果某批文件在当前轮已经通过等价验证，且之后没有再修改相关文件，不要为了“再确认一次”重复运行同一批测试、类型检查或契约检查。
+- 多端同步改动优先使用 `scripts/verify-changed.ps1 -Profile commit` 串行调度已有聚合脚本；需要强覆盖时使用 `-Profile full` 或严格 `scripts/quality-gate.ps1 -Scope changed`。
 - Web 常规验证优先使用 `scripts/web-verify.ps1`；需要覆盖 build 时使用 `scripts/web-verify.ps1 -Build`。不要把 `pnpm test`、`pnpm typecheck` 和 `pnpm lint` 拆成多次工具调用，除非正在定位单项失败。
 - 后端常规验证优先使用 `scripts/backend-verify.ps1`；需要覆盖 all-in-one AOT/package smoke 时使用 `scripts/backend-verify.ps1 -AotSmoke`。不要把空白检查、Boot 4 Jackson 检查、Maven 测试和 AOT smoke 拆成多次工具调用，除非正在定位单项失败。
 - OpenAPI / Web 契约常规验证优先使用 `scripts/openapi-verify.ps1`，需要刷新快照和生成类型时使用 `scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`，避免把多个底层脚本拆成多轮来回执行。

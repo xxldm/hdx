@@ -10,6 +10,14 @@
 pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 ```
 
+日常开发中，如果目标是减少 Web、后端、Desktop 多端同步修改时的工具调用轮次，优先使用变更验证编排入口：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/verify-changed.ps1
+```
+
+`verify-changed.ps1` 根据根仓库和子模块 Git 变更选择已有聚合脚本，默认 `-Profile commit`。它不替代严格质量门禁，只负责把“这次改了哪些端，就串行跑哪些聚合验证”编码下来。
+
 常用范围：
 
 - `-Scope changed`：默认值，根据 Git 改动选择文档、后端、Web 或 Desktop 检查。
@@ -26,13 +34,22 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - `-SkipWeb`：跳过 Web 检查。
 - `-SkipDesktop`：跳过 Desktop 检查。
 
+`scripts/verify-changed.ps1` 常用档位：
+
+- `-Profile quick`：只跑轻量静态、空白和工具环境检查，用于先验证脚本分支和本地环境。
+- `-Profile commit`：默认值。Web 跑 test/typecheck/lint；后端跑测试；Desktop 使用 `quality-gate.ps1 -Scope desktop -NoBuild`。
+- `-Profile full`：在 commit 档基础上追加 Web build、后端 all-in-one AOT/package smoke 和 Desktop 编译检查。
+- `-DryRun`：只展示根据当前变更会执行哪些命令，不实际运行。
+- `-IncludeOpenApi`：即使脚本未从路径判断出 OpenAPI 相关变更，也强制运行 `scripts/openapi-verify.ps1`。
+
 脚本约束：
 
 - 脚本只覆盖本地常用质量门禁，不替代远端 CI。
 - 仓库内 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本应直接写为可读中文。
 - 脚本不运行完整 native-image 编译。调整 `native-maven-plugin`、`--exclude-config`、Spring AOT、`RuntimeHints`、Hibernate enhance 或类初始化参数时，仍必须按 `docs/CONSTRAINTS.md` 和后端 README 单独验证 native 编译和健康检查。
 - 后端 `backend-all-in-one` AOT/package smoke 使用 `-Pnative package -Dnative.skip=true` 覆盖 Spring AOT 与打包路径，但不生成真实 native executable。Desktop Full Linux AppImage 真实运行属于 release 产物发布后的验证，不作为本地日常质量门禁。
-- 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`，如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
+- 脚本通过 `scripts/git-submodule-status.ps1` 检查子模块状态：优先执行 `git submodule status`。
+- 如果当前 Git for Windows 脚本环境失败，则自动使用 Git Bash fallback，最后退到 `git ls-files -s` 指针检查；同时仍分别使用 `git -C services/backend status --short --branch`、`git -C apps/web status --short --branch` 和 `git -C apps/desktop status --short --branch` 展示子仓库工作区状态。
 - 如果 Maven、pnpm、Git 写操作或网络操作在普通权限下失败，按 `docs/AGENT_WORKFLOW.md` 的权限失败重试规则处理。
 
 ## 验证分层
@@ -42,6 +59,7 @@ pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed
 - 开发中优先运行最小命中验证，例如指定后端测试类、Web 单个测试文件或对应脚本分支。
 - 跨边界契约稳定后，再运行对应聚合脚本或契约脚本；不要把契约检查、类型生成检查和 Web 类型对齐拆成多轮来回执行。
 - 提交前只运行一次相称范围的总门禁；如果前面已运行等价检查，且之后没有修改相关文件，不重复跑同一批命令。
+- 多端同步修改时优先运行 `scripts/verify-changed.ps1 -Profile commit`，不要手动拆成 Web、后端、OpenAPI 多轮命令；需要更严格覆盖时改用 `-Profile full` 或 `scripts/quality-gate.ps1 -Scope changed`。
 
 OpenAPI / Web 契约常用聚合入口：
 

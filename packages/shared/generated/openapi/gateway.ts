@@ -37,3 +37,59 @@ export interface ToolRecordResponse {
   updatedAt: string;
 }
 
+export interface WorkbenchLayoutHeaderRequest {
+  description: boolean;
+  icon: boolean;
+  title: boolean;
+  visible: boolean;
+}
+
+export interface WorkbenchLayoutHeaderResponse {
+  description: boolean;
+  icon: boolean;
+  title: boolean;
+  visible: boolean;
+}
+
+export interface WorkbenchLayoutResponse {
+  columns: number;
+  gap: number;
+  rows: number;
+  version: number;
+  widgets: WorkbenchLayoutWidgetResponse[];
+}
+
+export interface WorkbenchLayoutSaveRequest {
+  columns: number;
+  gap: number;
+  rows: number;
+  version: number;
+  widgets: WorkbenchLayoutWidgetRequest[];
+}
+
+export interface WorkbenchLayoutWidgetRequest {
+  chrome: "card" | "bare";
+  colSpan: number;
+  column: number;
+  header: WorkbenchLayoutHeaderRequest;
+  id: string;
+  key: string;
+  order: number;
+  orientation: "auto" | "horizontal" | "vertical";
+  row: number;
+  rowSpan: number;
+}
+
+export interface WorkbenchLayoutWidgetResponse {
+  chrome: "card" | "bare";
+  colSpan: number;
+  column: number;
+  header: WorkbenchLayoutHeaderResponse;
+  id: string;
+  key: string;
+  order: number;
+  orientation: "auto" | "horizontal" | "vertical";
+  row: number;
+  rowSpan: number;
+}
+

@@ -6,12 +6,15 @@ import type {
 import type {
   CreateToolRequest as OpenApiCreateToolRequest,
   RuntimeInfoResponse,
-  ToolRecordResponse
+  ToolRecordResponse,
+  WorkbenchLayoutResponse,
+  WorkbenchLayoutSaveRequest
 } from '../../packages/shared/generated/openapi/gateway'
 import type {
   CreateToolRequest as WebCreateToolRequest,
   RuntimeInfo,
-  ToolRecord
+  ToolRecord,
+  WorkbenchLayoutRecord
 } from '../../apps/web/app/types/hdx-api'
 import type {
   BackendAuthTokenResponse,
@@ -30,11 +33,14 @@ type IsExact<Left, Right> =
 
 type OpenApiAuthTokenRequired = Required<AuthTokenResponse>
 type OpenApiAuthUserRequired = Required<AuthUserResponse>
+type OpenApiWorkbenchLayoutV1Response = Omit<WorkbenchLayoutResponse, 'version'> & { version: 1 }
 
 type _RuntimeInfoMatches = Assert<IsExact<RuntimeInfo, RuntimeInfoResponse>>
 type _ToolRecordAcceptsOpenApi = Assert<IsAssignable<ToolRecordResponse, ToolRecord>>
 type _ToolRecordCanRoundTripToOpenApi = Assert<IsAssignable<ToolRecord, ToolRecordResponse>>
 type _CreateToolRequestMatches = Assert<IsAssignable<WebCreateToolRequest, OpenApiCreateToolRequest>>
+type _WorkbenchLayoutAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiWorkbenchLayoutV1Response, WorkbenchLayoutRecord>>
+type _WorkbenchLayoutCanRoundTripToOpenApi = Assert<IsAssignable<WorkbenchLayoutRecord, WorkbenchLayoutSaveRequest>>
 type _LoginRequestMatches = Assert<IsAssignable<WebAuthLoginRequest, AuthLoginRequest>>
 type _AuthUserAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthUserRequired, BackendAuthUser>>
 type _AuthTokenAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthTokenRequired, BackendAuthTokenResponse>>

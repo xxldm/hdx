@@ -39,6 +39,21 @@
 - 根仓库提交或推送子模块指针前，必须确认主仓库记录的每个子模块 commit 已经存在于对应子仓库远端，避免主仓库指向远端不可获取的 hash。推荐顺序是：先在子仓库提交并推送，再在根仓库更新、提交和推送子模块指针。
 - 如果根仓库包含子模块指针变更，推送根仓库前必须检查相关子模块没有领先其远端分支；必要时用 `git -C <submodule-path> status --short --branch` 确认，或用 `git ls-remote <submodule-url> <commit-hash>` 验证该 hash 在远端可达。
 
+## 提交编排脚本
+
+本仓库提供保守的串行提交编排入口：
+
+```powershell
+pwsh -NoLogo -NoProfile -File scripts/git-commit-stack.ps1 -DryRun -StageAll -WebMessage "修复：..." -RootMessage "杂项：..."
+pwsh -NoLogo -NoProfile -File scripts/git-commit-stack.ps1 -StageAll -WebMessage "修复：..." -RootMessage "杂项：..."
+```
+
+- 脚本按 `services/backend`、`apps/web`、`apps/desktop`、根仓库顺序串行处理，仍保持子模块和根仓库分开提交。
+- 对存在改动的仓库，必须显式提供对应提交信息；没有提交信息会失败，不会静默跳过脏工作树。
+- 默认只提交已暂存改动；只有显式传入 `-StageAll` 时才会对对应仓库执行 `git add -A`。
+- 首次使用或范围不确定时先传 `-DryRun`，确认会提交哪些仓库和提交信息后再去掉。
+- 该脚本不负责推送；推送仍遵守先子模块、后根仓库的顺序。
+
 ## Git 操作串行规则
 
 - 所有 Git 写操作必须串行执行，禁止并发运行 `git add`、`git commit`、`git rebase`、`git stash`、`git checkout`、`git merge`、`git push` 等命令。

@@ -99,6 +99,7 @@ cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-
 
 - 子模块改动先在子模块内提交并推送，再在根仓库提交子模块指针和根文档。
 - 常见顺序：`services/backend`、`apps/web`、`apps/desktop`，最后根仓库。
+- 可用 `scripts/git-commit-stack.ps1 -DryRun -StageAll ...` 先预览分仓库提交，再去掉 `-DryRun` 串行提交子模块和根仓库。
 - 推根仓库前确认子模块工作区干净，并确认根仓库记录的子模块 commit 已推送到各自远端。
 - Git 写操作和网络操作通常需要审批/提权；同类权限失败不要反复普通权限重试。
 

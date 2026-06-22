@@ -9,6 +9,7 @@
 - 认证授权数据只面向服务端 PostgreSQL `auth` schema；`backend-all-in-one` / H2 本机模式不运行认证中心，也不维护这套 schema。
 - OAuth2/Spring Authorization Server 官方表直接贴近框架 JDBC schema，不增加 HDX 自有软删除、时间审计或操作人审计字段。
 - 自有用户、角色、权限、凭证、会话、签名密钥和审计表使用数字主键；令牌、密码和私钥只保存哈希或服务端私有材料，不能把明文凭证暴露给 Web/App。
+- HDX 自有认证表运行期访问使用 JPA entity / Spring Data repository；Flyway 仍是 schema 事实源，service profile 使用 Hibernate `ddl-auto=validate` 校验实体和表结构。
 
 ## 表清单
 
@@ -284,6 +285,7 @@
 
 - 唯一 ACTIVE 密钥用于新 token 签发。
 - ACTIVE + RETIRED 密钥共同出现在 `/oauth2/jwks` 供旧 token 验签。
+- 运行期访问使用 `AuthSigningKey` JPA entity、Spring Data repository 和 `AuthSigningKeyStore`。
 - 运行期轮换管理接口尚未实现；后续接口必须保证 retire/activate 原子性并记录审计。
 - `private_key_jwk` 是服务端私有材料，不得进入公开日志、前端、App 或 release 产物。
 
@@ -308,7 +310,8 @@
 
 - `user_id` 外键引用 `auth.auth_user(id)`，可为空以记录账号不存在。
 - `identity_id` 外键引用 `auth.auth_user_identity(id)`，可为空以记录账号不存在。
-- `normalized_identifier + attempted_at` 索引用于按账号标识统计失败窗口。
+- `normalized_identifier + attempted_at DESC WHERE success = FALSE` partial index 用于统计失败窗口。
+- `normalized_identifier + attempted_at DESC WHERE success = TRUE` partial index 用于查找最近一次成功登录，重置失败计数窗口。
 - `user_id + attempted_at` 索引用于后续按用户查询审计记录。
 
 规则：
@@ -328,10 +331,14 @@
 规则：
 
 - 不给官方表添加 HDX 自有软删除、时间审计或操作人审计字段。
+- `oauth2_registered_client.client_id` 使用唯一索引，匹配框架按 client id 查找和唯一性校验。
+- `oauth2_authorization.state` 使用 partial btree index，匹配 Authorization Code 流程 state 查询。
+- `oauth2_authorization` 各 token value 字段使用 partial hash index，匹配框架等值查询并避免长 token 使用 btree 索引的行大小风险。
 - 后续如果需要管理 OAuth2 client 展示、启停或 HDX 审计信息，另建扩展表，不修改官方表结构。
 
 ## 维护要求
 
 - 新增或修改 `auth` schema migration 时，先确认是否影响认证边界、OpenAPI、Web/App 显示或安全风险。
-- 修改 migration、实体模型或 JDBC repository 后，必须同步本文和认证 active plan 的当前状态或剩余风险。
+- 修改 migration、实体模型、JPA repository 或官方 OAuth2 JDBC 配置后，必须同步本文和认证 active plan 的当前状态或剩余风险。
+- 认证自有表的数据访问边界以 ADR 0015 为准：默认迁向 Spring Data JPA；Spring Authorization Server 官方 OAuth2 表和少量精确 SQL 才是有边界的 JDBC 例外。
 - 当前 active 计划只保留推进状态和风险；字段清单归本文，不再写回 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。

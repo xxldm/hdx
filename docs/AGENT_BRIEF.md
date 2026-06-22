@@ -71,8 +71,9 @@ pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1
 
 ```powershell
 git -C services/backend status --short --branch
-mvn test
-mvn -pl :backend-auth-service,:backend-gateway,:backend-core-service,:backend-all-in-one -am test
+pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1
+pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -AotSmoke
+pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -NoBuild
 ```
 
 Web：

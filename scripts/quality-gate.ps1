@@ -148,51 +148,30 @@ function Invoke-BackendChecks {
         return
     }
 
-    $toolEnv = @{
-        JAVA_HOME = $JavaHome
-        PATH = "$JavaHome\bin;$(Split-Path -Parent $MavenPath);$env:PATH"
-    }
-
-    Invoke-Step `
-        -Title '后端空白检查' `
-        -WorkingDirectory $BackendRoot `
-        -Command 'git' `
-        -Arguments @('diff', '--check')
-
-    Invoke-Step `
-        -Title '后端 Boot 4 Jackson 兼容检查' `
-        -WorkingDirectory $BackendRoot `
-        -Command $PowerShellCommand `
-        -Arguments @(
-            '-NoLogo',
-            '-NoProfile',
-            '-File',
-            (Join-Path $BackendRoot 'scripts/check-boot4-jackson.ps1')
-        )
-
+    $backendVerifyArguments = @(
+        '-NoLogo',
+        '-NoProfile',
+        '-File',
+        (Join-Path $RepoRoot 'scripts/backend-verify.ps1'),
+        '-BackendRoot',
+        $BackendRoot,
+        '-JavaHome',
+        $JavaHome,
+        '-MavenPath',
+        $MavenPath
+    )
     if ($NoBuild) {
-        Invoke-Step `
-            -Title '后端 Maven 环境检查' `
-            -WorkingDirectory $BackendRoot `
-            -Command $MavenPath `
-            -Arguments @('-version') `
-            -Environment $toolEnv
-        return
+        $backendVerifyArguments += '-NoBuild'
+    }
+    else {
+        $backendVerifyArguments += '-AotSmoke'
     }
 
     Invoke-Step `
-        -Title '后端测试' `
-        -WorkingDirectory $BackendRoot `
-        -Command $MavenPath `
-        -Arguments @('test') `
-        -Environment $toolEnv
-
-    Invoke-Step `
-        -Title '后端 all-in-one AOT 打包 smoke' `
-        -WorkingDirectory $BackendRoot `
-        -Command $MavenPath `
-        -Arguments @('-pl', ':backend-all-in-one', '-am', '-Pnative', 'package', '-DskipTests', '-Dnative.skip=true') `
-        -Environment $toolEnv
+        -Title '后端聚合验证' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments $backendVerifyArguments
 }
 
 function Invoke-WebChecks {

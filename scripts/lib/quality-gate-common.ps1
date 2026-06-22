@@ -90,7 +90,7 @@ function Get-GitStatusPaths {
 
 function Test-HasGitChanges {
     param([Parameter(Mandatory = $true)][string]$WorkingDirectory)
-    return (Get-GitStatusPaths -WorkingDirectory $WorkingDirectory).Count -gt 0
+    return @(Get-GitStatusPaths -WorkingDirectory $WorkingDirectory).Count -gt 0
 }
 
 function Test-PathChanged {

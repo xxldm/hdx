@@ -2,7 +2,9 @@
   "auth-service": [
     "/api/auth/login",
     "/api/auth/refresh",
-    "/api/auth/logout"
+    "/api/auth/logout",
+    "/api/auth/signing-keys",
+    "/api/auth/signing-keys/rotate"
   ],
   "gateway": [
     "/api/v1/auth/current",

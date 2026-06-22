@@ -20,6 +20,19 @@ export interface AuthRefreshRequest {
   refreshToken: string;
 }
 
+export interface AuthSigningKeyResponse {
+  activatedAt: string;
+  keyId: string;
+  retiredAt?: string;
+  status: "ACTIVE" | "RETIRED";
+}
+
+export interface AuthSigningKeyRotationResponse {
+  activeKey: AuthSigningKeyResponse;
+  retiredKey: AuthSigningKeyResponse;
+  usableKeys: AuthSigningKeyResponse[];
+}
+
 export interface AuthTokenResponse {
   accessToken: string;
   accessTokenExpiresAt: string;

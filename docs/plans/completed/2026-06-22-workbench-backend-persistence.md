@@ -3,17 +3,10 @@
 - 外部任务系统：无。
 - 外部任务链接/编号：不适用。
 - 外部任务是否为主计划来源：否。
-- 当前状态：见下方 active plan 状态块。
+- 当前状态：已完成并归档。
 - 计划来源：用户确认将 Web 工作台布局从 localStorage 主状态转向后端持久化。
 - 创建时间：2026-06-22
 - 最后更新：2026-06-22
-
-<!-- active-plan-status:start -->
-- 何时读取：修改 Web 首页工作台布局持久化、后端工作台状态 API、Nuxt BFF 或 layout localStorage 边界时。
-- 当前状态：后端 `GET/PUT /api/v1/workbench/layout`、JPA/Flyway 持久化、Gateway OpenAPI、Web BFF、Zod schema 和 Pinia layout store 已接入；后端与 Web 子模块已分别提交，Web Online 不再读取 layout localStorage。
-- 下一步：后续按真实登录闭环恢复未登录跳转，并重新验证未登录访问工作台的体验。
-- 主要剩余风险：完整 native 编译因 GraalVM 25.1 前 release native 风险仍暂停；本轮仅完成 core-service/all-in-one Spring AOT 验证。
-<!-- active-plan-status:end -->
 
 ## 目标
 
@@ -28,7 +21,6 @@
 ## 非目标
 
 - 本轮不新增独立 `backend-user-service` 或完整用户中心微服务；先遵循当前 `backend-core` 核心业务入口，新增清晰的 `workbench` 子域。
-- 本轮不解决 Web 未登录跳转临时注释的完整认证闭环。
 - 本轮不为 Desktop/App 设计离线草稿同步队列；Desktop 后续可在自身 BFF 或本地层单独接入缓存。
 - 本轮不迁移计时器等 widget 自身业务状态；layout 只保存布局和显示偏好。
 
@@ -54,6 +46,7 @@
 - [x] 改造 Pinia layout store：加载/保存走后端，接口不可用进入错误态，不再读取 layout localStorage。
 - [x] 更新页面空态/错误提示和相关单元测试。
 - [x] 刷新 OpenAPI 快照和生成类型，运行相称质量门禁。
+- [x] 恢复 Web 未登录跳转，并补充 auth route middleware 回归测试。
 
 ## 验收标准
 
@@ -78,14 +71,15 @@
 
 ## 风险与阻塞
 
-- 当前登录守卫临时注释，未登录路径与工作台 API 的最终体验仍需认证闭环恢复后再收口。
 - 如果后端接口不可用，Web 不能显示默认布局兜底，短期会比 localStorage 更“硬”，但符合让不可用状态显性的边界。
 - OpenAPI 快照和生成类型会跨根仓库与后端/Web 子模块，提交顺序需要分开处理。
+- 完整 GraalVM native 编译仍按 release native 计划暂停到 GraalVM 25.1 后复测；本计划只验证 Spring AOT，不把 release native 风险作为工作台持久化待办。
 
 ## 状态记录
 
 - 2026-06-22：创建计划，当前状态为准备实现最小后端持久化切片。
 - 2026-06-22：完成后端工作台布局持久化和 Web Online 接入。后端按 `actorType + subject` 隔离布局，未保存过布局时返回后端内置默认布局；接口失败时 Web store 使用空布局并显示错误，不再读取 layout localStorage。
+- 2026-06-22：恢复 Web 全局未登录跳转，未登录访问工作台会跳转登录页并保留 redirect；已登录访问登录页会回到内部 redirect 目标。
 
 ## 验证结果
 
@@ -98,14 +92,18 @@
 - 通过：`pwsh -NoLogo -NoProfile -File scripts/openapi-generate-types.ps1 -Check`。
 - 通过：`pwsh -NoLogo -NoProfile -File scripts/openapi-web-type-check.ps1`。
 - 通过：`pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed -NoBuild -SkipDesktop`。
+- 通过：`pnpm test -- tests/unit/auth-middleware.test.ts`（Vitest 实际运行当前全部 Web 单测）。
+- 通过：`pnpm typecheck`、`pnpm lint`（`apps/web`）。
 
 ## 剩余风险
 
 - 完整 GraalVM native 编译仍按 release native 计划暂停到 GraalVM 25.1 后复测；本轮只验证 Spring AOT。
-- `auth.global.ts` 的未登录跳转仍处于此前临时注释状态，真实登录闭环恢复时需要重新验证未登录访问工作台的体验。
+- 登录页、注册、找回密码、验证码/MFA 和用户管理等产品化认证能力仍归认证计划后续处理；本计划只恢复已有登录守卫闭环。
 
 ## 相关 commit
 
 - `services/backend`：`f817204` 功能：持久化工作台布局。
 - `apps/web`：`cde768a` 功能：接入工作台布局后端持久化。
 - 根仓库：本次提交同步子模块指针、OpenAPI 生成物、契约检查脚本和 active plan。
+- `apps/web`：本次后续提交恢复未登录跳转。
+- 根仓库：本次后续提交归档本计划。

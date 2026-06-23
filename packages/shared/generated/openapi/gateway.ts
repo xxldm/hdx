@@ -20,6 +20,16 @@ export interface CurrentActorResponse {
   subject: string;
 }
 
+export interface HolidayResponse {
+  date: string;
+  description?: string | null;
+  displayName: string;
+  holidayKey: string;
+  id: number;
+  recurring: boolean;
+  sortOrder: number;
+}
+
 export interface RuntimeInfoResponse {
   application: string;
   javaVersion: string;

@@ -1,0 +1,5 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Web Dev" type="NodeJSConfigurationType" application-parameters="dev" path-to-js-file="scripts/web-dev-runner.mjs" working-dir="$PROJECT_DIR$/apps/web">
+    <method v="2" />
+  </configuration>
+</component>

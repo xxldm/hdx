@@ -143,38 +143,6 @@ function Wait-ServiceHealth {
     return $healthUri
 }
 
-function Wait-AuthDiscovery {
-    param([Parameter(Mandatory = $true)][string]$BaseUrl)
-
-    $localDiscoveryUri = Join-UrlPath -BaseUrl $BaseUrl -Path '/.well-known/openid-configuration'
-    $discovery = Wait-Endpoint `
-        -Name 'auth-service OIDC discovery' `
-        -Uri $localDiscoveryUri `
-        -Validator {
-            param($Response)
-            -not [string]::IsNullOrWhiteSpace($Response.issuer) -and
-                -not [string]::IsNullOrWhiteSpace($Response.jwks_uri)
-        }
-
-    $issuerDiscoveryUri = Join-UrlPath -BaseUrl ([string]$discovery.issuer) -Path '/.well-known/openid-configuration'
-    if ($issuerDiscoveryUri -ne $localDiscoveryUri) {
-        [void](Wait-Endpoint `
-            -Name 'auth-service issuer discovery' `
-            -Uri $issuerDiscoveryUri `
-            -Validator {
-                param($Response)
-                -not [string]::IsNullOrWhiteSpace($Response.issuer) -and
-                    -not [string]::IsNullOrWhiteSpace($Response.jwks_uri)
-            })
-    }
-
-    return [pscustomobject]@{
-        localDiscoveryUri = $localDiscoveryUri
-        issuer = [string]$discovery.issuer
-        jwksUri = [string]$discovery.jwks_uri
-    }
-}
-
 function Get-RuntimePidFromLog {
     param([Parameter(Mandatory = $true)][string]$LogPath)
 
@@ -319,12 +287,7 @@ $auth = Start-BackendService `
     -LogDirectory $logDirectory
 $results.Add($auth)
 
-if (-not $DryRun) {
-    $authDiscovery = Wait-AuthDiscovery -BaseUrl $AuthBaseUrl
-    Write-Host "认证中心 discovery 已就绪：$($authDiscovery.issuer)"
-}
-
-# core-service 和 gateway 启动时会解析 auth-service 的 OIDC discovery，因此必须放在 auth-service 之后。
+# core-service 和 gateway 自身会等待 issuer discovery，脚本只负责启动顺序和 health 检查。
 $core = Start-BackendService `
     -Name 'core-service' `
     -Module ':backend-core-service' `

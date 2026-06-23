@@ -6,11 +6,11 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-23（Web SSR 登录态失效清理）
+- 最后更新：2026-06-23（资源服务等待 issuer discovery）
 
 <!-- active-plan-status:start -->
 - 何时读取：认证、登录态、JWT、Redis 撤销、当前身份、错误码、用户/角色/权限相关任务。
-- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；Web 业务 API 返回 `auth-required` 时，客户端 `$hdxApi` 清空前端登录态并跳回 `/login`，SSR `$hdxApi` 只清理最外层 HTML 响应的 Web `HttpOnly` session cookie 并标记状态，路由进入和切换仍由全局认证守卫兜底；后端 review、自有认证表 JPA 迁移、auth-service AOT 入口和 JWK 运行期轮换管理已完成。
+- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；Web 业务 API 返回 `auth-required` 时，客户端 `$hdxApi` 清空前端登录态并跳回 `/login`，SSR `$hdxApi` 只清理最外层 HTML 响应的 Web `HttpOnly` session cookie 并标记状态，路由进入和切换仍由全局认证守卫兜底；gateway/core-service 启动期会等待 issuer discovery 就绪；后端 review、自有认证表 JPA 迁移、auth-service AOT 入口和 JWK 运行期轮换管理已完成。
 - 下一步：按产品化需求继续注册、找回密码、验证码/MFA、用户管理、OAuth2 client 管理；ToolCatalog list pagination、JWK 多实例刷新和 RETIRED key 清理策略按触发条件单独设计。
 - 主要剩余风险：Spring Authorization Server 官方 OAuth2 表仍保留框架 JDBC，这是协议表兼容性例外；JWK 轮换当前只刷新本实例缓存；App 登录态未实现；生产开放账号密码登录前仍需验证码、MFA、异常告警和更细限流。
 <!-- active-plan-status:end -->
@@ -423,6 +423,7 @@
 - 2026-06-23：Web 业务接口认证失效兜底完成。前端保留 Nuxt BFF 加密 `HttpOnly` session cookie 边界，不把 access/refresh token 暴露给浏览器；业务 store 收到 BFF `auth-required` 后只清空前端登录态和自身状态，不直接调用 Nuxt 路由 composable；进入页面/切换页面由 `auth.global` 守卫跳登录，当前页中途过期由 `$hdxApi` 按 BFF 错误码识别后跳登录。
 - 2026-06-23：修正 Web 登录页和首页循环重定向风险。`$hdxApi` 只在客户端对业务接口 `auth-required` 发起登录跳转，SSR 期间只标记状态并把错误交还页面；`auth.global` 在本地已标记 `auth.sessionExpired` 时不会把登录页重新跳回首页。
 - 2026-06-23：Web SSR session invalidation 收口。新增 server-only `invalidateWebAuthSession(event)`，BFF authenticated backend fetch 在后端 401 后尝试 refresh 一次，refresh 救不回来或 refresh 后重试仍 401 时清 Web `HttpOnly` session cookie；SSR `$hdxApi` 拆为 server 插件，页面内部 BFF 子请求返回 `auth-required` 时直接清最外层 HTML 响应 cookie 并标记 `auth.sessionExpired`，不在 SSR 期间发起 `navigateTo`。
+- 2026-06-23：gateway/core-service 的默认 `JwtDecoder` 改为等待型 issuer discovery。`issuer-uri` 为空或不是 `http/https` 绝对 URL 仍作为配置错误失败；地址有效但 auth-service 尚未启动时，每 2 秒重试，默认最多等待 30 秒，不再因为 IDEA 或手动启动顺序立即退出。后端一键启动脚本同步简化为只负责启动顺序和 health 检查，不再额外探测 OIDC discovery。
 - 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果

@@ -55,6 +55,7 @@
 - 认证数据模型、`auth` schema、migration 和表字段：`docs/AUTH_DATA_MODEL.md`。
 - 后端 Entity、Repository、migration、JPA/JDBC、乐观锁、软删除和数据库访问风格：先使用 `.codex/skills/hdx-backend-data-access/SKILL.md`，再读 `docs/BACKEND_DATA_ACCESS.md`。
 - 用户数据持久化、跨端同步和现有后端表审计：`docs/adr/0016-user-data-persistence-and-sync-boundary.md`、`docs/DATA_PERSISTENCE_AUDIT.md`。
+- 工具箱 widget registry、模块配置、设备运行态和 layout 边界：`docs/WORKBENCH_WIDGET_CONTRACT.md`，再按需读 `docs/plans/active/2026-06-16-web-toolbox-layout-grid.md`。
 - Release、后端 native artifact、GitHub Actions 产物复用：先读 `docs/plans/active/README.md`，再按任务读 `docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`。
 - Desktop Full/Online：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`，需要发布上下文时再读 release 计划。
 - App：`apps/mobile/README.md`、`docs/adr/0009-mobile-native-online-first.md`。

@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：已按 ADR 0016 收口工作台布局、计时器预设和账号级用户偏好的后端事实源。用户偏好通过 `/api/v1/user/preferences` 保存语言、明暗模式、主题颜色/圆角和顶栏固定菜单；Web 默认布局进入后同步，Desktop Full/Online 通过 Rust BFF 转发。
-- 下一步：继续推进真实工具模块接入前的用户数据边界，优先评估组件显示偏好、模块配置和 widget registry 是否需要独立后端契约。
-- 主要剩余风险：除计时器外，真实业务 widget 尚未接入；用户偏好目前按整体对象版本保存，低价值偏好冲突会在 Web 端基于服务器当前版本重试，后续若加入高价值模块配置需改为记录级冲突。
+- 当前状态：已按 ADR 0016 收口工作台布局、计时器预设和账号级用户偏好的后端事实源。`docs/WORKBENCH_WIDGET_CONTRACT.md` 已明确 widget registry、layout、模块配置和设备运行态边界；Web registry 已显式声明 timer 的账号级预设接口和设备级运行态。
+- 下一步：接入下一个真实工具模块前，先按 `docs/WORKBENCH_WIDGET_CONTRACT.md` 判断模块数据归属，再决定是否新增独立后端契约。
+- 主要剩余风险：除计时器外，真实业务 widget 尚未接入；用户偏好目前按整体对象版本保存，低价值偏好冲突会在 Web 端基于服务器当前版本重试，高价值模块配置必须进入模块自己的记录级冲突模型。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -56,6 +56,7 @@
 - [x] 补充后端/Web 回归测试和契约验证。
 - [x] 计时器预设列表迁到后端事实源，Web 与 Desktop BFF 均通过 `/api/v1/timer/preferences` 读写；计时器运行态继续作为设备级状态保留端侧。
 - [x] 账号级用户偏好迁到后端事实源，Web 与 Desktop BFF 均通过 `/api/v1/user/preferences` 读写语言、明暗模式、主题和顶栏固定菜单。
+- [x] 明确真实模块接入前的 widget registry、layout、模块配置和设备运行态边界，并给 Web registry 增加数据契约声明。
 
 ## 验收标准
 
@@ -144,6 +145,7 @@
 - 2026-06-23：将 `workbench_layout.record_version` 接回 JPA `@Version`，移除 Repository 手写 JPQL 和悲观锁查询；保存时仍先比较客户端基础版本以返回结构化 409，最终版本递增交给 Hibernate。`workbench_layout_widget` 继续作为父布局从属明细例外，不单独加记录版本。
 - 2026-06-23：按 ADR 0016 继续迁移计时器预设。后端新增 `timer_preference` 父表和 `timer_preset` 从属明细，父表使用 JPA `@Version`、审计字段和软删除过滤；Web 通过 Nuxt BFF 读写预设定义，Desktop Rust BFF 同步补齐 Full/Online command；运行中计时状态、暂停、剩余时间和响铃确认不跨设备同步。
 - 2026-06-23：继续迁移账号级低价值偏好。后端新增 `user_preference` 表和 `/api/v1/user/preferences`，使用 JPA `@Version`、审计字段和软删除过滤；Web 新增用户偏好同步层，已登录默认布局挂载后从后端加载语言、明暗模式、主题颜色/圆角和顶栏固定菜单，后端无记录时把当前本地缓存作为初始账号偏好保存。Desktop Rust BFF 同步补齐 Full/Online command。
+- 2026-06-23：收口真实工具模块接入前的数据契约。新增 `docs/WORKBENCH_WIDGET_CONTRACT.md`，明确 registry 静态导入组件、layout 只存实例展示偏好、模块配置由模块独立 API/表持有、设备运行态不跨设备同步；Web registry 新增 `data.modulePreferences` 与 `data.runtimeState`，当前 timer 声明账号级 `/api/v1/timer/preferences` 和设备级 `localStorage` 运行态。
 
 ## 验证结果
 

@@ -119,6 +119,121 @@
         "description": { "type": "string", "maxLength": 500 }
       }
     },
+    "UserPreferenceThemeRequest": {
+      "required": ["primaryMode", "primary", "customPrimary", "neutralMode", "neutral", "customNeutral", "radius"],
+      "properties": {
+        "primaryMode": { "type": "string", "enum": ["preset", "custom"] },
+        "primary": {
+          "type": "string",
+          "enum": [
+            "black",
+            "red",
+            "orange",
+            "amber",
+            "yellow",
+            "lime",
+            "green",
+            "emerald",
+            "teal",
+            "cyan",
+            "sky",
+            "blue",
+            "indigo",
+            "violet",
+            "purple",
+            "fuchsia",
+            "pink",
+            "rose"
+          ]
+        },
+        "customPrimary": { "type": "string", "maxLength": 20 },
+        "neutralMode": { "type": "string", "enum": ["preset", "custom"] },
+        "neutral": { "type": "string", "enum": ["slate", "gray", "zinc", "neutral", "stone", "taupe", "mauve", "mist", "olive"] },
+        "customNeutral": { "type": "string", "maxLength": 20 },
+        "radius": { "type": "string", "enum": ["0", "0.125", "0.25", "0.375", "0.5"] }
+      }
+    },
+    "UserPreferenceThemeResponse": {
+      "required": ["primaryMode", "primary", "customPrimary", "neutralMode", "neutral", "customNeutral", "radius"],
+      "properties": {
+        "primaryMode": { "type": "string", "enum": ["preset", "custom"] },
+        "primary": {
+          "type": "string",
+          "enum": [
+            "black",
+            "red",
+            "orange",
+            "amber",
+            "yellow",
+            "lime",
+            "green",
+            "emerald",
+            "teal",
+            "cyan",
+            "sky",
+            "blue",
+            "indigo",
+            "violet",
+            "purple",
+            "fuchsia",
+            "pink",
+            "rose"
+          ]
+        },
+        "customPrimary": { "type": "string", "maxLength": 20 },
+        "neutralMode": { "type": "string", "enum": ["preset", "custom"] },
+        "neutral": { "type": "string", "enum": ["slate", "gray", "zinc", "neutral", "stone", "taupe", "mauve", "mist", "olive"] },
+        "customNeutral": { "type": "string", "maxLength": 20 },
+        "radius": { "type": "string", "enum": ["0", "0.125", "0.25", "0.375", "0.5"] }
+      }
+    },
+    "UserPreferenceNavigationRequest": {
+      "required": ["pinnedItemIds"],
+      "properties": {
+        "pinnedItemIds": { "type": "array", "items": { "type": "string", "maxLength": 80 } }
+      }
+    },
+    "UserPreferenceNavigationResponse": {
+      "required": ["pinnedItemIds"],
+      "properties": {
+        "pinnedItemIds": { "type": "array", "items": { "type": "string", "maxLength": 80 } }
+      }
+    },
+    "UserPreferenceSaveRequest": {
+      "required": ["schemaVersion", "version", "locale", "colorMode", "theme", "navigation"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "format": "int32" },
+        "version": { "type": "integer", "format": "int32" },
+        "locale": { "type": "string", "enum": ["zh-CN", "en-US"] },
+        "colorMode": { "type": "string", "enum": ["system", "light", "dark"] },
+        "theme": { "$ref": "#/components/schemas/UserPreferenceThemeRequest" },
+        "navigation": { "$ref": "#/components/schemas/UserPreferenceNavigationRequest" }
+      }
+    },
+    "UserPreferenceResponse": {
+      "required": ["schemaVersion", "version", "locale", "colorMode", "theme", "navigation"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "format": "int32" },
+        "version": { "type": "integer", "format": "int32" },
+        "locale": { "type": "string", "enum": ["zh-CN", "en-US"] },
+        "colorMode": { "type": "string", "enum": ["system", "light", "dark"] },
+        "theme": { "$ref": "#/components/schemas/UserPreferenceThemeResponse" },
+        "navigation": { "$ref": "#/components/schemas/UserPreferenceNavigationResponse" }
+      }
+    },
+    "UserPreferenceConflictResponse": {
+      "required": ["code", "message", "resourceType", "baseVersion", "currentVersion", "updatedAt", "updatedByUserId", "serverPreference"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "resourceType": { "type": "string" },
+        "baseVersion": { "type": "integer", "format": "int32" },
+        "currentVersion": { "type": "integer", "format": "int32" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedByUserId": { "type": "string", "maxLength": 160 },
+        "serverPreference": { "$ref": "#/components/schemas/UserPreferenceResponse" }
+      }
+    },
     "TimerPreferencePresetRequest": {
       "required": ["id", "order", "durationSeconds"],
       "properties": {

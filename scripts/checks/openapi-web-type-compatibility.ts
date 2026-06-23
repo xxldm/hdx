@@ -10,6 +10,9 @@ import type {
   TimerPreferenceResponse,
   TimerPreferenceSaveRequest,
   ToolRecordResponse,
+  UserPreferenceConflictResponse,
+  UserPreferenceResponse,
+  UserPreferenceSaveRequest,
   WorkbenchLayoutConflictResponse,
   WorkbenchLayoutResponse,
   WorkbenchLayoutSaveRequest
@@ -21,6 +24,9 @@ import type {
   TimerPreferenceRecord,
   TimerPreferenceSaveRequest as WebTimerPreferenceSaveRequest,
   ToolRecord,
+  UserPreferenceConflictResponse as WebUserPreferenceConflictResponse,
+  UserPreferenceRecord,
+  UserPreferenceSaveRequest as WebUserPreferenceSaveRequest,
   WorkbenchLayoutConflictResponse as WebWorkbenchLayoutConflictResponse,
   WorkbenchLayoutRecord
 } from '../../apps/web/app/types/hdx-api'
@@ -57,6 +63,14 @@ type OpenApiTimerPreferenceConflictV1Response =
     resourceType: 'timerPreferences'
     serverPreference: OpenApiTimerPreferenceV1Response
   }
+type OpenApiUserPreferenceV1Response = Omit<UserPreferenceResponse, 'schemaVersion'> & { schemaVersion: 1 }
+type OpenApiUserPreferenceConflictV1Response =
+  Omit<UserPreferenceConflictResponse, 'code' | 'resourceType' | 'serverPreference'>
+  & {
+    code: 'USER_PREFERENCE_CONFLICT'
+    resourceType: 'userPreferences'
+    serverPreference: OpenApiUserPreferenceV1Response
+  }
 
 type _RuntimeInfoMatches = Assert<IsExact<RuntimeInfo, RuntimeInfoResponse>>
 type _ToolRecordAcceptsOpenApi = Assert<IsAssignable<ToolRecordResponse, ToolRecord>>
@@ -68,6 +82,9 @@ type _WorkbenchLayoutConflictAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiWorkb
 type _TimerPreferenceAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiTimerPreferenceV1Response, TimerPreferenceRecord>>
 type _TimerPreferenceCanRoundTripToOpenApi = Assert<IsAssignable<WebTimerPreferenceSaveRequest, TimerPreferenceSaveRequest>>
 type _TimerPreferenceConflictAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiTimerPreferenceConflictV1Response, WebTimerPreferenceConflictResponse>>
+type _UserPreferenceAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiUserPreferenceV1Response, UserPreferenceRecord>>
+type _UserPreferenceCanRoundTripToOpenApi = Assert<IsAssignable<WebUserPreferenceSaveRequest, UserPreferenceSaveRequest>>
+type _UserPreferenceConflictAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiUserPreferenceConflictV1Response, WebUserPreferenceConflictResponse>>
 type _LoginRequestMatches = Assert<IsAssignable<WebAuthLoginRequest, AuthLoginRequest>>
 type _AuthUserAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthUserRequired, BackendAuthUser>>
 type _AuthTokenAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthTokenRequired, BackendAuthTokenResponse>>

@@ -119,6 +119,58 @@
         "description": { "type": "string", "maxLength": 500 }
       }
     },
+    "TimerPreferencePresetRequest": {
+      "required": ["id", "order", "durationSeconds"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 120 },
+        "order": { "type": "integer", "format": "int32" },
+        "durationSeconds": { "type": "integer", "format": "int32" }
+      }
+    },
+    "TimerPreferencePresetResponse": {
+      "required": ["id", "order", "durationSeconds", "createdAt"],
+      "properties": {
+        "id": { "type": "string", "maxLength": 120 },
+        "order": { "type": "integer", "format": "int32" },
+        "durationSeconds": { "type": "integer", "format": "int32" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "TimerPreferenceSaveRequest": {
+      "required": ["schemaVersion", "version", "presets"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "format": "int32" },
+        "version": { "type": "integer", "format": "int32" },
+        "presets": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/TimerPreferencePresetRequest" }
+        }
+      }
+    },
+    "TimerPreferenceResponse": {
+      "required": ["schemaVersion", "version", "presets"],
+      "properties": {
+        "schemaVersion": { "type": "integer", "format": "int32" },
+        "version": { "type": "integer", "format": "int32" },
+        "presets": {
+          "type": "array",
+          "items": { "$ref": "#/components/schemas/TimerPreferencePresetResponse" }
+        }
+      }
+    },
+    "TimerPreferenceConflictResponse": {
+      "required": ["code", "message", "resourceType", "baseVersion", "currentVersion", "updatedAt", "updatedByUserId", "serverPreference"],
+      "properties": {
+        "code": { "type": "string" },
+        "message": { "type": "string" },
+        "resourceType": { "type": "string" },
+        "baseVersion": { "type": "integer", "format": "int32" },
+        "currentVersion": { "type": "integer", "format": "int32" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "updatedByUserId": { "type": "string", "maxLength": 160 },
+        "serverPreference": { "$ref": "#/components/schemas/TimerPreferenceResponse" }
+      }
+    },
     "ApiErrorResponse": {
       "required": ["code", "message"],
       "properties": {

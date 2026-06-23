@@ -27,6 +27,42 @@ export interface RuntimeInfoResponse {
   topology: string;
 }
 
+export interface TimerPreferenceConflictResponse {
+  baseVersion: number;
+  code: string;
+  currentVersion: number;
+  message: string;
+  resourceType: string;
+  serverPreference: TimerPreferenceResponse;
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
+export interface TimerPreferencePresetRequest {
+  durationSeconds: number;
+  id: string;
+  order: number;
+}
+
+export interface TimerPreferencePresetResponse {
+  createdAt: string;
+  durationSeconds: number;
+  id: string;
+  order: number;
+}
+
+export interface TimerPreferenceResponse {
+  presets: TimerPreferencePresetResponse[];
+  schemaVersion: number;
+  version: number;
+}
+
+export interface TimerPreferenceSaveRequest {
+  presets: TimerPreferencePresetRequest[];
+  schemaVersion: number;
+  version: number;
+}
+
 export interface ToolRecordResponse {
   createdAt: string;
   description?: string | null;

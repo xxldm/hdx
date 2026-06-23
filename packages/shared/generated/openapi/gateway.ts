@@ -73,6 +73,63 @@ export interface ToolRecordResponse {
   updatedAt: string;
 }
 
+export interface UserPreferenceConflictResponse {
+  baseVersion: number;
+  code: string;
+  currentVersion: number;
+  message: string;
+  resourceType: string;
+  serverPreference: UserPreferenceResponse;
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
+export interface UserPreferenceNavigationRequest {
+  pinnedItemIds: string[];
+}
+
+export interface UserPreferenceNavigationResponse {
+  pinnedItemIds: string[];
+}
+
+export interface UserPreferenceResponse {
+  colorMode: "system" | "light" | "dark";
+  locale: "zh-CN" | "en-US";
+  navigation: UserPreferenceNavigationResponse;
+  schemaVersion: number;
+  theme: UserPreferenceThemeResponse;
+  version: number;
+}
+
+export interface UserPreferenceSaveRequest {
+  colorMode: "system" | "light" | "dark";
+  locale: "zh-CN" | "en-US";
+  navigation: UserPreferenceNavigationRequest;
+  schemaVersion: number;
+  theme: UserPreferenceThemeRequest;
+  version: number;
+}
+
+export interface UserPreferenceThemeRequest {
+  customNeutral: string;
+  customPrimary: string;
+  neutral: "slate" | "gray" | "zinc" | "neutral" | "stone" | "taupe" | "mauve" | "mist" | "olive";
+  neutralMode: "preset" | "custom";
+  primary: "black" | "red" | "orange" | "amber" | "yellow" | "lime" | "green" | "emerald" | "teal" | "cyan" | "sky" | "blue" | "indigo" | "violet" | "purple" | "fuchsia" | "pink" | "rose";
+  primaryMode: "preset" | "custom";
+  radius: "0" | "0.125" | "0.25" | "0.375" | "0.5";
+}
+
+export interface UserPreferenceThemeResponse {
+  customNeutral: string;
+  customPrimary: string;
+  neutral: "slate" | "gray" | "zinc" | "neutral" | "stone" | "taupe" | "mauve" | "mist" | "olive";
+  neutralMode: "preset" | "custom";
+  primary: "black" | "red" | "orange" | "amber" | "yellow" | "lime" | "green" | "emerald" | "teal" | "cyan" | "sky" | "blue" | "indigo" | "violet" | "purple" | "fuchsia" | "pink" | "rose";
+  primaryMode: "preset" | "custom";
+  radius: "0" | "0.125" | "0.25" | "0.375" | "0.5";
+}
+
 export interface WorkbenchLayoutConflictResponse {
   baseVersion: number;
   code: string;

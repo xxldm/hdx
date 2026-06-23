@@ -20,6 +20,43 @@ export interface CurrentActorResponse {
   subject: string;
 }
 
+export interface HolidayAdminResponse {
+  date: string;
+  description?: string | null;
+  displayName: string;
+  enabled: boolean;
+  holidayKey: string;
+  id: number;
+  recurring: boolean;
+  sortOrder: number;
+  updatedAt: string;
+  updatedByUserId: string;
+  version: number;
+}
+
+export interface HolidayConflictResponse {
+  baseVersion: number;
+  code: string;
+  currentVersion: number;
+  message: string;
+  resourceId: number;
+  resourceLabel: string;
+  resourceType: string;
+  serverHoliday: HolidayAdminResponse;
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
+export interface HolidayCreateRequest {
+  date: string;
+  description?: string | null;
+  displayName: string;
+  enabled: boolean;
+  holidayKey: string;
+  recurring: boolean;
+  sortOrder: number;
+}
+
 export interface HolidayResponse {
   date: string;
   description?: string | null;
@@ -28,6 +65,16 @@ export interface HolidayResponse {
   id: number;
   recurring: boolean;
   sortOrder: number;
+}
+
+export interface HolidayUpdateRequest {
+  date: string;
+  description?: string | null;
+  displayName: string;
+  enabled: boolean;
+  recurring: boolean;
+  sortOrder: number;
+  version: number;
 }
 
 export interface RuntimeInfoResponse {

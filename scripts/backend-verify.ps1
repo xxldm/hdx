@@ -5,6 +5,7 @@ param(
     [switch]$NoBuild,
     [switch]$AotSmoke,
     [switch]$SkipWhitespace,
+    [switch]$SkipDataAccess,
     [switch]$SkipBoot4Jackson,
     [switch]$SkipTest
 )
@@ -50,6 +51,7 @@ Write-Host "MavenPath: $MavenPath"
 Write-Host "NoBuild: $NoBuild"
 Write-Host "AotSmoke: $AotSmoke"
 Write-Host "SkipWhitespace: $SkipWhitespace"
+Write-Host "SkipDataAccess: $SkipDataAccess"
 Write-Host "SkipBoot4Jackson: $SkipBoot4Jackson"
 Write-Host "SkipTest: $SkipTest"
 
@@ -59,6 +61,22 @@ if (-not $SkipWhitespace) {
         -WorkingDirectory $BackendRoot `
         -Command 'git' `
         -Arguments @('diff', '--check')
+}
+
+if (-not $SkipDataAccess) {
+    Invoke-Step `
+        -Title '后端数据访问风格提醒' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/check-backend-data-access.ps1'),
+            '-BackendRoot',
+            $BackendRoot,
+            '-ChangedOnly'
+        )
 }
 
 if (-not $SkipBoot4Jackson) {

@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：已按 ADR 0016 收口工作台布局、计时器预设和账号级用户偏好的后端事实源。`docs/WORKBENCH_WIDGET_CONTRACT.md` 已明确 widget registry、layout、模块数据、模块配置和设备运行态边界；Web registry 已显式声明 timer 的账号级预设接口、设备级运行态，以及 date-countdown 的共享节日数据接口。
-- 下一步：节日管理员维护页暂未实现；继续接入新真实模块前，先按 `docs/WORKBENCH_WIDGET_CONTRACT.md` 判断模块数据归属，再决定是否新增独立后端契约。
-- 主要剩余风险：日期倒计时当前只读取后端 seed 的固定公历节日，后台管理页和农历/调休等复杂日历规则未实现；用户偏好目前按整体对象版本保存，低价值偏好冲突会在 Web 端基于服务器当前版本重试，高价值模块配置必须进入模块自己的记录级冲突模型。
+- 当前状态：已按 ADR 0016 收口工作台布局、计时器预设、账号级用户偏好和日期倒计时节日数据。`docs/WORKBENCH_WIDGET_CONTRACT.md` 已明确 widget registry、layout、模块数据、模块配置和设备运行态边界；Web registry 已显式声明 timer 的账号级预设接口、设备级运行态，以及 date-countdown 的共享节日数据接口。节日管理员维护页已接入后端、Web、Desktop BFF 和 OpenAPI 契约。
+- 下一步：继续接入新真实模块前，先按 `docs/WORKBENCH_WIDGET_CONTRACT.md` 判断模块数据归属，再决定是否新增独立后端契约；若继续完善日期倒计时，优先讨论农历节日、调休规则、节日权限和 `holiday_key` 软删除复用策略。
+- 主要剩余风险：日期倒计时当前只覆盖固定公历节日；农历/调休等复杂日历规则未实现。`holiday_key` 当前全局唯一，软删除后暂不复用。用户偏好目前按整体对象版本保存，低价值偏好冲突会在 Web 端基于服务器当前版本重试，高价值模块配置必须进入模块自己的记录级冲突模型。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -58,6 +58,7 @@
 - [x] 账号级用户偏好迁到后端事实源，Web 与 Desktop BFF 均通过 `/api/v1/user/preferences` 读写语言、明暗模式、主题和顶栏固定菜单。
 - [x] 明确真实模块接入前的 widget registry、layout、模块配置和设备运行态边界，并给 Web registry 增加数据契约声明。
 - [x] 接入第二个正式工具箱组件“日期倒计时”，当前只显示后端节日表数据；管理员维护页后续另做。
+- [x] 接入节日管理员维护页，支持后台维护固定公历节日，并把 admin API 转发补到 Web BFF 和 Desktop BFF。
 
 ## 验收标准
 
@@ -148,6 +149,7 @@
 - 2026-06-23：继续迁移账号级低价值偏好。后端新增 `user_preference` 表和 `/api/v1/user/preferences`，使用 JPA `@Version`、审计字段和软删除过滤；Web 新增用户偏好同步层，已登录默认布局挂载后从后端加载语言、明暗模式、主题颜色/圆角和顶栏固定菜单，后端无记录时把当前本地缓存作为初始账号偏好保存。Desktop Rust BFF 同步补齐 Full/Online command。
 - 2026-06-23：收口真实工具模块接入前的数据契约。新增 `docs/WORKBENCH_WIDGET_CONTRACT.md`，明确 registry 静态导入组件、layout 只存实例展示偏好、模块配置由模块独立 API/表持有、设备运行态不跨设备同步；Web registry 新增 `data.modulePreferences` 与 `data.runtimeState`，当前 timer 声明账号级 `/api/v1/timer/preferences` 和设备级 `localStorage` 运行态。
 - 2026-06-23：接入第二个真实工具箱 widget `date-countdown`。后端新增 `holiday` 表和只读 `/api/v1/holidays`，当前 seed 固定公历节日；Web 通过 Nuxt BFF 读取节日并按横/竖方向展示最近节日倒计时；Desktop Rust BFF 同步补齐 Full/Online `hdx_holidays_list` command。节日后台管理页暂未实现。
+- 2026-06-23：补齐节日管理员维护页。后端新增 `/api/v1/admin/holidays` 列表、创建、更新和软删除接口；`holiday` 使用 JPA `@Version`、审计字段和软删除过滤，冲突返回服务器当前节日记录。Web 新增 `/admin/holidays` 页面、Pinia store、表格和表单弹窗；Desktop Rust BFF 同步补齐 Full/Online admin holiday command。
 
 ## 验证结果
 
@@ -181,12 +183,14 @@
 - 2026-06-23：计时器预设后端持久化通过 `pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`、`pwsh -NoLogo -NoProfile -File scripts/verify-changed.ps1 -Profile commit`（在 Web lint 的动态 delete 规则处失败，后端、OpenAPI 已通过）、`pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -WebRoot D:\Project\hdx\apps\web`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 和最终 `pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1`。本轮未跑 Web build 和后端 AOT smoke。
 - 2026-06-23：账号级用户偏好后端持久化通过 `mvn -pl backend-core -am "-Dtest=UserPreferenceServiceTest,TimerPreferenceServiceTest,WorkbenchLayoutServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`mvn -pl backend-gateway -am "-Dtest=GatewayOpenApiDocumentationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`、`pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -WebRoot D:\Project\hdx\apps\web`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 和 `pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly`。本轮未跑 Web build 和后端 AOT smoke。
 - 2026-06-23：日期倒计时接入通过 `mvn -pl backend-core -am "-Dtest=HolidayServiceTest,WorkbenchLayoutServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`mvn -pl backend-gateway -am "-Dtest=GatewayOpenApiDocumentationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`、`pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -WebRoot D:\Project\hdx\apps\web`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online`、`cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online holiday_record_rejects_invalid_date_shape` 和 `pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly`。本轮未跑 Web build 和后端 AOT smoke。
+- 2026-06-23：节日管理员维护页通过 `mvn -pl backend-core -am "-Dtest=HolidayServiceTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`mvn -pl backend-gateway -am "-Dtest=GatewayOpenApiDocumentationTest" "-Dsurefire.failIfNoSpecifiedTests=false" test`、`pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`、`pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -WebRoot D:\Project\hdx\apps\web`、`pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online`、`cargo test --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online holiday` 和最终 `pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1`。本轮未跑 Web build 和后端 AOT smoke。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 
 ## 剩余风险
 
-- 日期倒计时已接入只读节日数据；节日管理员维护页、农历节日和调休等复杂规则还未设计。
+- 日期倒计时已接入节日数据和管理员维护页；农历节日、调休等复杂规则还未设计。
+- `holiday_key` 当前全局唯一，软删除记录的 key 暂不复用；如需复用，需要补跨 PostgreSQL/H2 的未删除唯一策略。
 - 本轮以桌面 Chrome 做真实鼠标交互验证；内置浏览器可能仍有鼠标事件兼容差异。
 - 组件方向目前由容器统一解析并传给真实模块；后续模块需要自行决定横/竖布局差异，避免把 layout、editing 或 chrome 内部状态泄漏给模块。
 - 登录页与首页的背景层、浮层菜单和工具按钮已共享；部分卡片、表单和 widget 内部 surface 仍是局部样式，后续页面继续扩展前可继续收敛到共享 CSS layer。
@@ -210,3 +214,6 @@
 - `7afeed2 功能：新增用户偏好后端持久化`（`services/backend`）
 - `924777f 功能：接入用户偏好同步`（`apps/web`）
 - `e5cad8d 功能：接入用户偏好桌面转发`（`apps/desktop`）
+- `ae2a1c2 功能：新增节日管理接口`（`services/backend`）
+- `236559d 功能：新增节日管理页面`（`apps/web`）
+- `e880fa6 功能：转发节日管理接口`（`apps/desktop`）

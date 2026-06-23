@@ -31,6 +31,8 @@
 - Web 首页工具箱当前按桌面浏览器交互设计，不做手机 Web 专项适配；但关键操作仍需保留桌面宽度触摸输入的 tap 或显式入口兜底。
 - Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态。
 - App 不复用 Tauri，不内置 all-in-one；首版只连接远端 auth-service 与 gateway。
+- 用户数据持久化与同步边界见 ADR 0016：Web/Desktop Online 以后端为事实源，App 可弱网/无网暂存草稿后同步，Desktop Full 走本机数据库。
+- Tauri app config 只管纯客户端配置；计时器运行状态是设备级状态，不跨设备同步。
 - 错误响应以稳定 `code` 为跨端协议字段，后端中文 `message` 只是 fallback；UI 可以把多个 code 合并为粗粒度用户文案。
 
 ## 当前重点
@@ -51,6 +53,8 @@
 - 本地计划规则：`docs/plans/README.md`；进行中计划先读 `docs/plans/active/README.md` 再按需打开具体计划。
 - 认证、权限、登录态、错误码：先读 `docs/plans/active/README.md`，必要时再读 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
 - 认证数据模型、`auth` schema、migration 和表字段：`docs/AUTH_DATA_MODEL.md`。
+- 后端 Entity、Repository、migration、JPA/JDBC、乐观锁、软删除和数据库访问风格：先使用 `.codex/skills/hdx-backend-data-access/SKILL.md`，再读 `docs/BACKEND_DATA_ACCESS.md`。
+- 用户数据持久化、跨端同步和现有后端表审计：`docs/adr/0016-user-data-persistence-and-sync-boundary.md`、`docs/DATA_PERSISTENCE_AUDIT.md`。
 - Release、后端 native artifact、GitHub Actions 产物复用：先读 `docs/plans/active/README.md`，再按任务读 `docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`。
 - Desktop Full/Online：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`，需要发布上下文时再读 release 计划。
 - App：`apps/mobile/README.md`、`docs/adr/0009-mobile-native-online-first.md`。
@@ -72,6 +76,8 @@ pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1
 
 ```powershell
 git -C services/backend status --short --branch
+pwsh -NoLogo -NoProfile -File scripts/start-backend-services.ps1
+pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly
 pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1
 pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -AotSmoke
 pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -NoBuild
@@ -81,11 +87,14 @@ Web：
 
 ```powershell
 git -C apps/web status --short --branch
+pwsh -NoLogo -NoProfile -File scripts/start-web-dev.ps1 -StatusOnly
+pwsh -NoLogo -NoProfile -File scripts/start-web-dev.ps1
 pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1
 pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -Build
 ```
 
 Web pnpm 质量命令在 Codex Windows sandbox 中有已知普通权限 `EPERM`；运行 `scripts/web-verify.ps1` 或底层 pnpm 验证前，按 `docs/AGENT_WORKFLOW.md` 的权限规则直接走审批/提权，不再先普通权限试跑。
+Web dev server 检查/启动也统一走 `scripts/start-web-dev.ps1` 并直接提权；不要用普通权限端口检测结果判断 3000 是否关闭，避免误起第二个 Nuxt 服务。`apps/web/scripts/web-dev-runner.mjs dev` 已做端口预检，目标端口占用时会失败，不再让 Nuxt 自动切到 3001。
 
 Desktop：
 

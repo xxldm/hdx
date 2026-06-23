@@ -67,6 +67,15 @@ pwsh -NoLogo -NoProfile -Command "$PSVersionTable.PSVersion; $PSVersionTable.PSE
 - 只读排查命令仍优先普通权限执行，例如 `git status`、`git diff`、`git log`、`git rev-parse`、`rg`、`Get-Content`。
 - 提权后仍失败时，必须记录 blocker、失败命令、失败摘要、影响判断和下一步 unblock 条件；禁止循环重复普通权限试跑。
 
+## Web dev server 与端口检测
+
+- 检查或启动 `apps/web` dev server 时统一使用 `pwsh -NoLogo -NoProfile -File scripts/start-web-dev.ps1`，不要手写 `Get-NetTCPConnection` 后再临时 `pnpm dev`。
+- 在 Codex Windows sandbox 中，`Get-NetTCPConnection`、`Invoke-WebRequest http://127.0.0.1:<port>/` 等本机端口/localhost 探测可能在普通权限下返回空结果或失败。
+  检查、启动或清理 Web dev server 时直接走审批/提权运行 `scripts/start-web-dev.ps1`，不要先普通权限试探。
+- `scripts/start-web-dev.ps1` 默认检查 `http://127.0.0.1:3000/`：如果可访问就复用已有服务；如果端口已被监听但 HTTP 探测失败，为避免 Nuxt 自动退到 3001，不会继续启动新服务。
+- `apps/web/scripts/web-dev-runner.mjs` 对 `dev` 命令做端口预检；目标端口已占用时直接失败，避免 Nuxt/listhen 自动寻找 3001 等替代端口。
+- 只查看状态时使用 `scripts/start-web-dev.ps1 -StatusOnly`；需要非默认端口时显式传 `-Port <port>`，并在用户确认后再启动。
+
 ## 验证与记录
 
 - 完成一项实现后，应在最终回复或对应计划中说明执行过的验证命令、未验证内容和剩余风险。
@@ -76,6 +85,7 @@ pwsh -NoLogo -NoProfile -Command "$PSVersionTable.PSVersion; $PSVersionTable.PSE
 - Web 常规验证优先使用 `scripts/web-verify.ps1`；需要覆盖 build 时使用 `scripts/web-verify.ps1 -Build`。不要把 `pnpm test`、`pnpm typecheck` 和 `pnpm lint` 拆成多次工具调用，除非正在定位单项失败。
 - 后端常规验证优先使用 `scripts/backend-verify.ps1`；需要覆盖 all-in-one AOT/package smoke 时使用 `scripts/backend-verify.ps1 -AotSmoke`。不要把空白检查、Boot 4 Jackson 检查、Maven 测试和 AOT smoke 拆成多次工具调用，除非正在定位单项失败。
 - OpenAPI / Web 契约常规验证优先使用 `scripts/openapi-verify.ps1`，需要刷新快照和生成类型时使用 `scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`，避免把多个底层脚本拆成多轮来回执行。
+- 校验包含中文内容的 Codex 技能时，使用 `python -X utf8 C:\Users\zengl\.codex\skills\.system\skill-creator\scripts\quick_validate.py <skill-dir>`，避免 Windows 默认编码按 GBK 读取 UTF-8 技能文件失败。
 - Codex 内置浏览器可用于读取页面结构、DOM 状态、按钮集合和普通点击路径，但它的鼠标 hover 结果存在兼容性偏差。不要把内置浏览器观察到的 hover 显示或隐藏当作最终视觉结论；涉及 hover 样式、悬浮工具条或鼠标停留反馈时，以用户真实浏览器手测、Chrome 真实交互或可复现手工步骤为准。
 - 如果故障属于本地环境问题，而不是项目代码问题，应说明判断依据，避免后续智能体误把环境问题当作仓库缺陷处理。
 - 重复出现的操作失误或环境坑应沉淀为本文档规则，不能只依赖聊天记录。

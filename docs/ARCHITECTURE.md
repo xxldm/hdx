@@ -65,11 +65,20 @@ OpenAPI 与 shared 层边界见 ADR 0006 和 ADR 0007。
 - `constants/` 和 `tools/` 放可共享常量与仓库工具。
 - Shared 当前不是可安装包，端侧或后端运行时逻辑不得提前进入 shared。
 
+用户数据持久化与跨端同步边界见 ADR 0016。
+
+- Web Online 和 Desktop Online 的登录用户数据以远端后端为事实源；接口不可用时显示不可用状态，不静默回退旧本地数据。
+- App 保持 Online first，但第二阶段允许弱网、无网暂存草稿，联网后按后端版本、幂等和冲突规则同步。
+- Desktop Full 使用本机后端和本机数据库保存业务数据、工作台布局、组件配置和模块数据；Tauri app config 只保存纯客户端配置。
+- 计时器预设和组件配置可以作为用户数据同步；计时器运行状态属于设备级状态，不跨设备同步。
+
 Desktop 第一阶段技术与打包策略见 ADR 0008。
 
 - 技术栈为 Tauri + Rust + Vite + TypeScript，平台范围为 Windows + Linux 并列。
 - `apps/desktop` 只维护一套代码，Full/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分。
 - `HDX Desktop Full` 后续包含 `backend-all-in-one` sidecar/native exe，仅离线本地模式，使用本机 H2 和固定 `LOCAL_ADMIN:local-admin` 身份。
+- Desktop Full 的用户业务数据、工作台布局、组件配置和模块数据进入本机数据库，不进入 Tauri app config。
+- Tauri app config 只保存开机自启、远端地址、窗口偏好、托盘偏好和本机 capability 开关等纯客户端配置。
 - 本机 token 只能在 Tauri/Rust 主进程和 Rust BFF command 边界内流转，不得暴露给 WebView 浏览器代码。
 - `HDX Desktop Online` 不包含 all-in-one，仅在线远程模式，连接远端 `backend-auth-service` 与 `backend-gateway`。
 - 自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability。
@@ -81,7 +90,7 @@ App 第一阶段技术栈与离线路线见 ADR 0009。
 - HarmonyOS NEXT 后续采用 ArkTS + ArkUI，并面向 PC、平板、手机等多设备形态适配。
 - App 不复用 Desktop Tauri shell，不混入 Desktop Online，也不规划移动端 `backend-all-in-one` 或本机 HTTP 后端服务。
 - App 首版只做 Online only，连接远端 `backend-auth-service` 与 `backend-gateway`。
-- 第二阶段只规划离线缓存和离线草稿，联网后同步提交。
+- 第二阶段只规划离线缓存和离线草稿，联网后同步提交；冲突处理遵守 ADR 0016 的版本、幂等和显式冲突原则。
 
 缓存、对象存储与队列基础设施边界见 ADR 0010。
 
@@ -175,7 +184,7 @@ Web 浏览器代码不直接访问后端地址。
 - 真实 GitHub Actions release workflow 的完整实现、失败重试策略和人工发布确认体验；跨仓库凭据与 artifact 策略已由 ADR 0013 约束，当前仅有 release dry-run workflow 骨架。
 - Release notes 和版本号策略。
 - Desktop 自动更新、发布渠道、Full/Online 数据导入导出格式，以及从首版未签名发布切换到签名发布的条件。
-- App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的存储、同步队列、冲突处理和加密策略。
+- App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的具体存储、同步队列、冲突 UI 和加密策略。
 
 ## 后端第一阶段架构
 
@@ -226,6 +235,9 @@ Web 浏览器代码不直接访问后端地址。
 - 认证中心迁移脚本由 `services/backend/backend-auth-service/src/main/resources/db/migration/` 提供，并只面向服务端 PostgreSQL `auth` schema。
 - PostgreSQL 是服务端数据库事实源，H2 用于 desktop all-in-one、local 和测试；运行时 Hibernate 只做 `ddl-auto: validate` 校验。
 - 后端普通业务数据访问默认采用 Spring Data JPA；自定义查询优先使用 JPA 查询能力，批量/报表、性能热点或框架 JDBC schema 例外可使用 JDBC/JdbcClient。
+- HDX 自建可变业务表默认遵守 ADR 0016：表内 `version`、时间审计、`*_by_user_id` 和软删除字段；不存用户名，不默认加 `actor_type`，不物理删除，不由程序自动清理。
+- 追加型日志、审计、事件、outbox、纯技术表和可由父对象整体重建的从属明细表可以明确例外；业务事实型关联表不默认豁免。
+- 第三方框架官方 schema 例外，例如 Spring Authorization Server OAuth2 JDBC 表，不强行增加 HDX 自有审计或软删除字段。
 
 后端 native 规则：
 

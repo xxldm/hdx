@@ -11,6 +11,8 @@
 - `GIT.md`：Git 提交、推送和智能体提交纪律。
 - `ENVIRONMENT.md`：本地、Symphony、后端部署和前端部署的环境配置分层。
 - `AUTH_DATA_MODEL.md`：认证中心 `auth` schema、表用途、关键字段、约束和维护要求。
+- `BACKEND_DATA_ACCESS.md`：后端 JPA/JDBC、乐观锁、软删除和 Repository 查询风格准入规则。
+- `DATA_PERSISTENCE_AUDIT.md`：现有后端数据表对 ADR 0016 用户数据持久化规则的审计与后续迁移优先级。
 - `HARNESS_ENGINEERING.md`：Harness Engineering 实践到本项目约束的映射。
 - `RELEASE_RUNBOOK.md`：tag-only 日常发布流程和失败处理。
 - `adr/`：架构决策记录。

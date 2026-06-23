@@ -7,6 +7,7 @@ import type {
   CreateToolRequest as OpenApiCreateToolRequest,
   RuntimeInfoResponse,
   ToolRecordResponse,
+  WorkbenchLayoutConflictResponse,
   WorkbenchLayoutResponse,
   WorkbenchLayoutSaveRequest
 } from '../../packages/shared/generated/openapi/gateway'
@@ -14,6 +15,7 @@ import type {
   CreateToolRequest as WebCreateToolRequest,
   RuntimeInfo,
   ToolRecord,
+  WorkbenchLayoutConflictResponse as WebWorkbenchLayoutConflictResponse,
   WorkbenchLayoutRecord
 } from '../../apps/web/app/types/hdx-api'
 import type {
@@ -33,7 +35,14 @@ type IsExact<Left, Right> =
 
 type OpenApiAuthTokenRequired = Required<AuthTokenResponse>
 type OpenApiAuthUserRequired = Required<AuthUserResponse>
-type OpenApiWorkbenchLayoutV1Response = Omit<WorkbenchLayoutResponse, 'version'> & { version: 1 }
+type OpenApiWorkbenchLayoutV1Response = Omit<WorkbenchLayoutResponse, 'schemaVersion'> & { schemaVersion: 1 }
+type OpenApiWorkbenchLayoutConflictV1Response =
+  Omit<WorkbenchLayoutConflictResponse, 'code' | 'resourceType' | 'serverLayout'>
+  & {
+    code: 'WORKBENCH_LAYOUT_CONFLICT'
+    resourceType: 'workbenchLayout'
+    serverLayout: OpenApiWorkbenchLayoutV1Response
+  }
 
 type _RuntimeInfoMatches = Assert<IsExact<RuntimeInfo, RuntimeInfoResponse>>
 type _ToolRecordAcceptsOpenApi = Assert<IsAssignable<ToolRecordResponse, ToolRecord>>
@@ -41,6 +50,7 @@ type _ToolRecordCanRoundTripToOpenApi = Assert<IsAssignable<ToolRecord, ToolReco
 type _CreateToolRequestMatches = Assert<IsAssignable<WebCreateToolRequest, OpenApiCreateToolRequest>>
 type _WorkbenchLayoutAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiWorkbenchLayoutV1Response, WorkbenchLayoutRecord>>
 type _WorkbenchLayoutCanRoundTripToOpenApi = Assert<IsAssignable<WorkbenchLayoutRecord, WorkbenchLayoutSaveRequest>>
+type _WorkbenchLayoutConflictAcceptsOpenApiV1 = Assert<IsAssignable<OpenApiWorkbenchLayoutConflictV1Response, WebWorkbenchLayoutConflictResponse>>
 type _LoginRequestMatches = Assert<IsAssignable<WebAuthLoginRequest, AuthLoginRequest>>
 type _AuthUserAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthUserRequired, BackendAuthUser>>
 type _AuthTokenAcceptsOpenApi = Assert<IsAssignable<OpenApiAuthTokenRequired, BackendAuthTokenResponse>>

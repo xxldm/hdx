@@ -6,13 +6,13 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：用户要求登录后首页改为用户端工具箱，可跨行跨列、拖拽排序，并允许考虑引入 VueUse。
 - 创建时间：2026-06-16
-- 最后更新：2026-06-22
+- 最后更新：2026-06-23
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：Web 首页工具箱主体、桌面宽度触摸兜底、主题入口、主要 UI/UX 收口项、widget registry 契约、固定菜单和顶栏边框路由进度反馈已完成。第一个正式 widget `timer` 已接入 registry/default layout，并用独立 store 按 `endsAt` 支持后台计时；旧占位 widget 已从 Web registry、默认布局、菜单、首页请求链路和后端无保存记录默认布局移除。全局未登录跳转已恢复。
-- 下一步：继续按中心 registry 契约接入下一个真实模块；模块自身状态使用独立 store 或模块内边界，不写进 layout。菜单项若升级为真实页面，只更新 navigation registry 的 `to`/行为；页面自己的保存、编辑等操作挂到顶栏动作区。
-- 主要剩余风险：除 `timer` 外仍未接入真实业务 widget；当前菜单里的 widget 项只定位/高亮首页已有 widget，不代表已有独立页面。
+- 当前状态：已按 ADR 0016 收口工作台布局后端事实源。`workbench_layout` 已拆分布局协议版本 `schemaVersion` 和记录乐观锁 `version`；保存冲突返回 `409`、冲突元数据和服务器当前布局；Web 会保留用户草稿，并支持 hover/focus/click 临时预览服务器布局。
+- 下一步：在真实模块继续接入前，推进账号级偏好持久化章程里的下一项，例如主题、语言、菜单固定或计时器预设持久化。
+- 主要剩余风险：当前工作区已有较多未提交 Web/后端改动；本轮只增量处理布局冲突，没有整理其它历史未提交内容。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -50,6 +50,10 @@
 - [x] 接入第一个正式工具箱组件“计时器”，支持横/竖排列、自定义时长和后台计时。
 - [x] 删除 `quick-links`、`tool-catalog`、`notes`、`runtime` 临时占位 widget，只保留真实注册模块。
 - [x] 恢复全局未登录跳转，未登录访问首页会回到登录页并保留 redirect。
+- [x] 后端 `workbench_layout` 拆分布局协议版本和记录乐观锁版本。
+- [x] 保存布局时按基础版本校验，冲突返回 `409`、冲突元数据和服务器当前布局。
+- [x] Web 保存冲突时保留当前草稿，并提供服务器版本临时预览。
+- [x] 补充后端/Web 回归测试和契约验证。
 
 ## 验收标准
 
@@ -130,6 +134,12 @@
 - 2026-06-22：恢复 `auth.global.ts` 全局未登录跳转；未登录访问工作台会跳转 `/login` 并保留 redirect，已登录访问登录页会回到内部 redirect 目标。
 - 2026-06-22：按用户确认删除旧临时占位 widget。`quick-links`、`tool-catalog`、`notes`、`runtime` 已从 widget registry、默认布局、菜单项和首页 `runtime/tools` 概览消费链路移除；旧本地/远端布局若带这些 key，会按当前默认布局回退到 `timer`。
 - 2026-06-22：同步后端 `WorkbenchLayoutService` 的无保存记录默认布局为单个 `default-timer`，避免新用户从后端拿到已删除的占位 widget key；保存接口仍只校验布局几何和请求结构，不在本轮绑定模块白名单。
+- 2026-06-23：开始按 ADR 0016 的 P0 审计结论收口 `workbench_layout`。确认冲突响应可直接包含服务器当前布局，Web 不自动覆盖当前草稿，只在用户 hover/click 预览时临时展示服务器版本。
+- 2026-06-23：完成工作台布局版本语义拆分和冲突处理。后端新增 `record_version` 与 ADR 0016 审计/软删除字段，接口返回 `schemaVersion` 和记录 `version`；保存时基于基础版本校验，冲突返回 `WORKBENCH_LAYOUT_CONFLICT` 和服务器当前布局。Web BFF 透传该结构化 409，layout store 保留用户草稿并提供服务器布局 hover/focus/click 预览、使用服务器版本和基于当前版本覆盖三条路径。
+- 2026-06-23：修复布局重复保存时 widget 明细“清空再插入”导致同 `layout_id + widget_id` 唯一索引冲突的问题；现在同 ID widget 更新原行，新增 ID 插入，缺失 ID 删除，冲突和审计仍由父布局整体版本负责。
+- 2026-06-23：按 ADR 0016 补齐 `workbench_layout` 普通读取过滤 `deleted=false`；当前没有开放删除布局功能，测试通过 JDBC 模拟软删除记录，确认服务端会把软删除布局视为不可用并回到未保存默认布局。
+- 2026-06-23：为避免后续再次偏离 JPA 默认风格，新增 `docs/BACKEND_DATA_ACCESS.md` 和 `scripts/check-backend-data-access.ps1`。后端验证会对变更 Java 文件提示 `@Query`、JDBC、显式锁、手动版本递增和 Entity 缺少 `@Version` 等需确认项；当前脚本只提醒不失败。
+- 2026-06-23：将 `workbench_layout.record_version` 接回 JPA `@Version`，移除 Repository 手写 JPQL 和悲观锁查询；保存时仍先比较客户端基础版本以返回结构化 409，最终版本递增交给 Hibernate。`workbench_layout_widget` 继续作为父布局从属明细例外，不单独加记录版本。
 
 ## 验证结果
 
@@ -157,6 +167,9 @@
 - 2026-06-22：恢复全局未登录跳转后通过 `pnpm test -- tests/unit/auth-middleware.test.ts`（Vitest 实际运行当前全部 Web 单测）、`pnpm typecheck` 和 `pnpm lint`。
 - 2026-06-22：删除旧占位 widget 后通过 `pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1`，覆盖 Web 空白检查、98 个单测、Nuxt typecheck 和 ESLint；本轮未跑 build。
 - 2026-06-22：后端默认布局同步后通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`；中途两次命令失败分别是缺少 `-am` 和 Surefire 依赖模块未匹配指定测试，随后以带引号参数的命令通过。
+- 2026-06-23：布局冲突收口后通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`mvn -pl backend-gateway -am '-Dtest=GatewayOpenApiDocumentationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`pnpm test tests/unit/workbench-layout-store.test.ts tests/unit/api-error.test.ts tests/unit/schemas.test.ts tests/server/authenticated-backend-fetch.test.ts`、`pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1`。其中首次 `openapi-verify -RefreshSnapshots -GenerateTypes` 因 gateway target spec 尚未重新生成而拿到旧快照，补跑 gateway OpenAPI 文档测试后通过；首次 Web/OpenAPI 对齐因检查文件仍按旧版本字段收窄失败，已同步为 `schemaVersion` 收窄并纳入冲突响应。
+- 2026-06-23：补齐 `workbench_layout.deleted=false` 查询过滤后，重新通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`；工作台布局测试 9 个用例全绿。
+- 2026-06-23：JPA 数据访问风格收口后重新通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly` 和 `pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -NoBuild`。数据访问扫描仅剩 `WorkbenchLayoutWidget` 未声明 `@Version` 提醒，属于父布局从属明细例外。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 

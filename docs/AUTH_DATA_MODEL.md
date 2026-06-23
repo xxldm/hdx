@@ -10,6 +10,7 @@
 - OAuth2/Spring Authorization Server 官方表直接贴近框架 JDBC schema，不增加 HDX 自有软删除、时间审计或操作人审计字段。
 - 自有用户、角色、权限、凭证、会话、签名密钥和审计表使用数字主键；令牌、密码和私钥只保存哈希或服务端私有材料，不能把明文凭证暴露给 Web/App。
 - HDX 自有认证表运行期访问使用 JPA entity / Spring Data repository；Flyway 仍是 schema 事实源，service profile 使用 Hibernate `ddl-auto=validate` 校验实体和表结构。
+- ADR 0016 已确认 HDX 新建自有业务表默认使用 `created_by_user_id`、`updated_by_user_id`、`deleted_by_user_id`。当前 auth schema 的 `created_by` 等字段是历史实现，后续修改相关 migration 时必须评估迁移或记录明确例外。
 
 ## 表清单
 

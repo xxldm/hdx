@@ -6,11 +6,11 @@
 - 当前状态：见下方 active plan 状态块。
 - 计划来源：HDX 后续事项总纲第 3 步
 - 创建时间：2026-06-06
-- 最后更新：2026-06-22（JWK 运行期轮换管理）
+- 最后更新：2026-06-23（Web SSR 登录态失效清理）
 
 <!-- active-plan-status:start -->
 - 何时读取：认证、登录态、JWT、Redis 撤销、当前身份、错误码、用户/角色/权限相关任务。
-- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；后端 review P1/P2/P3、自有认证表 JPA 迁移、auth-service AOT 入口和 JWK 运行期轮换管理已完成。
+- 当前状态：账号密码登录、Web 登录页、当前身份、审计冷却、错误码和安全链 JSON 响应已实现；Web 业务 API 返回 `auth-required` 时，客户端 `$hdxApi` 清空前端登录态并跳回 `/login`，SSR `$hdxApi` 只清理最外层 HTML 响应的 Web `HttpOnly` session cookie 并标记状态，路由进入和切换仍由全局认证守卫兜底；后端 review、自有认证表 JPA 迁移、auth-service AOT 入口和 JWK 运行期轮换管理已完成。
 - 下一步：按产品化需求继续注册、找回密码、验证码/MFA、用户管理、OAuth2 client 管理；ToolCatalog list pagination、JWK 多实例刷新和 RETIRED key 清理策略按触发条件单独设计。
 - 主要剩余风险：Spring Authorization Server 官方 OAuth2 表仍保留框架 JDBC，这是协议表兼容性例外；JWK 轮换当前只刷新本实例缓存；App 登录态未实现；生产开放账号密码登录前仍需验证码、MFA、异常告警和更细限流。
 <!-- active-plan-status:end -->
@@ -420,6 +420,9 @@
 - 2026-06-22：登录审计 forwarded header P2 收口完成。认证服务默认不信任 `X-Forwarded-For`；只有配置可信代理 IP/CIDR 后，才从可信代理清洗过的 header 提取原始客户端 IP。
 - 2026-06-22：工具目录并发重复创建 P3 收口完成。`ToolCatalogService.createTool` 在数据库唯一约束竞争时返回稳定 `ToolDefinitionAlreadyExistsException`，避免向外层泄露底层 `DataIntegrityViolationException`。
 - 2026-06-22：JWK 运行期轮换管理完成。`backend-auth-service` 新增签名密钥 metadata 列表和 rotate 接口，ADMIN Bearer JWT 保护，轮换事务提交后刷新当前实例 `JWKSource`；响应不暴露 `private_key_jwk`。
+- 2026-06-23：Web 业务接口认证失效兜底完成。前端保留 Nuxt BFF 加密 `HttpOnly` session cookie 边界，不把 access/refresh token 暴露给浏览器；业务 store 收到 BFF `auth-required` 后只清空前端登录态和自身状态，不直接调用 Nuxt 路由 composable；进入页面/切换页面由 `auth.global` 守卫跳登录，当前页中途过期由 `$hdxApi` 按 BFF 错误码识别后跳登录。
+- 2026-06-23：修正 Web 登录页和首页循环重定向风险。`$hdxApi` 只在客户端对业务接口 `auth-required` 发起登录跳转，SSR 期间只标记状态并把错误交还页面；`auth.global` 在本地已标记 `auth.sessionExpired` 时不会把登录页重新跳回首页。
+- 2026-06-23：Web SSR session invalidation 收口。新增 server-only `invalidateWebAuthSession(event)`，BFF authenticated backend fetch 在后端 401 后尝试 refresh 一次，refresh 救不回来或 refresh 后重试仍 401 时清 Web `HttpOnly` session cookie；SSR `$hdxApi` 拆为 server 插件，页面内部 BFF 子请求返回 `auth-required` 时直接清最外层 HTML 响应 cookie 并标记 `auth.sessionExpired`，不在 SSR 期间发起 `navigateTo`。
 - 逐次命令输出、临时编译失败、提权重跑细节和完整联调过程不再保留在 active plan；可复用命令/环境踩坑沉淀到 `docs/AGENT_WORKFLOW.md` 或脚本。
 
 ## 验证结果
@@ -430,6 +433,9 @@
 - Web 自动化：`pnpm test`、`pnpm typecheck`、`pnpm lint` 和 `pnpm build` 多轮通过；测试覆盖 Web auth schema、加密 cookie session、CSRF、public session 不暴露 token、BFF login/refresh/logout/session、runtime/tools 认证代理、登录页 store、站内 redirect 和错误码/i18n 映射。
   构建保留上游 sourcemap、VueUse pure annotation、chunk size、BMP 资源和 Node deprecation warning，当前不阻塞。
 - Web/浏览器联调：远程未登录访问业务页跳转 `/login`；登录页桌面与移动端截图验证通过；真实登录链路中 `xxldm / xxldm` 可通过 Web BFF 登录，public session 不泄露 token，登录后 runtime/tools 请求通过，登出后受保护请求返回 401。
+- Web 认证失效兜底验证：2026-06-23 运行 Web 聚合验证通过；聚焦测试覆盖 `auth-required` 错误识别、auth store 本地过期状态、工作台布局 load/save 收到认证失效后清空状态，以及 `$hdxApi` 对当前页业务接口认证过期的登录跳转。
+- Web 重定向循环回归验证：2026-06-23 聚焦测试覆盖 `$hdxApi` 不在 SSR 期间发起路由跳转，以及 `auth.global` 遇到本地 `auth.sessionExpired` 时允许停留在登录页。
+- Web SSR session invalidation 验证：2026-06-23 运行 `scripts/web-verify.ps1 -Build` 通过，覆盖 Web 空白检查、119 个 Vitest 测试、Nuxt typecheck、ESLint 和生产构建。新增测试覆盖 authenticated backend fetch 遇后端 401 后 refresh 成功重试、refresh 救不回来时清 session cookie、SSR `$hdxApi` 收到业务接口 `auth-required` 时最外层响应执行清 cookie，以及登录页守卫在 `auth.sessionExpired` 标记下不回跳首页。
 - 配置/契约验证：auth-service 与 gateway OpenAPI 快照、expected schema 和生成 TypeScript 类型已同步 `ApiErrorResponse`；真实 Nacos 已确认 gateway 不再需要废弃 `hdx.gateway.routes.auth-uri`。根仓库和后端子仓库 `git diff --check` 通过，仅保留 Git for Windows 换行提示。
 - 质量门禁：最近一次认证错误响应与安全链收口运行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope changed -NoBuild -SkipDesktop` 通过；覆盖文档/Release/OpenAPI 契约检查、后端空白和 Maven 环境检查、Web 测试、typecheck 与 lint。`-NoBuild` 跳过 Web build，后端完整测试由同轮 Maven 命令覆盖。
 - 认证 review 收口验证：2026-06-22 运行 `mvn -pl :backend-auth-service -am test` 通过，覆盖 auth-service 51 个测试，包含 Testcontainers PostgreSQL migration 测试。

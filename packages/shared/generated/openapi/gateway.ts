@@ -37,6 +37,17 @@ export interface ToolRecordResponse {
   updatedAt: string;
 }
 
+export interface WorkbenchLayoutConflictResponse {
+  baseVersion: number;
+  code: string;
+  currentVersion: number;
+  message: string;
+  resourceType: string;
+  serverLayout: WorkbenchLayoutResponse;
+  updatedAt: string;
+  updatedByUserId: string;
+}
+
 export interface WorkbenchLayoutHeaderRequest {
   description: boolean;
   icon: boolean;
@@ -55,6 +66,7 @@ export interface WorkbenchLayoutResponse {
   columns: number;
   gap: number;
   rows: number;
+  schemaVersion: number;
   version: number;
   widgets: WorkbenchLayoutWidgetResponse[];
 }
@@ -63,6 +75,7 @@ export interface WorkbenchLayoutSaveRequest {
   columns: number;
   gap: number;
   rows: number;
+  schemaVersion: number;
   version: number;
   widgets: WorkbenchLayoutWidgetRequest[];
 }

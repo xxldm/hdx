@@ -10,9 +10,9 @@
 
 <!-- active-plan-status:start -->
 - 何时读取：修改 Web 首页工具箱布局、模块组件接入、布局持久化或首页视觉风格时读取。
-- 当前状态：已按 ADR 0016 收口工作台布局后端事实源。`workbench_layout` 已拆分布局协议版本 `schemaVersion` 和记录乐观锁 `version`；保存冲突返回 `409`、冲突元数据和服务器当前布局；Web 会保留用户草稿，并支持 hover/focus/click 临时预览服务器布局。
-- 下一步：在真实模块继续接入前，推进账号级偏好持久化章程里的下一项，例如主题、语言、菜单固定或计时器预设持久化。
-- 主要剩余风险：当前工作区已有较多未提交 Web/后端改动；本轮只增量处理布局冲突，没有整理其它历史未提交内容。
+- 当前状态：已按 ADR 0016 收口工作台布局和计时器预设的后端事实源。计时器预设列表通过 `/api/v1/timer/preferences` 跨 Web/Desktop Online/Full 同步；正在运行、暂停、剩余时间和响铃确认仍是设备级 runtime，只保留在端侧本地状态。
+- 下一步：继续推进账号级偏好持久化章程里的下一项，优先评估主题、语言和顶栏固定菜单偏好是否合并为用户偏好 API，还是按模块拆分 API。
+- 主要剩余风险：除计时器外，真实业务 widget 尚未接入；账号级偏好仍分散在端侧本地状态，继续迁移前需要先确定偏好 API 粒度和 Desktop Full 本机数据库落点。
 <!-- active-plan-status:end -->
 
 ## 目标
@@ -54,6 +54,7 @@
 - [x] 保存布局时按基础版本校验，冲突返回 `409`、冲突元数据和服务器当前布局。
 - [x] Web 保存冲突时保留当前草稿，并提供服务器版本临时预览。
 - [x] 补充后端/Web 回归测试和契约验证。
+- [x] 计时器预设列表迁到后端事实源，Web 与 Desktop BFF 均通过 `/api/v1/timer/preferences` 读写；计时器运行态继续作为设备级状态保留端侧。
 
 ## 验收标准
 
@@ -140,6 +141,7 @@
 - 2026-06-23：按 ADR 0016 补齐 `workbench_layout` 普通读取过滤 `deleted=false`；当前没有开放删除布局功能，测试通过 JDBC 模拟软删除记录，确认服务端会把软删除布局视为不可用并回到未保存默认布局。
 - 2026-06-23：为避免后续再次偏离 JPA 默认风格，新增 `docs/BACKEND_DATA_ACCESS.md` 和 `scripts/check-backend-data-access.ps1`。后端验证会对变更 Java 文件提示 `@Query`、JDBC、显式锁、手动版本递增和 Entity 缺少 `@Version` 等需确认项；当前脚本只提醒不失败。
 - 2026-06-23：将 `workbench_layout.record_version` 接回 JPA `@Version`，移除 Repository 手写 JPQL 和悲观锁查询；保存时仍先比较客户端基础版本以返回结构化 409，最终版本递增交给 Hibernate。`workbench_layout_widget` 继续作为父布局从属明细例外，不单独加记录版本。
+- 2026-06-23：按 ADR 0016 继续迁移计时器预设。后端新增 `timer_preference` 父表和 `timer_preset` 从属明细，父表使用 JPA `@Version`、审计字段和软删除过滤；Web 通过 Nuxt BFF 读写预设定义，Desktop Rust BFF 同步补齐 Full/Online command；运行中计时状态、暂停、剩余时间和响铃确认不跨设备同步。
 
 ## 验证结果
 
@@ -170,6 +172,7 @@
 - 2026-06-23：布局冲突收口后通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`mvn -pl backend-gateway -am '-Dtest=GatewayOpenApiDocumentationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`pnpm test tests/unit/workbench-layout-store.test.ts tests/unit/api-error.test.ts tests/unit/schemas.test.ts tests/server/authenticated-backend-fetch.test.ts`、`pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1` 和 `pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1`。其中首次 `openapi-verify -RefreshSnapshots -GenerateTypes` 因 gateway target spec 尚未重新生成而拿到旧快照，补跑 gateway OpenAPI 文档测试后通过；首次 Web/OpenAPI 对齐因检查文件仍按旧版本字段收窄失败，已同步为 `schemaVersion` 收窄并纳入冲突响应。
 - 2026-06-23：补齐 `workbench_layout.deleted=false` 查询过滤后，重新通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`；工作台布局测试 9 个用例全绿。
 - 2026-06-23：JPA 数据访问风格收口后重新通过 `mvn -pl backend-core -am '-Dtest=WorkbenchLayoutServiceTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`、`pwsh -NoLogo -NoProfile -File scripts/check-backend-data-access.ps1 -ChangedOnly` 和 `pwsh -NoLogo -NoProfile -File scripts/backend-verify.ps1 -NoBuild`。数据访问扫描仅剩 `WorkbenchLayoutWidget` 未声明 `@Version` 提醒，属于父布局从属明细例外。
+- 2026-06-23：计时器预设后端持久化通过 `pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1 -RefreshSnapshots -GenerateTypes`、`pwsh -NoLogo -NoProfile -File scripts/verify-changed.ps1 -Profile commit`（在 Web lint 的动态 delete 规则处失败，后端、OpenAPI 已通过）、`pwsh -NoLogo -NoProfile -File scripts/web-verify.ps1 -WebRoot D:\Project\hdx\apps\web`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-full`、`cargo check --manifest-path apps/desktop/src-tauri/Cargo.toml --features flavor-online` 和最终 `pwsh -NoLogo -NoProfile -File scripts/openapi-verify.ps1`。本轮未跑 Web build 和后端 AOT smoke。
 - 浏览器验证：Chrome 已打开 `http://localhost:3000/`；确认头像菜单可打开并点外部关闭、编辑态可打开、整卡拖动排序可提交、右下角拖动缩放可实时改变跨行跨列，且缩放时卡片保持透明度反馈而不是变白。2026-06-18 用户确认“快捷入口”挤压与回位的手感已明显改善，当前感觉不错；同时确认当前范围不要求手机 Web 适配，但后续仍保留桌面宽度触摸输入。
 - 构建 warning：仍有 Nuxt/Tailwind sourcemap、VueUse Rollup PURE 注释、chunk > 500 kB 和 DEP0155 trailing slash export warning；本轮未改变这些既有工具链风险。
 
@@ -193,3 +196,6 @@
 - `78f455c 重构：抽取 Web 共享视觉样式`（`apps/web`）
 - `1d58b5d 杂项：移除工作台占位组件`（`apps/web`）
 - `8e2ca8e 修复：同步工作台默认布局`（`services/backend`）
+- `03e9c5f 功能：新增计时器预设后端持久化`（`services/backend`）
+- `ab703cd 功能：接入计时器预设同步`（`apps/web`）
+- `3d6bfe8 功能：接入计时器预设桌面转发`（`apps/desktop`）

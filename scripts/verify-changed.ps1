@@ -20,6 +20,8 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BackendRoot = Join-Path $RepoRoot 'services/backend'
 $WebRoot = Join-Path $RepoRoot 'apps/web'
 $DesktopRoot = Join-Path $RepoRoot 'apps/desktop'
+$InternalDocsRoot = Join-Path $RepoRoot 'internal-docs'
+$InternalDocsSafeDirectory = $InternalDocsRoot.Replace('\', '/')
 $PowerShellCommand = (Get-Process -Id $PID).Path
 if ([string]::IsNullOrWhiteSpace($PowerShellCommand)) {
     $PowerShellCommand = 'pwsh'
@@ -100,6 +102,55 @@ function Invoke-RootGitDiffCheck {
         -Arguments @('diff', '--check')
 }
 
+function Test-InternalDocsCheckout {
+    return (Test-Path -LiteralPath (Join-Path $InternalDocsRoot '.git'))
+}
+
+function Test-InternalDocsGitAvailable {
+    if (-not (Test-InternalDocsCheckout)) {
+        return $false
+    }
+
+    $null = & git -c "safe.directory=$InternalDocsSafeDirectory" -C $InternalDocsRoot status --porcelain=v1 2>$null
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+    return $exitCode -eq 0
+}
+
+function Test-InternalDocsHasChanges {
+    if (-not (Test-InternalDocsGitAvailable)) {
+        return $false
+    }
+
+    $output = & git -c "safe.directory=$InternalDocsSafeDirectory" -C $InternalDocsRoot status --porcelain=v1
+    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
+    if ($exitCode -ne 0) {
+        return $false
+    }
+    return @($output).Count -gt 0
+}
+
+function Invoke-InternalDocsDiffCheck {
+    if (-not (Test-InternalDocsGitAvailable)) {
+        if (Test-Path -LiteralPath $InternalDocsRoot) {
+            Write-Host '跳过：internal-docs 不可作为 Git 工作树读取，可能未检出、没有私有仓库权限或 Git ownership 不匹配；仅检查主仓库子模块指针。'
+        }
+        return
+    }
+
+    $arguments = @('-c', "safe.directory=$InternalDocsSafeDirectory", '-C', $InternalDocsRoot, 'diff', '--check')
+    if ($DryRun) {
+        Write-Section '内部文档空白检查'
+        Write-Host "预览命令：$(Format-CommandLine -Command 'git' -Arguments $arguments)"
+        return
+    }
+
+    Invoke-Step `
+        -Title '内部文档空白检查' `
+        -WorkingDirectory $RepoRoot `
+        -Command 'git' `
+        -Arguments $arguments
+}
+
 function Invoke-TargetedDocChecks {
     param(
         [Parameter(Mandatory = $true)][string[]]$RootPaths,
@@ -107,6 +158,15 @@ function Invoke-TargetedDocChecks {
     )
 
     Invoke-RootGitDiffCheck
+
+    $internalDocsChanged = Test-AnyPathChanged -Paths $RootPaths -Prefixes @('internal-docs')
+    if (Test-InternalDocsHasChanges) {
+        $internalDocsChanged = $true
+    }
+
+    if ($internalDocsChanged) {
+        Invoke-InternalDocsDiffCheck
+    }
 
     if (Test-AnyPathChanged -Paths $RootPaths -Prefixes @('docs/plans')) {
         Invoke-VerificationStep `
@@ -223,6 +283,7 @@ $desktopChanged = -not $SkipDesktop -and (
 )
 $docsChanged = -not $SkipDocs -and (Test-AnyPathChanged -Paths $rootPaths -Prefixes @(
     'docs',
+    'internal-docs',
     'packages/shared',
     'scripts',
     'README.md',

@@ -9,7 +9,7 @@ param(
     [switch]$IncludeOpenApi,
     [switch]$NoBuild,
     [switch]$DryRun,
-    [string]$JavaHome = 'D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1',
+    [string]$JavaHome = 'D:\JetBrains\.jdks\graalvm-25.1.3+9.1',
     [string]$MavenPath = 'D:\JetBrains\.m2\apache-maven-3.8.8\bin\mvn.cmd'
 )
 

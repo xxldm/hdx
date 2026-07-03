@@ -1,7 +1,7 @@
 param(
     [string]$BackendRoot = '',
     [string[]]$EnvPath = @('.env.local'),
-    [string]$JavaHome = 'D:\JetBrains\.jdks\graalvm-jdk-25.0.3+9.1',
+    [string]$JavaHome = 'D:\JetBrains\.jdks\graalvm-25.1.3+9.1',
     [string]$MavenPath = 'D:\JetBrains\.m2\apache-maven-3.8.8\bin\mvn.cmd',
     [string]$RunRoot = '',
     [string]$AuthBaseUrl = '',

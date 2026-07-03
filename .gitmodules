@@ -7,3 +7,6 @@
 [submodule "apps/desktop"]
 	path = apps/desktop
 	url = https://github.com/xxldm/hdx-desktop.git
+[submodule "internal-docs"]
+	path = internal-docs
+	url = https://github.com/xxldm/hdx-internal-docs.git

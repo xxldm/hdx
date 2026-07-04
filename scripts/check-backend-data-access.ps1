@@ -117,9 +117,9 @@ $checks = @(
     }
 )
 
-$files = Get-JavaFiles | Where-Object {
+$files = @(Get-JavaFiles | Where-Object {
     $IncludeTests -or -not (Test-IsTestFile -Path $_.FullName)
-}
+})
 
 Write-Host '后端数据访问风格检查'
 Write-Host "后端目录：$BackendRoot"

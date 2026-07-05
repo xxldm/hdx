@@ -7,6 +7,7 @@ param(
     [switch]$SkipWhitespace,
     [switch]$SkipDataAccess,
     [switch]$SkipBoot4Jackson,
+    [switch]$SkipRuntimeBoundaries,
     [switch]$SkipTest
 )
 
@@ -53,6 +54,7 @@ Write-Host "AotSmoke: $AotSmoke"
 Write-Host "SkipWhitespace: $SkipWhitespace"
 Write-Host "SkipDataAccess: $SkipDataAccess"
 Write-Host "SkipBoot4Jackson: $SkipBoot4Jackson"
+Write-Host "SkipRuntimeBoundaries: $SkipRuntimeBoundaries"
 Write-Host "SkipTest: $SkipTest"
 
 if (-not $SkipWhitespace) {
@@ -89,6 +91,19 @@ if (-not $SkipBoot4Jackson) {
             '-NoProfile',
             '-File',
             (Join-Path $BackendRoot 'scripts/check-boot4-jackson.ps1')
+        )
+}
+
+if (-not $SkipRuntimeBoundaries) {
+    Invoke-Step `
+        -Title '后端运行形态依赖边界检查' `
+        -WorkingDirectory $BackendRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $BackendRoot 'scripts/check-runtime-boundaries.ps1')
         )
 }
 

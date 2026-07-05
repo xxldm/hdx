@@ -94,6 +94,17 @@ function Invoke-DocChecks {
         -Command 'git' `
         -Arguments @('diff', '--check')
 
+    Invoke-Step `
+        -Title '公开文档边界检查' `
+        -WorkingDirectory $RepoRoot `
+        -Command $PowerShellCommand `
+        -Arguments @(
+            '-NoLogo',
+            '-NoProfile',
+            '-File',
+            (Join-Path $RepoRoot 'scripts/check-public-doc-boundary.ps1')
+        )
+
     if (Test-InternalDocsGitAvailable) {
         Invoke-Step `
             -Title '内部文档空白检查' `

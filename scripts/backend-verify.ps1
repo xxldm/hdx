@@ -116,14 +116,14 @@ if (-not $SkipTest) {
 
 if ($AotSmoke) {
     Invoke-Step `
-        -Title '后端 all-in-one AOT 打包 smoke' `
+        -Title '后端 AOT 打包 smoke' `
         -WorkingDirectory $BackendRoot `
         -Command $MavenPath `
-        -Arguments @('-pl', ':backend-all-in-one', '-am', '-Pnative', 'package', '-DskipTests', '-Dnative.skip=true') `
+        -Arguments @('-Pnative', 'package', '-DskipTests', '-Dnative.skip=true') `
         -Environment $toolEnv
 }
 else {
-    Write-Host '跳过：未传 -AotSmoke，已跳过后端 all-in-one AOT 打包 smoke。'
+    Write-Host '跳过：未传 -AotSmoke，已跳过后端 AOT 打包 smoke。'
 }
 
 Write-Section '后端聚合验证完成'

@@ -1,0 +1,9 @@
+# Nacos Data ID: hdx-database.yml
+# Group: DEFAULT_GROUP
+# 内容只放后端服务共用的非密钥数据库配置；数据库密码通过环境变量或部署 Secret 注入。
+# 某个服务需要单独数据库或用户名时，可以在自己的服务 Data ID 中覆盖 spring.datasource.url 或 spring.datasource.username。
+
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres.example.internal:5432/hdx
+    username: hdx

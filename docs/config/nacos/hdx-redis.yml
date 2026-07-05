@@ -1,0 +1,18 @@
+# Nacos Data ID: hdx-redis.yml
+# Group: DEFAULT_GROUP
+# 内容只放 Redis 非密钥配置；Redis 密码通过服务启动环境变量注入。
+
+spring:
+  data:
+    redis:
+      host: 127.0.0.1
+      port: 6379
+      database: 0
+      timeout: 2s
+
+hdx:
+  security:
+    jwt:
+      revocation:
+        enabled: true
+        key-prefix: hdx:auth

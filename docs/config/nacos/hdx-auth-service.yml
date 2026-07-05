@@ -1,0 +1,29 @@
+# Nacos Data ID: hdx-auth-service.yml
+# Group: DEFAULT_GROUP
+# 内容只放认证服务自己的非密钥配置；公共数据库配置默认来自 hdx-database.yml。
+# 如果认证服务需要单独数据库或用户名，可以在本 Data ID 中覆盖 spring.datasource.url 或 spring.datasource.username。
+
+server:
+  port: 18082
+
+spring:
+  security:
+    oauth2:
+      authorizationserver:
+        issuer: https://auth.example.com
+  flyway:
+    schemas: auth
+    default-schema: auth
+
+hdx:
+  runtime:
+    topology: auth-service
+  auth:
+    tokens:
+      access-token-ttl: 15m
+      refresh-token-ttl: 7d
+      revocation-ttl-skew: 1m
+    login-security:
+      max-failures: 5
+      failure-window: 15m
+      cooldown: 15m

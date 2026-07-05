@@ -1,0 +1,4 @@
+interface:
+  display_name: "HDX Backend Data Access"
+  short_description: "HDX 后端 JPA/JDBC、乐观锁和软删除规则入口"
+  default_prompt: "使用 HDX 后端数据访问规则检查 Entity、Repository、migration 或冲突处理实现。"

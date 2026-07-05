@@ -26,6 +26,7 @@
 
 - 后端、Web、Desktop、App、基础设施、公开许可和发布边界已有 ADR 约束；调整技术栈或职责前必须补 ADR。
 - 公开主仓库历史按敏感路径裁剪；旧公开历史恢复点在私有子模块 `internal-docs/archives/`，不要从公开仓库旧 refs 推回旧历史。
+- 公开文档边界检查的通用入口在 `scripts/check-public-doc-boundary.ps1`；私有精确规则在 `internal-docs/config/public-doc-boundary-rules.psd1`，没有私有仓库权限时脚本会跳过该规则文件。
 - `services/backend` 后续维持私有仓库；公开主仓库禁止提交后端源码快照、JAR/WAR、`.class` 或后端构建中间产物。
 - 公开 Release 后端包只发布 native，不发布 JVM JAR/WAR、`.class` 或源码快照；JVM 只作为开发、测试、CI 或内部排障形态。
 - 后端交付形态分为 Desktop Full 本机后端、服务端微服务部署和服务端单体部署；服务/模块名称可以在公开部署模板、OpenAPI 和 release 包中出现，具体依赖、调用链、配置加载细节和验证入口只在后端私有文档维护。

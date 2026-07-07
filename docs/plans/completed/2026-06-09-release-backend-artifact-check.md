@@ -64,7 +64,7 @@
 - `gh workflow run check-release-backend-artifact.yml --repo xxldm/hdx --ref main ...`
 - `gh run watch <run_id> --repo xxldm/hdx --exit-status`
 
-## 风险与阻塞
+## 过程记录
 
 - 本轮验证使用的后端 artifact `7500484195` 保留期为 1 天，过期时间 `2026-06-10T06:52:18Z`；后续复跑同一验证如果 artifact 过期，需要重跑后端 native workflow。
 - 正式 release workflow 仍未实现；本轮只是下载和校验切片。
@@ -90,7 +90,7 @@
 - `gh run view 27190000244 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，`headSha=f5fd55a527e070a24c6108e8819110c43fdc44e3`，job `80267675961` 成功。
 - `gh run view 27190000244 --repo xxldm/hdx --log | Select-String ...`：通过，关键日志包含 `artifact 定位通过`、`Release manifest 校验完成` 和 `后端 Actions artifact 下载内容校验通过`。
 
-## 剩余风险
+## 归档备注
 
 - 正式 release workflow、draft Release、Release asset 上传、`backend-services` 和 Windows native artifact 仍未实现。
 - OpenAPI snapshot 集合 hash 算法仍未固化；本轮沿用后端 artifact 生产入口显式传入的 hash。

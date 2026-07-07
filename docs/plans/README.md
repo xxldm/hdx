@@ -5,7 +5,8 @@
 ## 目录
 
 - `active/`：进行中的计划。
-- `completed/`：已完成的计划；可能保留历史后端细节用于审计，但不作为当前后端事实源。
+- `follow-up/`：主体工作已结束，但仍有明确后续风险、待验证项、清理项或需要观察的问题。
+- `completed/`：真正结束的历史快照；默认不主动读取，不作为当前事实源，且不应保留当前仍需处理的剩余风险。
 - `tech-debt-tracker.md`：已知技术债。
 
 ## 与外部任务系统的关系
@@ -54,7 +55,23 @@
 
 推荐使用 `docs/plans/TEMPLATE.md` 创建新计划。
 
-## 状态显示与同步
+## 计划状态
+
+计划目录的状态语义：
+
+- `active/`：正在推进或近期会继续推进。后续智能体判断当前工作时默认读取索引，再按需打开具体计划。
+- `follow-up/`：主体工作已结束，但还有明确残留风险、待验证项、清理项或观察项。它不算正在实施，但判断下一步时需要看。
+- `completed/`：历史快照。它只记录已经真正结束的工作、最终结论和最终验证；默认不主动读取。
+
+流转规则：
+
+- active 工作结束且没有当前残留事项时，移动到 `completed/`。
+- active 工作主体结束但仍有当前残留事项时，移动到 `follow-up/`。
+- follow-up 的残留事项处理完后，再移动到 `completed/`。
+- 小而跨计划的清理债务可以放 `tech-debt-tracker.md`，不必单独开 follow-up。
+- 后续从 active 或 follow-up 移动到 completed 前，必须先确认没有当前剩余风险；completed 中不再记录待处理风险。
+
+## Active 状态显示与同步
 
 - 进行中的计划必须在文件顶部维护 `active-plan-status` 状态块，字段固定为“何时读取”“当前状态”“下一步”“主要剩余风险”。
 - `docs/plans/active/README.md` 的状态表由 `scripts/sync-active-plan-status.ps1` 从各 active plan 状态块生成；不要手写编辑索引表。
@@ -62,6 +79,5 @@
 - 主要步骤完成、遇到阻塞、验证完成、最终回复前，都必须同步更新计划状态和状态记录。
 - 验证缺口、临时债务、风险、回滚条件和相关 commit 发生变化时，也必须更新本地计划。
 - 提交前运行 `pwsh -NoLogo -NoProfile -File scripts/sync-active-plan-status.ps1 -Check`，或运行包含该检查的 `scripts/quality-gate.ps1 -Scope docs`。
-- 完成后的计划应移动到 `docs/plans/completed/`，并保留关键决策和验证结果。
-- completed plan 只保留历史审计价值，不继续追加新的后端内部实现细节。当前后端实现、职责拆分、调用关系、迁移、基础设施适配、native/AOT 诊断或验证命令以 `services/backend/README.md` 与 `services/backend/docs/README.md` 为准。
+- completed plan 只保留历史审计价值，不继续追加当前结论或新的后端内部实现细节。当前后端实现、职责拆分、调用关系、迁移、基础设施适配、native/AOT 诊断或验证命令以 `services/backend/README.md` 与 `services/backend/docs/README.md` 为准。
 - 如果完成后仍需保留在 `active/`，必须在计划中明确记录原因和下一次清理条件。

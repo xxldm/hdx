@@ -19,14 +19,15 @@
 - `apps/desktop/`：Desktop 子模块，Tauri + Rust + Vite + TypeScript；Full 使用本机 sidecar，Online 连接远端服务。
 - `apps/mobile/`：App 工程容器；后续 Android Kotlin + HarmonyOS NEXT ArkTS，首版 Online only。
 - `packages/shared/`：跨端契约、OpenAPI 生成类型、release manifest schema 和常量说明；当前不是可安装包。
-- `docs/`：事实源、约束、计划和 ADR。
-- `internal-docs/`：内部私有文档子模块；放不适合公开的实现计划、权限矩阵、数据模型、接口草案、通知调度、公开治理和审计策略。
+- `docs/`：根项目文档，覆盖除后端内部实现以外的入口、约束、ADR、计划、公开契约、部署配置和未归档讨论结论。文档分层边界见 `docs/DOCUMENTATION_BOUNDARY.md`。
+- `services/backend/docs/`：后端项目文档，覆盖后端内部 ADR、计划、数据模型、接口草案、通知调度、治理、诊断和验证细节。
 
 ## 当前事实
 
 - 后端、Web、Desktop、App、基础设施、公开许可和发布边界已有 ADR 约束；调整技术栈或职责前必须补 ADR。
-- 公开主仓库历史按敏感路径裁剪；旧公开历史恢复点在私有子模块 `internal-docs/archives/`，不要从公开仓库旧 refs 推回旧历史。
-- 公开文档边界检查的通用入口在 `scripts/check-public-doc-boundary.ps1`；私有精确规则在 `internal-docs/config/public-doc-boundary-rules.psd1`，没有私有仓库权限时脚本会跳过该规则文件。
+- 公开主仓库历史按敏感路径裁剪；不要从公开仓库旧 refs 推回旧历史。
+- 公开文档边界检查的通用入口在 `scripts/check-public-doc-boundary.ps1`；后端私有精确规则在 `services/backend/docs/config/public-doc-boundary-rules.psd1`，没有后端私有仓库权限时脚本会跳过该规则文件。
+- 本机旧 `internal-docs` 子模块 Git 元数据已清理；清理前备份 bundle 见 `docs/plans/completed/2026-07-05-documentation-governance-and-migration.md`。
 - `services/backend` 后续维持私有仓库；公开主仓库禁止提交后端源码快照、JAR/WAR、`.class` 或后端构建中间产物。
 - 公开 Release 后端包只发布 native，不发布 JVM JAR/WAR、`.class` 或源码快照；JVM 只作为开发、测试、CI 或内部排障形态。
 - 后端交付形态分为 Desktop Full 本机后端、服务端微服务部署和服务端单体部署；服务/模块名称可以在公开部署模板、OpenAPI 和 release 包中出现，具体依赖、调用链、配置加载细节和验证入口只在后端私有文档维护。
@@ -55,14 +56,14 @@
 - 质量门禁、测试和提交前检查：`docs/QUALITY.md`。
 - 命令权限、PowerShell、提权失败处理：`docs/AGENT_WORKFLOW.md`。
 - Git 提交、推送、子模块指针：`docs/GIT.md`。
-- 本地计划规则：`docs/plans/README.md`；进行中计划先读 `docs/plans/active/README.md` 再按需打开具体计划。
-- 认证、权限、登录态、错误码：先读 `docs/plans/active/README.md`，必要时再读 `docs/plans/active/2026-06-06-auth-permission-boundary.md`。
-- 认证数据模型、`auth` schema、migration 和表字段：先读 `services/backend/README.md` 与 `services/backend/docs/README.md`；根仓库旧 `docs/AUTH_DATA_MODEL.md` 只作历史入口，不继续扩写。
+- 本地计划规则：`docs/plans/README.md`；进行中计划先读 `docs/plans/active/README.md`，再读 `docs/plans/follow-up/README.md`，然后按需打开具体计划。
+- 认证、权限、登录态、错误码：先读本文“当前重点”、`docs/ARCHITECTURE.md`、`docs/ENVIRONMENT.md` 和 `docs/adr/0005-auth-revocation-redis.md`；涉及后端实现、迁移、会话撤销、JWK 或测试细节时再读 `services/backend/README.md` 与 `services/backend/docs/README.md`。
+- 认证数据模型、`auth` schema、migration 和表字段：先读 `services/backend/README.md` 与 `services/backend/docs/README.md`；根仓库不再保留认证表结构入口。
 - 后端实现、模块职责拆分、调用关系、运行拓扑、数据库迁移、基础设施适配、native/AOT 诊断或后端验证：先读 `services/backend/README.md` 与 `services/backend/docs/README.md`。根仓库只保留公开摘要和必要模块/服务名，不复制后端私有细节。
 - 后端 Entity、Repository、migration、JPA/JDBC、乐观锁、软删除和数据库访问风格：先使用 `.codex/skills/hdx-backend-data-access/SKILL.md`，再读 `docs/BACKEND_DATA_ACCESS.md` 和后端私有文档入口。
-- 用户数据持久化和跨端同步公开边界：`docs/adr/0016-user-data-persistence-and-sync-boundary.md`。现有后端表审计和迁移细节走 `services/backend/README.md` 与 `services/backend/docs/README.md`；根仓库旧 `docs/DATA_PERSISTENCE_AUDIT.md` 只作历史入口，不继续扩写。
+- 用户数据持久化和跨端同步公开边界：`docs/adr/0016-user-data-persistence-and-sync-boundary.md`。现有后端表审计和迁移细节走 `services/backend/README.md` 与 `services/backend/docs/README.md`；根仓库不再保留后端表审计入口。
 - 工具箱 widget registry、模块配置、设备运行态和 layout 边界：`docs/WORKBENCH_WIDGET_CONTRACT.md`，再按需读 `docs/plans/active/2026-06-16-web-toolbox-layout-grid.md`。
-- Todo、日程事项、规则生成、通知中心、公开主页、公开流或协作事项：公开产品方向先读 `docs/plans/active/2026-06-26-todo-rule-generated-tasks-and-notification-center.md`；涉及权限矩阵、数据模型、接口草案、通知调度、公开治理、同步规则或实现切片时读私有子仓库 `internal-docs/docs/plans/active/2026-06-26-todo-rule-generated-tasks-and-notification-center.md`。
+- Todo、日程事项、规则生成、通知中心、公开主页、公开流或协作事项：计划状态和公开摘要读 `docs/plans/active/2026-06-26-todo-rule-generated-tasks-and-notification-center.md`；尚未归档的公开讨论结论读 `docs/discussions/README.md`；涉及权限矩阵、数据模型、接口草案、通知调度、公开治理、同步规则或实现切片时读 `services/backend/docs/plans/README.md` 后再按需打开具体文档。
 - Release、后端 native artifact、GitHub Actions 产物复用、后端 standalone/local/services 交付边界：先读 `docs/plans/active/README.md`。
   公开交付边界读 `docs/adr/0017-backend-native-delivery-and-standalone-boundary.md`、`docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`；后端内部实现和验证细节读 `services/backend/docs/README.md`。
 - Desktop Full/Online、导入导出和备份包：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`、`docs/adr/0018-desktop-backup-import-export-boundary.md`，需要发布上下文时再读 release 计划。

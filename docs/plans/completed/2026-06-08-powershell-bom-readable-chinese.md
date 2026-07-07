@@ -58,7 +58,7 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`。
 - `git diff --check`。
 
-## 风险与阻塞
+## 过程记录
 
 - UTF-8 with BOM 会造成一次性整文件编码变更；diff 可能比逻辑改动更大。
 - 根目录 `.local.ps1` 属于忽略文件，只做本机整理，不作为仓库历史事实源。
@@ -79,7 +79,7 @@
 - `git diff --check`：通过；仅提示部分工作区文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，包含新增 PowerShell 脚本编码检查、Release manifest 校验、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 OpenAPI/Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - `U` 兼容函数在部分脚本中仍然保留，但其字符串内容已改为可读中文；后续可作为低风险清理单独移除。
 - `.local.ps1` 是 Git 忽略文件，本轮只在当前工作区做本机转换，不作为仓库历史事实源。

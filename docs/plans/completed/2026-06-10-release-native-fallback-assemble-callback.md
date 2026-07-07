@@ -74,7 +74,7 @@
 - 后端仓库：`58725b62525aa54d90230bf8830af10f13ee92c6`
 - 主仓库中间记录：`68990cadb91c01554fba32de58c5739c11fe44ba`
 
-## 剩余风险
+## 归档备注
 
 - 本切片没有远端实跑 native-image fallback，以避免额外消耗私有仓库 Actions 额度；该路径已通过 actionlint、reusable workflow 接线和 payload 生成逻辑检查，后续真实发版或专门验证时再实跑。
 - 主仓库 `release.yml` 仍只创建并校验 draft，不构建 Web/Desktop/App，也不自动 publish。

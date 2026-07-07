@@ -58,7 +58,7 @@
 - GitHub Actions smoke run `27257846087`：通过。后端 workflow 成功生成主仓库 `Contents: read` GitHub App token、checkout 主仓库、下载临时已发布 prerelease assets、调用 resolver、上传 `backend-source-resolution-v0.0.0-resolver-smoke.20260610143018` artifact。下载 artifact 后确认 `backendSourceMode=historical-release-asset`，并解析出 `backend-full/linux-x64` 与 `backend-services/linux-x64` 两个历史 asset 来源。
 - 最终 smoke 使用的临时主仓库 prerelease `v0.0.0-resolver-smoke.20260610143018` 已通过 `gh release delete ... --cleanup-tag` 清理。
 
-## 剩余风险
+## 归档备注
 
 - 自动历史复用第一版只检查最新一个合格 Release；如果它不匹配但更老 Release 可复用，当前仍会进入后续 native build 分支。
 - 匹配失败后尚未自动触发后端 native-image workflow。

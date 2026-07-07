@@ -15,8 +15,6 @@ $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 $BackendRoot = Join-Path $RepoRoot 'services/backend'
 $WebRoot = Join-Path $RepoRoot 'apps/web'
 $DesktopRoot = Join-Path $RepoRoot 'apps/desktop'
-$InternalDocsRoot = Join-Path $RepoRoot 'internal-docs'
-$InternalDocsSafeDirectory = $InternalDocsRoot.Replace('\', '/')
 $SubmoduleStatusScript = Join-Path $RepoRoot 'scripts/git-submodule-status.ps1'
 $PowerShellCommand = (Get-Process -Id $PID).Path
 if ([string]::IsNullOrWhiteSpace($PowerShellCommand)) {
@@ -48,20 +46,6 @@ function Assert-Tooling {
     }
 }
 
-function Test-InternalDocsCheckout {
-    return (Test-Path -LiteralPath (Join-Path $InternalDocsRoot '.git'))
-}
-
-function Test-InternalDocsGitAvailable {
-    if (-not (Test-InternalDocsCheckout)) {
-        return $false
-    }
-
-    $null = & git -c "safe.directory=$InternalDocsSafeDirectory" -C $InternalDocsRoot status --porcelain=v1 2>$null
-    $exitCode = if ($null -eq $LASTEXITCODE) { 0 } else { $LASTEXITCODE }
-    return $exitCode -eq 0
-}
-
 function Invoke-DocChecks {
     Write-Section '文档与根仓库检查'
     $docFiles = @(
@@ -82,10 +66,6 @@ function Invoke-DocChecks {
         Get-Content -LiteralPath $path -Raw | Out-Null
     }
 
-    $internalDocsReadme = Join-Path $InternalDocsRoot 'README.md'
-    if (Test-Path -LiteralPath $internalDocsReadme) {
-        Get-Content -LiteralPath $internalDocsReadme -Raw | Out-Null
-    }
     Write-Host '通过：关键文档可读取。'
 
     Invoke-Step `
@@ -104,17 +84,6 @@ function Invoke-DocChecks {
             '-File',
             (Join-Path $RepoRoot 'scripts/check-public-doc-boundary.ps1')
         )
-
-    if (Test-InternalDocsGitAvailable) {
-        Invoke-Step `
-            -Title '内部文档空白检查' `
-            -WorkingDirectory $RepoRoot `
-            -Command 'git' `
-            -Arguments @('-c', "safe.directory=$InternalDocsSafeDirectory", '-C', $InternalDocsRoot, 'diff', '--check')
-    }
-    elseif (Test-Path -LiteralPath $InternalDocsRoot) {
-        Write-Host '跳过：internal-docs 不可作为 Git 工作树读取，可能未检出、没有私有仓库权限或 Git ownership 不匹配；仅检查主仓库子模块指针。'
-    }
 
     Invoke-Step `
         -Title 'Active 计划状态索引检查' `
@@ -431,7 +400,6 @@ switch ($Scope) {
         $desktopChanged = (Test-PathChanged -Paths $rootPaths -Prefixes @('apps/desktop')) -or (Test-HasGitChanges -WorkingDirectory $DesktopRoot)
         $docsChanged = Test-PathChanged -Paths $rootPaths -Prefixes @(
             'docs',
-            'internal-docs',
             'packages/shared',
             'scripts',
             'README.md',

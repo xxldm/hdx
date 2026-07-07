@@ -52,7 +52,7 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
 
-## 风险与阻塞
+## 过程记录
 
 - HarmonyOS NEXT PC、平板、手机的具体工程结构、签名、发布和多设备适配验证仍需在创建工程骨架时确认。
 - Android/HarmonyOS NEXT 的离线缓存、草稿、同步队列和冲突处理只是能力路线，具体存储与同步策略后续需要单独设计。
@@ -70,7 +70,7 @@
 - 已执行 `rg -n "App 当前阶段仍不绑定|技术栈.*尚未决定|第三阶段|完整离线版|移动端本机后端|本机 HTTP 后端" docs apps/mobile`：未发现 App 技术栈未决策的旧状态；命中项均为明确不规划移动端本机后端、Full 模式或完整离线业务引擎的新边界，或 Desktop/后端历史记录。
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，覆盖文档 UTF-8、根仓库空白检查、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - Android 与 HarmonyOS NEXT 工程骨架尚未创建，工具链版本、目录结构和质量门禁入口需后续单独计划。
 - 移动端离线缓存/草稿的数据范围、存储、同步队列、冲突处理和加密策略尚未设计。

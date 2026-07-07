@@ -55,7 +55,7 @@
 - `packages/shared/contracts/release/` 下存在 4 个 schema 文件，且都是合法 JSON。
 - README 说明 4 个 manifest 的生产者、消费者、存放位置和校验边界。
 - ADR 0012 不再把 schema 定义描述为待办，而是引用 release contract 目录。
-- 总纲记录第 9 步 release manifest schema 已完成，剩余风险转为 workflow 实现、真实校验脚本和安装器策略。
+- 总纲记录第 9 步 release manifest schema 已完成，后续工作转为 workflow 实现、真实校验脚本和安装器策略。
 - 不修改任何子模块内部文件。
 
 ## 验证方式
@@ -66,7 +66,7 @@
 - `git diff --check`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 
-## 风险与阻塞
+## 过程记录
 
 - schema 对样例 manifest 的约束效果已由 2026-06-09 后续小步补齐验证，覆盖最小有效样例、schema 无效样例、sha256 不匹配样例和禁止文件扫描样例。
 - 后续 workflow 仍需接入真实 GitHub Actions artifact 下载、发布上下文一致性、Release 上传和跨包 sha256 对齐。
@@ -87,7 +87,7 @@
 - 已执行 `git diff --check`：通过；仅提示 Windows 行尾规则转换，不是空白错误。
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，包含文档 UTF-8、子模块状态、根仓库空白检查、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - 本轮定义的 schema 已有本地脚本校验和样例检查；后续 workflow 仍需把该校验接入真实 GitHub Actions artifact、Release asset 和 Desktop Full 打包产物。
 - 当前本地脚本覆盖 release schema 使用到的 JSON Schema 子集，不是通用 JSON Schema 引擎；schema 后续如引入新关键字，需要同步扩展脚本或重新评估外部校验器。

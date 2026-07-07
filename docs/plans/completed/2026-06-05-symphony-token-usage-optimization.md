@@ -48,7 +48,7 @@
 - `git diff --check -- WORKFLOW.md docs/plans/completed/2026-06-05-symphony-token-usage-optimization.md`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-symphony.local.ps1 -ValidateOnly`
 
-## 风险与阻塞
+## 过程记录
 
 - 权限失败预算会减少重复复现普通权限失败现场；首次失败必须写入本地计划作为补偿。
 - Workpad 摘要化后，仅看 Linear 无法获得完整长日志；通过 `详情位置` 指向本地计划补偿。
@@ -62,7 +62,7 @@
 
 - 已通过提交前文档差异检查；后续 `aa85556 杂项：统一权限失败重试规则` 继续把权限失败重试规则同步到仓库事实源。
 
-## 剩余风险
+## 归档备注
 
 - 未修改 Symphony 源码，因此权限失败重试次数依赖 Codex 遵循 `WORKFLOW.md` 和 `docs/GIT.md` 规则，而不是运行时硬限制。
 - 后续已通过 `aa85556 杂项：统一权限失败重试规则` 将同类规则沉淀到 `docs/GIT.md`；真实无人值守行为仍需后续 Symphony 任务持续观察。

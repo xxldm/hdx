@@ -64,7 +64,7 @@
 - `gh run watch <run_id> --repo xxldm/hdx --exit-status`
 - `gh run view <run_id> --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`
 
-## 风险与阻塞
+## 过程记录
 
 - 本轮验证依赖后端 artifact `7500484195`；该 artifact 过期时间为 `2026-06-10T06:52:18Z`，过期后需要重跑后端 native workflow。
 - GitHub App 必须安装到主仓库并具备 contents write 权限，否则 draft Release 创建或 asset 上传会失败。
@@ -98,7 +98,7 @@
 - `gh release view v0.0.0-artifact-test.2 --repo xxldm/hdx --json url,isDraft,tagName,targetCommitish,assets`：按预期失败，返回 `release not found`。
 - `gh api repos/xxldm/hdx/git/ref/tags/v0.0.0-artifact-test.2`：按预期失败，返回 404，确认对应 tag ref 不存在。
 
-## 剩余风险
+## 归档备注
 
 - 测试 draft Release `v0.0.0-artifact-test.2` 已按用户确认删除；对应 tag ref 也不存在。
 - 正式 publish、Web/Desktop/App 资产、`backend-services`、Windows native artifact、签名、公证、自动更新、release notes 和版本号策略仍未实现。

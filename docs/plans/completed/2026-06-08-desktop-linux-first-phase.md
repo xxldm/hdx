@@ -53,7 +53,7 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
 
-## 风险与阻塞
+## 过程记录
 
 - 当前验证环境是 Windows，只能验证 Rust/Tauri skeleton 在 Windows 下继续通过；Linux 真实编译、WebKitGTK 依赖、打包产物、桌面文件集成、AppImage/Deb/RPM 等需要后续在 Linux 环境验证。
 - 通用能力虽然进入 Windows + Linux 一期，但具体插件兼容性和桌面环境差异仍需逐项 spike。
@@ -71,7 +71,7 @@
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope desktop`：通过，覆盖 Desktop 静态骨架检查、Desktop 子仓库空白检查、TypeScript typecheck、Local flavor `cargo check` 和 Online flavor `cargo check`。
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，覆盖文档 UTF-8、根仓库空白检查、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - 当前环境是 Windows，Linux 真实编译、WebKitGTK 依赖、打包产物、桌面文件集成、AppImage/Deb/RPM 等仍需后续在 Linux 环境验证。
 - 自启动、通知、deep link、托盘、配置目录和导入导出的 Windows/Linux 插件兼容性与桌面环境差异仍需逐项 spike。

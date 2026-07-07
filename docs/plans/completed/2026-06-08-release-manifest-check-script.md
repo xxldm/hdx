@@ -62,7 +62,7 @@
 - `git diff --check`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 
-## 风险与阻塞
+## 过程记录
 
 - 当前脚本已由 2026-06-09 后续小步补齐 release schema 使用到的 JSON Schema 子集校验；它不是通用 JSON Schema 引擎，后续如果 schema 引入新关键字，需要同步扩展脚本或重新评估外部校验器。
 - `.tar.gz` 扫描依赖本机 `tar` 命令；如果环境缺失，脚本会给出明确错误。
@@ -83,7 +83,7 @@
 - `git diff --check`：通过；仅提示部分工作区文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过；确认 docs 质量门禁已运行 release manifest 默认校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - 当前脚本覆盖 release schema 使用到的 JSON Schema 子集，不是通用 JSON Schema 引擎；后续 schema 如引入新关键字，需要同步扩展脚本或重新评估外部校验器。
 - 当前禁止文件扫描支持目录、zip、tar/tar.gz/tgz；`.tar.gz` 依赖本机 `tar` 命令，环境缺失时会明确失败。

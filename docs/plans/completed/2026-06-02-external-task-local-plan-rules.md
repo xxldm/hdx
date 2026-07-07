@@ -53,7 +53,7 @@
 - 人工检查 `AGENTS.md`、`docs/CONSTRAINTS.md`、`docs/QUALITY.md`、`docs/GIT.md`、`docs/plans/README.md`、`docs/plans/TEMPLATE.md` 与 ADR 0004 口径一致。
 - 执行 `git diff --cached --check` 或等效 whitespace 检查。
 
-## 风险与阻塞
+## 过程记录
 
 - 当前没有外部任务链接，示例和模板必须保持占位，不伪造 Symphony/Linear 编号。
 - 本轮仅更新规则文档，不提供外部系统自动同步能力。
@@ -73,7 +73,7 @@
 - `rg` 关键规则词检查通过，确认外部任务、本地计划、状态同步和 commit 关联规则均有文档入口。
 - `git diff --cached --check` 通过。
 
-## 剩余风险
+## 归档备注
 
 - 本轮仅定义人工协作规则，尚未接入 Symphony/Linear 自动同步能力。
 - 本计划对应提交 hash 已由 Git 历史体现：`8143313 杂项：细化外部任务与本地计划规则`。

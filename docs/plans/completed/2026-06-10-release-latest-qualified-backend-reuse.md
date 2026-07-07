@@ -51,7 +51,7 @@
 - 后端仓库：`9ea1ba8fbed6cacce038706fb30c376a0d967f99`
 - 主仓库中间记录：`162abb82404f685f2403546c660ec35ac7d2826d`
 
-## 剩余风险
+## 归档备注
 
 - 只检查最新一个合格 Release 可能错过更老但可复用的 Release；这会导致后续进入 native build 分支，属于成本风险，不是正确性风险。
 - 后端 resolver 仍未实现 native build fallback 和回调主仓库 release assemble；这部分继续归入第 9 步正式 tag-only 发布链路。

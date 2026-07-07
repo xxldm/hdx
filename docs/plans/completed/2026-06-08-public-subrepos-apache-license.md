@@ -56,7 +56,7 @@
 - `git -C apps/desktop diff --check`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 
-## 风险与阻塞
+## 过程记录
 
 - `apps/web` 和 `apps/desktop` 是独立子仓库，需要先分别提交推送，再更新根仓库子模块指针。
 - Apache-2.0 不禁止商用或转售；防盗卖仍主要依赖后端私有、native-only、品牌保留和官方来源提示。
@@ -77,7 +77,7 @@
 - 已执行 `git diff --check`：通过。
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
-## 剩余风险
+## 归档备注
 
 - Apache-2.0 不禁止商用或转售；当前防盗卖主要依赖后端私有、native-only 发布边界、品牌保留和官方来源提示。
 - `apps/mobile` 当前不是独立子仓库；后续如果拆成 Android/HarmonyOS 或其他独立公开仓库，需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。

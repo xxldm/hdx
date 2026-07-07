@@ -61,7 +61,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
 
-## 风险与阻塞
+## 过程记录
 
 - 本轮只做设计记录，不验证真实 GitHub App 权限或跨仓库 artifact API。
 - GitHub App 创建、安装范围、secret 命名和 workflow action 版本仍需在实现前按 GitHub 当前能力确认。
@@ -80,7 +80,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，确认关键文档可读、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI 类型生成检查和 Web 类型对齐检查均通过。
 - `git diff --check`：通过，仅提示部分文件后续由 Git 接触时会按仓库行尾规则转换，不是空白错误。
 
-## 剩余风险
+## 归档备注
 
 - 本轮只做设计记录，没有创建 GitHub App、配置 secrets 或验证真实跨仓库 artifact 下载。
 - GitHub App 具体名称、安装范围、secret 命名和 token 生成 action 版本仍需在实现前确认。

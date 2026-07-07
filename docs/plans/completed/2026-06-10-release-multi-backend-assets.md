@@ -73,7 +73,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-assemble-backend-assets.ps1 -Sourc
 - 已执行 `git diff --check` 与 `git diff --cached --check`：通过。
 - 已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
-## 剩余风险
+## 归档备注
 
 - GitHub-hosted 真实多 artifact run 仍需后续用实际后端 artifact 验证。
 - OpenAPI snapshot hash 仍由调用方显式传入，统一计算入口需要后续单独收口。

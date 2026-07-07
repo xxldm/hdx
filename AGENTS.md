@@ -14,7 +14,10 @@
 ## 硬性规则
 
 - 仓库内项目文档默认使用中文编写；引用外部原文、协议字段、代码标识符和错误输出可以保留原文。
-- 公开主仓库文档只保留公开摘要、跨仓库路由、交付边界、公共契约和可公开操作说明。后端模块名、服务名、Nacos Data ID、OpenAPI 快照名和 release asset 名不作为敏感内容；Nacos、Redis、PostgreSQL、RabbitMQ、对象存储等外部工具也可以作为部署准备或环境依赖公开出现。不得公开后端内部调用链、适配器位置、公共工具模块的职责拆分和接入方式、迁移路径、基础设施实现细节、内部契约、诊断数据和验证流水账；这些默认写入 `services/backend/README.md` 或 `services/backend/docs/`。产品/权限/数据模型/接口/通知调度/公开治理等不适合公开的详案默认写入 `internal-docs/`。主仓库需要保留入口链接，但不要复制私有细节。
+- 文档按维护范围分为两套项目文档：根仓库 `docs/` 覆盖除后端内部实现以外的公开项目文档，`services/backend/docs/` 覆盖后端内部项目文档。
+- 用户可见规则、端侧 UI 规格、公开部署/契约信息、后端模块名、服务名、Nacos Data ID、OpenAPI 快照名和 release asset 名可以写入公开主仓库；Nacos、Redis、PostgreSQL、RabbitMQ、对象存储等外部工具也可以作为部署准备或环境依赖公开出现。
+- 不得在公开主仓库展开后端内部调用链、适配器位置、公共工具模块职责拆分和接入方式、迁移路径、基础设施实现细节、内部契约、诊断数据和验证流水账；这些默认写入 `services/backend/README.md` 或 `services/backend/docs/`。
+- 未归档讨论结论按范围临时写入 `docs/discussions/` 或 `services/backend/docs/discussions/`。具体规则见 `docs/DOCUMENTATION_BOUNDARY.md`。
 - 程序中面向人类显示或排障阅读的文字优先使用中文，包括 UI、日志、错误提示、命令行输出、通知、占位符和帮助文本；协议字段、代码标识符、标准错误码、第三方固定输出和外部原文可以保留原文。
 - 仓库内 PowerShell 脚本要求 PowerShell 7+ / `pwsh`，不支持 Windows PowerShell 5.1；脚本中的中文输出、错误提示和帮助文本必须直接写可读中文。
 - 不在框架未定阶段引入具体技术栈、包管理器、构建工具或运行时，除非已有经过记录的 ADR。

@@ -61,7 +61,7 @@
 - `gh release list --repo xxldm/hdx --limit 20 --json tagName,isDraft,isPrerelease`
   - 输出：`[]`
 
-## 剩余风险
+## 归档备注
 
 - 完整 tag push 到 publish 仍缺 Web/Desktop/App 构建和正式 publish。
 - 真实 tag push 触发后可能进入 native-image fallback，需注意私有仓库 Actions 额度。

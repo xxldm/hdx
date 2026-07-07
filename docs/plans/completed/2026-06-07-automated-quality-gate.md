@@ -55,7 +55,7 @@
 - 默认 changed 模式不会在没有相关改动时强制跑后端和 Web 全量验证。
 - all 模式能够按顺序跑根仓库检查、后端验证和 Web 验证。
 - 脚本失败时能明确显示失败命令和模块。
-- 质量文档记录脚本入口、适用范围、失败处理和剩余风险。
+- 质量文档记录脚本入口、适用范围、失败处理和归档备注。
 
 ## 验证方式
 
@@ -77,7 +77,7 @@
 - `[System.Management.Automation.PSParser]::Tokenize(...)`：通过，脚本 parse error 数量为 0。
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope changed -NoBuild`：通过；当前只检测到 docs/scripts 改动，因此只运行文档与根仓库检查，未触发后端或 Web 构建。
 
-## 剩余风险
+## 归档备注
 
 - 脚本首版只覆盖本地常用命令，不等同于远端 CI。
 - Web `pnpm` 在 Codex 普通权限下可能因读取用户目录触发 `EPERM`，需要按 `docs/GIT.md` 权限失败重试规则走提权。

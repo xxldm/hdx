@@ -61,7 +61,7 @@
 - `git diff --check`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 
-## 风险与阻塞
+## 过程记录
 
 - 本轮只固定设计边界，不验证真实 GitHub Actions artifact 下载、repository dispatch、Release 上传或跨仓库 token 权限。
 - 主仓库 Releases 公开后端 native 二进制后，用户可以下载和再分发 native 包；源码仍通过私有仓库边界保护。
@@ -82,7 +82,7 @@
 - 已执行 `git diff --check`：通过；仅提示 Windows 行尾规则转换，不是空白错误。
 - 已执行 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，包含文档 UTF-8、根仓库空白检查、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - 本轮只完成设计与文档，不实现真实 GitHub Actions workflow。
 - 后端 native manifest schema、本地禁止文件扫描和可选 Release asset sha256/size 校验已实现；真实 GitHub Actions artifact 下载权限、跨仓库触发方式、真实 release artifact 上下文一致性和 Release 上传尚未实现。

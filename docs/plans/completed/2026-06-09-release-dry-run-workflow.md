@@ -65,7 +65,7 @@
 - `gh run watch 27184350227 --repo xxldm/hdx --exit-status`
 - `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`
 
-## 风险与阻塞
+## 过程记录
 
 - dry-run 不初始化子模块，因此只能记录根仓库锁定的子模块指针，不能验证私有后端 artifact 或真实子模块 checkout。
 - 正式发布仍需要后续单独设计跨仓库触发、artifact 下载权限、真实 release asset 一致性、Release 上传、签名、公证、自动更新、release notes 和版本号策略。
@@ -94,7 +94,7 @@
 - `gh run watch 27184350227 --repo xxldm/hdx --exit-status`：通过，所有 job step 成功，未再出现 `actions/checkout@v4` 的 Node.js 20 弃用 annotation。
 - `gh run view 27184350227 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=8e66341feb32e1ea42a920785b5cc0577ae19686`。
 
-## 剩余风险
+## 归档备注
 
 - dry-run 不初始化子模块，因此只能记录根仓库锁定的子模块指针，不能验证私有后端 artifact 或真实子模块 checkout。
 - 正式发布仍需要后续单独设计跨仓库触发、artifact 下载权限、真实 release asset 一致性、Release 上传、签名、公证、自动更新、release notes 和版本号策略。

@@ -64,7 +64,7 @@ function Add-BoundaryRule {
 ) | ForEach-Object { Add-BoundaryRule -Rule $_ }
 
 if ([string]::IsNullOrWhiteSpace($PrivateRulesPath)) {
-    $PrivateRulesPath = Join-Path $RepoRoot 'internal-docs/config/public-doc-boundary-rules.psd1'
+    $PrivateRulesPath = Join-Path $RepoRoot 'services/backend/docs/config/public-doc-boundary-rules.psd1'
 }
 
 if (Test-Path -LiteralPath $PrivateRulesPath) {

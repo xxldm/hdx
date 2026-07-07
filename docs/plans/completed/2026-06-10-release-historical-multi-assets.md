@@ -74,7 +74,7 @@ pwsh -NoLogo -NoProfile -File scripts/release-assemble-historical-backend-assets
 - 已执行 `git diff --check` 与 `git diff --cached --check`：通过。
 - 已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
-## 剩余风险
+## 归档备注
 
 - 真实 GitHub-hosted 多历史 asset 复用仍需后续用主仓库历史 Release 验证。
 - 后端来源自动解析仍未实现，调用方仍需显式提供历史来源列表。

@@ -20,7 +20,7 @@
 
 ## 非目标
 
-- 不压缩仍作为具体实施交接的 active plan；总纲类 active plan 可以收敛为入口、当前状态、剩余风险和链接。
+- 不压缩仍作为具体实施交接的 active plan；总纲类 active plan 可以收敛为入口、当前状态、当前摘要和链接。
 - 不重写 completed plan 的历史验证记录；历史命令即使包含旧写法，也只作为当时执行记录保留。
 - 不改动子模块源码或发布 workflow 行为。
 
@@ -55,7 +55,7 @@
 - 二次扫描处理语义重复，不只处理超长行。
 - 将 `docs/CONSTRAINTS.md` 的技术基线段从 ADR 摘要合集收敛为硬约束和 ADR 索引。
 - 将 ADR 0008 至 ADR 0014 的通用验证样板收敛到 `docs/QUALITY.md` 和 `docs/AGENT_WORKFLOW.md`，ADR 内只保留自身需要确认的状态点。
-- 将 HDX 后续事项总纲压缩为当前状态、步骤入口、剩余风险和链接，移除已归档切片的 run id、artifact id、验证命令和历史流水账复述。
+- 将 HDX 后续事项总纲压缩为当前状态、步骤入口、当前摘要和链接，移除已归档切片的 run id、artifact id、验证命令和历史流水账复述。
 
 ## 验证结果
 
@@ -68,7 +68,7 @@
 - 已执行 `git diff --check`：通过，仅出现 Git for Windows 行尾提示。
 - 已执行 `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过，覆盖关键文档读取、根仓库空白检查、release manifest 校验、OpenAPI 契约检查、OpenAPI TypeScript 类型生成检查和 Web 类型对齐检查。
 
-## 剩余风险
+## 归档备注
 
 - 具体实施型 active plan 和 completed plan 中仍有长行、旧命令和历史状态描述；这些属于交接或历史验证记录，本轮不为了格式统一而删除。
 - `services/backend/README.md` 中存在较长的 Windows `cmd.exe` 验证命令，属于后端子仓库文档，本轮未改动。

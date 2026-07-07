@@ -63,7 +63,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`
 - `git diff --check`
 
-## 风险与阻塞
+## 过程记录
 
 - Windows PowerShell 5.1 将不再作为支持环境；未安装 PowerShell 7 的开发者需要先安装 `pwsh`。
 - 历史完成计划中仍会保留当时关于 5.1、BOM 和 `\uXXXX` 的记录，避免篡改历史。
@@ -85,7 +85,7 @@
 - `pwsh -NoLogo -NoProfile -File scripts/release-manifest-check.ps1 -ScanPath packages/shared/contracts/release`：通过。
 - `pwsh -NoLogo -NoProfile -File scripts/quality-gate.ps1 -Scope docs -NoBuild`：通过。
 
-## 剩余风险
+## 归档备注
 
 - Windows PowerShell 5.1 不再作为支持环境；未安装 PowerShell 7 的开发者需要先安装 `pwsh`。
 - `docs/plans/completed/` 中较早计划仍保留当时关于 5.1、BOM、`\uXXXX` 和旧 `powershell -NoProfile -ExecutionPolicy Bypass` 命令的历史记录，本轮不回写历史。

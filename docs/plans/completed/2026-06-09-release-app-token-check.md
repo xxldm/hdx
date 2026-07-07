@@ -61,7 +61,7 @@
 - `gh workflow run check-release-app-token.yml --repo xxldm/hdx --ref main -f backend_repo=xxldm/hdx-backend`
 - `gh run watch <run_id> --repo xxldm/hdx --exit-status`
 
-## 风险与阻塞
+## 过程记录
 
 - 如果 GitHub App 没有安装到 `xxldm/hdx-backend`，后端 metadata 检查会失败。
 - 如果 GitHub App 权限未包含 Actions read 或 Contents read，token 生成或 metadata 检查会失败。
@@ -90,7 +90,7 @@
 - `gh run view 27187218112 --repo xxldm/hdx --json status,conclusion,headSha,event,url,jobs`：通过，确认 `status=completed`、`conclusion=success`、`event=workflow_dispatch`、`headSha=fe632c825d668d79316651d4da395de9285bb2f9`。
 - `gh run view 27187218112 --repo xxldm/hdx --log | Select-String -Pattern "metadata 读取通过|deprecated|HDX Release App Token Check|status:"`：通过，确认后端仓库 metadata 和主仓库 metadata 均读取成功，且日志筛选未命中 `deprecated`。
 
-## 剩余风险
+## 归档备注
 
 - 本轮只验证 metadata 读取，不代表 artifact 列表读取、artifact 下载或 Release 创建已可用。
 - 真实 release workflow、后端 artifact 下载、draft Release 创建、asset 上传和 publish 仍需后续小步实现验证。

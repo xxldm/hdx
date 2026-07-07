@@ -46,7 +46,7 @@
 - `check-*`、`debug-*` 与正式 `release.yml` 的职责在 `.github/workflows/README.md` 中可区分。
 - 文档说明第一版仍不是完整 tag-only 发布链路。
 
-## 剩余风险
+## 归档备注
 
 - 第一版只支持单个后端 native asset 来源，不能一次聚合 `backend-full` Windows/Linux 与 `backend-services` Linux 默认发布集。
 - 正式 tag-only start、后端 release resolve、主仓库 assemble 自动触发、Web/Desktop/App 真实打包和 publish 仍需后续切片。

@@ -32,7 +32,7 @@
 - [x] 清理上轮 Web 验证副作用，或记录无法清理原因。
 - [x] 重跑后端 `validate`、`test`、`process-aot` 和 native profile package 入口。
 - [x] 重跑 Web `pnpm install`、`typecheck`、`lint`、`test`、`build`。
-- [x] 同步 Linear workpad 与本地计划的最终验证结果、剩余风险和相关 commit。
+- [x] 同步 Linear workpad 与本地计划的最终验证结果、归档备注和相关 commit。
 
 ## 验收标准
 
@@ -57,7 +57,7 @@
 - `pnpm test`
 - `pnpm build`
 
-## 风险与阻塞
+## 过程记录
 
 - 普通沙箱权限下，Git 写操作、Maven AOT 输出清理、pnpm 临时文件删除、Vitest 启动 esbuild 子进程和 Nuxt build 缓存清理仍会出现 `Permission denied`、`AccessDeniedException`、`EPERM` 或 `spawn EPERM`。这些步骤按授权流程提升后均已通过。
 - 后端与 Web 验证均有第三方工具 warning，当前未阻塞构建或测试。
@@ -85,7 +85,7 @@
 - Web `pnpm build`：普通权限失败于删除 `node_modules/.cache/nuxt/.nuxt/eslint.config.mjs`；提升后 build complete。
 - 最终 `git status --short --branch`：根仓库仅剩本计划文件变更；`apps/web` 与 `services/backend` 子模块工作树干净。
 
-## 剩余风险
+## 归档备注
 
 - 当前会话普通权限无法完整代表本机无提升权限的开发体验；验证结论是工具链在授权写入/删除/子进程权限下通畅。
 - 保留 warning：Java 25 restricted native access、Guava `Unsafe` deprecated、Mockito dynamic agent future behavior、pnpm ignored build scripts 提示、Nuxt/Tailwind sourcemap warning、Rollup pure annotation warning、Node `DEP0155` deprecation warning。它们未阻塞本轮验证命令。

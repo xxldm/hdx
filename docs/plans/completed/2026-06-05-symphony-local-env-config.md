@@ -48,7 +48,7 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-symphony.local.ps1 -ValidateOnly`
 - `git diff --check`
 
-## 风险与阻塞
+## 过程记录
 
 - `start-symphony.local.ps1` 是本地忽略文件，无法通过仓库提交同步到其他机器；其他机器需要按示例和说明自行配置本地启动脚本。
 - `.env.symphony.local` 当前只填了默认/空值，需要用户填入真实数据库密码等本机配置。
@@ -64,7 +64,7 @@
 - `powershell -NoProfile -ExecutionPolicy Bypass -File .\start-symphony.local.ps1 -ValidateOnly`：通过，输出已读取 Symphony 本地环境变量名。
 - `git diff --check`：已在提交前验证流程中通过。
 
-## 剩余风险
+## 归档备注
 
 - 本轮没有运行后端服务连接真实数据库；后续认证与 Nacos 联调已验证 `.env.local` 结合真实 Nacos/PostgreSQL/Redis 可启动后端链路。`.env.symphony.local` 仍只验证到 Symphony 启动脚本进程环境层。
 

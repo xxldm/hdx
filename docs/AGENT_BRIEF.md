@@ -37,7 +37,7 @@
 - Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态。
 - 客户端来源平级，不设主账号/次账号；Desktop Full 可以同时有本机数据、已登录服务端和匿名公开来源。跨来源不做移动、同步、智能合并或普通复制；本机与服务端只通过 ADR 0019 的在线迁移流程搬家，不再使用 `.hdxbak`。
 - App 不复用 Tauri，不内置本机后端；首版只连接远端认证入口与业务入口。
-- 用户数据持久化与同步边界见 ADR 0016：Web/Desktop Online 以后端为事实源，App 可弱网/无网暂存草稿后同步，Desktop Full 走本机数据库。
+- 用户数据持久化与同步边界见 ADR 0016：Web/Desktop Online 以后端为事实源，移动端 App 可弱网/无网暂存草稿后同步，Desktop Full 走本机数据库。
 - Tauri app config 只管纯客户端配置；计时器运行状态是设备级状态，不跨设备同步。
 - 错误响应以稳定 `code` 为跨端协议字段，后端中文 `message` 只是 fallback；UI 可以把多个 code 合并为粗粒度用户文案。
 

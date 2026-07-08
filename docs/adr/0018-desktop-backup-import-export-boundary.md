@@ -1,7 +1,11 @@
-# ADR 0018：Desktop Full/Online 备份导入导出边界
+# ADR 0018：Desktop Full/Online 备份导入导出边界（历史）
 
 - 日期：2026-07-04
-- 状态：已接受
+- 状态：已废弃，被 ADR 0019 替代
+
+> 本 ADR 只保留历史取舍。当前 Desktop Full、服务端账号和多来源迁移边界以
+> `docs/adr/0019-client-source-and-online-migration-boundary.md` 为准，不再使用 `.hdxbak`
+> 备份包、离线导入导出或普通备份导出作为产品方案。
 
 ## 背景
 

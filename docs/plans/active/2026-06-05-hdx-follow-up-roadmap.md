@@ -171,7 +171,7 @@
 - 第 3 步认证与权限边界仍有后续风险：Desktop Full 本机 token 与外部服务端登录态切换、登录安全增强、JWK 多实例刷新、RETIRED key 清理策略和 App 登录态尚未完成；持久 JWK 与运行期轮换管理已完成。
 - 第 5 步 OpenAPI 与 shared 层尚未选择正式生成器、让 Web 运行时代码消费生成类型或确定 `packages/shared` 可安装包结构。
 - 第 6 步 Desktop Full 本机 sidecar 最小启动、本机 token 读取、Rust BFF command 和退出清理已实现。
-  Desktop 静态 Web UI 启动闭环、Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和导入导出格式均未实现。
+  Desktop 静态 Web UI 启动闭环、Desktop Online 远端配置和远端 Rust BFF 认证转发已实现；自启动/通知/deep link/托盘、Win32 wallpaper mode spike 和在线迁移能力均未实现。
   Desktop Online 远端 Rust BFF 认证转发（登录/refresh/logout/业务请求）已实现，logout 已修复为配置不可读时也清理 Rust 主进程内存 token。
 - `apps/mobile` 当前仍不是独立子仓库；后续拆成公开仓库时需要补自身 Apache-2.0 `LICENSE`、`NOTICE` 和工程元数据许可声明。
 - 第 9 步 tag-only 预览发布和 Full Linux AppImage sidecar/API smoke 已由 `v0.0.0-preview.5` 验证通过；后端内部 GraalVM/native 与运行形态调整已迁入后端私有文档。公开剩余事项为远端 release native 复验、`backend-services-windows-x64`、真实安装包矩阵验证、完整 release artifact 上下文一致性、失败 draft 人工清理演练、stable 正式发布验证、安装器签名、公证、自动更新、release notes 和版本号策略。App 当前暂不进入发布闭环。

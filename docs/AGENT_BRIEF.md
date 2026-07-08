@@ -35,7 +35,7 @@
 - Web 浏览器不直接访问后端；浏览器调 Nuxt server BFF，Nuxt server 保存敏感 token。
 - Web 首页工具箱当前按桌面浏览器交互设计，不做手机 Web 专项适配；但关键操作仍需保留桌面宽度触摸输入的 tap 或显式入口兜底。
 - Desktop WebView 不保存本机 token、access token 或 refresh token；Desktop Rust BFF 负责持有本机 sidecar token 或远端登录态。
-- Desktop Full/Online 互相搬家只通过用户主动导入导出 `.hdxbak` 备份包，不做自动同步、迁移或合并；备份包不导出公开数据、token、会话、权限授予记录或治理记录。
+- 客户端来源平级，不设主账号/次账号；Desktop Full 可以同时有本机数据、已登录服务端和匿名公开来源。跨来源不做移动、同步、智能合并或普通复制；本机与服务端只通过 ADR 0019 的在线迁移流程搬家，不再使用 `.hdxbak`。
 - App 不复用 Tauri，不内置本机后端；首版只连接远端认证入口与业务入口。
 - 用户数据持久化与同步边界见 ADR 0016：Web/Desktop Online 以后端为事实源，App 可弱网/无网暂存草稿后同步，Desktop Full 走本机数据库。
 - Tauri app config 只管纯客户端配置；计时器运行状态是设备级状态，不跨设备同步。
@@ -66,7 +66,9 @@
 - Todo、日程事项、规则生成、通知中心、公开主页、公开流或协作事项：计划状态和公开摘要读 `docs/plans/active/2026-06-26-todo-rule-generated-tasks-and-notification-center.md`；尚未归档的公开讨论结论读 `docs/discussions/README.md`；涉及权限矩阵、数据模型、接口草案、通知调度、公开治理、同步规则或实现切片时读 `services/backend/docs/plans/README.md` 后再按需打开具体文档。
 - Release、后端 native artifact、GitHub Actions 产物复用、后端 standalone/local/services 交付边界：先读 `docs/plans/active/README.md`。
   公开交付边界读 `docs/adr/0017-backend-native-delivery-and-standalone-boundary.md`、`docs/RELEASE_RUNBOOK.md`、`docs/plans/active/2026-06-09-release-native-build-budget-and-reuse.md` 或 `docs/plans/active/2026-06-10-web-desktop-release-artifact-contract.md`；后端内部实现和验证细节读 `services/backend/docs/README.md`。
-- Desktop Full/Online、导入导出和备份包：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`、`docs/adr/0018-desktop-backup-import-export-boundary.md`，需要发布上下文时再读 release 计划。
+- Desktop Full/Online、多来源和在线迁移：`apps/desktop/README.md`、`docs/adr/0008-desktop-tauri-windows-linux-flavors.md`、`docs/adr/0019-client-source-and-online-migration-boundary.md`、`docs/discussions/multi-source-client-behavior.md`，需要发布上下文时再读 release 计划。
+- 注册、OAuth2 首次登录、账号迁出/注销：公开结论读 `docs/discussions/account-registration-oauth2-lifecycle.md`；涉及后端实现、表结构或迁移时读 `services/backend/docs/README.md`。
+- 离线暂存、冲突处理、写操作幂等和本地提醒兜底：公开结论读 `docs/adr/0016-user-data-persistence-and-sync-boundary.md` 与 `docs/discussions/offline-queue-conflict-and-reminders.md`；具体接口草案或实现切片以后端/端侧相关文档为准。
 - App：`apps/mobile/README.md`、`docs/adr/0009-mobile-native-online-first.md`。
 - OpenAPI/shared 契约：`packages/shared/README.md`、`docs/adr/0006-openapi-and-shared-contract-boundary.md`、`docs/adr/0007-openapi-typescript-generation-strategy.md`。
 - Nacos 配置：`docs/config/nacos/README.md` 和对应 `docs/config/nacos/*.yml` 模板。

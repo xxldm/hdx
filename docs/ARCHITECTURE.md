@@ -66,24 +66,24 @@ OpenAPI 与 shared 层边界见 ADR 0006 和 ADR 0007。
 - Shared 当前不是可安装包，端侧或后端运行时逻辑不得提前进入 shared。
 
 用户数据持久化与跨端同步边界见 ADR 0016。
-Desktop Full/Online 备份导入导出边界见 ADR 0018。
+客户端多来源与在线迁移边界见 ADR 0019。ADR 0018 是已废弃的历史备份包方案。
 
 - Web Online 和 Desktop Online 的登录用户数据以远端后端为事实源；接口不可用时显示不可用状态，不静默回退旧本地数据。
 - App 保持 Online first，但第二阶段允许弱网、无网暂存草稿，联网后按后端版本、幂等和冲突规则同步。
 - Desktop Full 使用本机后端和本机数据库保存业务数据、工作台布局、组件配置和模块数据；Tauri app config 只保存纯客户端配置。
-- Desktop Full 与 Desktop Online 互相搬家只通过用户主动导入导出 `.hdxbak` 备份包；不做自动同步、迁移或合并。`.hdxbak` 是 zip 容器，内部使用 manifest、分领域 NDJSON、checksum 和预留附件目录；备份包不导出公开数据、token、会话、权限授予记录或治理记录。
+- Desktop Full 可以同时拥有本机数据、已登录服务端和匿名公开来源；来源平级，不设主账号/次账号。跨来源不做移动、同步、智能合并或普通复制；本机与服务端只通过在线迁移搬家，不再使用 `.hdxbak` 或普通备份导出。
 - 计时器预设和组件配置可以作为用户数据同步；计时器运行状态属于设备级状态，不跨设备同步。
 
 Desktop 第一阶段技术与打包策略见 ADR 0008。
 
 - 技术栈为 Tauri + Rust + Vite + TypeScript，平台范围为 Windows + Linux 并列。
 - `apps/desktop` 只维护一套代码，Full/Online 通过构建 flavor、Tauri 配置变体和安装包内容区分。
-- `HDX Desktop Full` 后续包含本机后端 sidecar/native exe，仅离线本地模式，使用本机数据和固定本机身份。
+- `HDX Desktop Full` 后续包含本机后端 sidecar/native exe，提供本机数据能力和固定本机身份，同时可以连接已登录服务端和匿名公开来源。
 - Desktop Full 的用户业务数据、工作台布局、组件配置和模块数据进入本机数据库，不进入 Tauri app config。
 - Tauri app config 只保存开机自启、远端地址、窗口偏好、托盘偏好和本机 capability 开关等纯客户端配置。
 - 本机 token 只能在 Tauri/Rust 主进程和 Rust BFF command 边界内流转，不得暴露给 WebView 浏览器代码。
 - `HDX Desktop Online` 不包含本机后端，仅在线远程模式，连接远端认证入口与业务入口。
-- 自启动、通知、deep link、托盘、配置目录和导入导出应抽象为 Windows/Linux 通用 desktop capability。
+- 自启动、通知、deep link、托盘、配置目录和在线迁移应抽象为 Windows/Linux 通用 desktop capability。
 - 类似壁纸软件的桌面窗口嵌入定义为 Windows-only wallpaper mode，需要单独做 Win32 spike，不要求 Linux 提供等价能力。
 
 App 第一阶段技术栈与离线路线见 ADR 0009。
@@ -188,7 +188,7 @@ Web 浏览器代码不直接访问后端地址。
 - 真实 GitHub Actions release workflow 的完整实现、失败重试策略和人工发布确认体验；跨仓库凭据与 artifact 策略已由 ADR 0013 约束，当前仅有 release dry-run workflow 骨架。
 - Release notes 和版本号策略。
 - Desktop 自动更新、发布渠道，以及从首版未签名发布切换到签名发布的条件。
-- App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的具体存储、同步队列、冲突 UI 和加密策略。
+- App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的具体存储、同步队列、冲突 UI 和加密策略；当前公开讨论结论见 `docs/discussions/offline-queue-conflict-and-reminders.md`。
 
 ## 后端第一阶段架构
 

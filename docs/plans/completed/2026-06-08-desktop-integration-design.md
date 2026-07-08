@@ -5,7 +5,7 @@
 当前公开事实源：
 
 - `docs/adr/0008-desktop-tauri-windows-linux-flavors.md`
-- `docs/adr/0018-desktop-backup-import-export-boundary.md`
+- `docs/adr/0019-client-source-and-online-migration-boundary.md`
 
 后端本机 sidecar、运行入口和验证细节入口：
 

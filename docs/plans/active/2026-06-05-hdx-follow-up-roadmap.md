@@ -90,7 +90,7 @@
 
 目标：让 `apps/mobile` 从占位进入可实施设计。
 
-状态：已完成第一阶段技术路线。Android 采用 Kotlin + Jetpack Compose；HarmonyOS NEXT 采用 ArkTS + ArkUI；首版 Online only，第二阶段只规划离线缓存/离线草稿。详见 ADR 0009。
+状态：已完成第一阶段技术路线。Android 采用 Kotlin + Jetpack Compose；HarmonyOS NEXT 采用 ArkTS + ArkUI；首版 Online only，第二阶段只规划白名单离线暂存。详见 ADR 0009。
 
 ### 8. 缓存、对象存储、队列
 

@@ -69,7 +69,7 @@ OpenAPI 与 shared 层边界见 ADR 0006 和 ADR 0007。
 客户端多来源与在线迁移边界见 ADR 0019。旧 `.hdxbak` 备份包方案已删除，不再作为事实源。
 
 - Web Online 和 Desktop Online 的登录用户数据以远端后端为事实源；接口不可用时显示不可用状态，不静默回退旧本地数据。
-- App 保持 Online first，但第二阶段允许弱网、无网暂存草稿，联网后按后端版本、幂等和冲突规则同步。
+- 移动端 App 保持 Online first，但第二阶段允许弱网、无网白名单离线暂存，联网后按后端版本、幂等和冲突规则同步。
 - Desktop Full 使用本机后端和本机数据库保存业务数据、工作台布局、组件配置和模块数据；Tauri app config 只保存纯客户端配置。
 - Desktop Full 可以同时拥有本机数据、已登录服务端和匿名公开来源；来源平级，不设主账号/次账号。跨来源不做移动、同步、智能合并或普通复制；本机与服务端只通过在线迁移搬家，不再使用 `.hdxbak` 或普通备份导出。
 - 计时器预设和组件配置可以作为用户数据同步；计时器运行状态属于设备级状态，不跨设备同步。
@@ -92,7 +92,9 @@ App 第一阶段技术栈与离线路线见 ADR 0009。
 - HarmonyOS NEXT 后续采用 ArkTS + ArkUI，并面向 PC、平板、手机等多设备形态适配。
 - App 不复用 Desktop Tauri shell，不混入 Desktop Online，也不规划移动端本机 HTTP 后端服务。
 - App 首版只做 Online only，连接远端认证入口与业务入口。
-- 第二阶段只规划离线缓存和离线草稿，联网后同步提交；冲突处理遵守 ADR 0016 的版本、幂等和显式冲突原则。
+- 第二阶段只规划白名单离线暂存；只有本地可校验、可保存、可展示的操作进入本地数据库和待同步队列，联网后同步提交。
+- 规则生成、公开发布、协作、空间权限、账号安全和迁移等依赖后端编排或权限判断的功能，离线时提示联网后使用。
+- 冲突处理遵守 ADR 0016 的版本、幂等和显式冲突原则。
 
 缓存、对象存储与队列基础设施边界见 ADR 0010。
 
@@ -188,7 +190,7 @@ Web 浏览器代码不直接访问后端地址。
 - 真实 GitHub Actions release workflow 的完整实现、失败重试策略和人工发布确认体验；跨仓库凭据与 artifact 策略已由 ADR 0013 约束，当前仅有 release dry-run workflow 骨架。
 - Release notes 和版本号策略。
 - Desktop 自动更新、发布渠道，以及从首版未签名发布切换到签名发布的条件。
-- App Android/HarmonyOS NEXT 工程骨架细节、移动端离线缓存/草稿的具体存储、同步队列、冲突 UI 和加密策略；当前公开讨论结论见 `docs/discussions/offline-queue-conflict-and-reminders.md`。
+- App Android/HarmonyOS NEXT 工程骨架细节、移动端白名单离线暂存的具体存储、同步队列、冲突 UI 和加密策略；当前公开讨论结论见 `docs/discussions/offline-queue-conflict-and-reminders.md`。
 
 ## 后端第一阶段架构
 

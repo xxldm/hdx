@@ -13,4 +13,4 @@
 
 - `multi-source-client-behavior.md`：多来源显示、默认保存位置、来源状态和通知偏好。
 - `account-registration-oauth2-lifecycle.md`：注册配置、OAuth2 首次登录、迁出/注销账号生命周期。
-- `offline-queue-conflict-and-reminders.md`：离线暂存、冲突处理、幂等写操作和本地提醒兜底。
+- `offline-queue-conflict-and-reminders.md`：移动端离线暂存、冲突处理、幂等写操作和本地提醒兜底。
